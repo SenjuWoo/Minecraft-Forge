@@ -22,6 +22,8 @@ def main():
         for pattern in patterns:
             files.extend((ROOT / directory).rglob(pattern))
     payload = {path.relative_to(ROOT).as_posix(): path.read_bytes() for path in sorted(set(files))}
+    if "skills/minecraft-forge/SKILL.md" not in payload:
+        raise ValueError("Agent skill missing from toolkit source")
     payload["PACKAGE-MANIFEST.json"] = (json.dumps({"version": __version__, "files": {key: hashlib.sha256(data).hexdigest() for key, data in payload.items()}}, indent=2) + "\n").encode()
     output = ROOT / "dist" / f"Minecraft-Forge-{__version__}.zip"
     output.parent.mkdir(exist_ok=True)
