@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+local/
+dist/
+.gradle/
+.idea/
+*.log
+# Machine-local progress and pack evidence are not public project documentation.
+/STATE.md
+/PLAN.md
+/VALIDATION.md
+/WORKSPACE_OWNERSHIP.md

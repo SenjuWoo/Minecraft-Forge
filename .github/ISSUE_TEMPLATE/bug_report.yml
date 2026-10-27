@@ -1,0 +1,17 @@
+name: Bug report
+description: Report a reproducible toolkit problem
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and expected result
+      description: Include the command, actual error and a minimal input. Exclude credentials and private logs.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Toolkit commit, OS, Python, Java, Minecraft and NeoForge versions.
+    validations:
+      required: true

@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle",
+  "commit": "f7002b1b6011723c7b12fde95147689491a6ddab",
+  "url": "https://codeload.github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle/zip/f7002b1b6011723c7b12fde95147689491a6ddab",
+  "archive": "neoforge-1.21.1-mdk.zip",
+  "sha256": "3a72acbcc32c028b42014ebed2962dc9498ed493bb8883c7f97c4e310e439167",
+  "verified_date": "2026-10-27",
+  "minecraft": "1.21.1",
+  "neo_version": "21.1.265",
+  "java_major": 21,
+  "gradle": "9.2.1",
+  "gradle_distribution_sha256": "72f44c9f8ebcb1af43838f45ee5c4aa9c5444898b3468ab3f4af7b6076c5bc3f",
+  "gradle_wrapper_version": "8.14.3",
+  "gradle_wrapper_sha256": "7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172",
+  "licenses": [
+    "TEMPLATE_LICENSE.txt"
+  ]
+}
