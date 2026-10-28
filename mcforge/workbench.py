@@ -13,11 +13,15 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 import zipfile
 
 from . import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
+TESTING_FILES = ("build.gradle", "src/gameTest/java/TestMod.java", "src/gameTest/java/SmokeTests.java",
+                 "src/gameTest/java/ExampleRecipes.java", "src/gameTest/resources/META-INF/neoforge.mods.toml",
+                 "src/gameTest/resources/data/@MOD_ID@/structure/empty.nbt")
 JAVA_WORDS = set("abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null var record sealed permits yield _".split())
 
 
@@ -98,7 +102,7 @@ def guard_output(path: Path):
             raise ValueError("Launcher instances are read-only; select an owned development directory")
 
 
-def init_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str = "21.1.265") -> dict:
+def init_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str = "21.1.265", *, with_tests: bool = False) -> dict:
     destination = Path(os.path.abspath(destination))
     guard_output(destination)
     if destination.exists():
@@ -107,6 +111,8 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
         raise ValueError("Destination parent must already exist")
     if not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", mod_id):
         raise ValueError("mod-id must match [a-z][a-z0-9_]{1,63}")
+    if with_tests and len(mod_id) > 58:
+        raise ValueError("--with-tests requires mod-id at most 58 characters to leave room for _tests")
     if not re.fullmatch(r"[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+", package) or any(p in JAVA_WORDS for p in package.split(".")):
         raise ValueError("package must be dotted lowercase Java identifiers, without Java keywords")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _.-]{0,79}", name):
@@ -132,10 +138,10 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
                 target.parent.mkdir(parents=True, exist_ok=True)
                 data = archive.read(entry)
                 if target.suffix != ".jar":
-                    text = data.decode("utf-8")
+                    text = data.decode("utf-8").replace("examplemod", mod_id)
                     if target.suffix == ".java":
-                        text = text.replace("com.example.examplemod", package)
-                    text = text.replace("examplemod", mod_id)
+                        # Rewrite the namespace last so literal template words in a chosen package survive.
+                        text = text.replace(f"com.example.{mod_id}", package)
                     if target.name == "gradle.properties":
                         for key, value in {"mod_id": mod_id, "mod_name": name, "mod_group_id": package, "neo_version": neo_version, "org.gradle.daemon": "false"}.items():
                             text = re.sub(r"(?m)^" + re.escape(key) + r"=.*$", lambda _: f"{key}={value}", text)
@@ -147,15 +153,62 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
                     data = text.encode("utf-8")
                 target.write_bytes(data)
         (stage / "gradlew").chmod(0o755)
+        if with_tests:
+            add_testing_starter(stage, mod_id, package)
         lock = {"toolkit_version": __version__, "minecraft": "1.21.1", "neo_version": neo_version,
                 "java_major": 21, "mod_id": mod_id, "package": package, "template_commit": manifest["commit"],
                 "template_sha256": manifest["sha256"], "gradle_wrapper_sha256": manifest["gradle_wrapper_sha256"]}
+        if with_tests:
+            lock["with_tests"] = True
         (stage / "mcforge-project.json").write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
         (stage / "AGENTS.md").write_text(f"# Mod authoring\n\nRead mcforge-project.json and STATE.md first. Target Minecraft 1.21.1 / NeoForge {neo_version} / Java 21.\nToolkit: {ROOT}\nRead that toolkit's AGENTS.md, then only the guide needed for this task.\nUse the pinned Gradle wrapper. Keep ATLauncher, installed mods, worlds and saves read-only.\nVerify signatures in exact generated sources; build success does not prove gameplay compatibility.\nDo not publish without explicit authorization.\n", encoding="utf-8")
         (stage / "WORKSPACE_OWNERSHIP.md").write_text("# Workspace ownership\n\nProject root and active source: this directory. One owner for all agents.\nLocal/private; no remote or publication authorized. Version: gradle.properties mod_version.\nRead-only references: ATLauncher and all installed mods/saves. Outputs: build/ and run/.\nRecovery: preserve source and read STATE.md before continuing.\n", encoding="utf-8")
-        (stage / "STATE.md").write_text("# State\n\nGoal: replace the official example with the requested mod.\nDone: pinned template created; no builds or runtime checks yet.\nNext: inspect source and Gradle tasks; implement one feature and add meaningful tests.\nBuild: toolkit gradle command, project path, build. Output: build/libs/.\nRuntime: unverified. No GameTests supplied by the stock MDK.\n", encoding="utf-8")
-        stage.rename(destination)
-    return {"project": str(destination), "lock": lock, "next": "gradle PROJECT tasks; gradle PROJECT build"}
+        (stage / "STATE.md").write_text("# State\n\nGoal: replace the official example with the requested mod.\nDone: pinned template created; no builds or runtime checks yet.\nNext: inspect source and Gradle tasks; implement one feature and add meaningful tests.\nBuild: toolkit gradle command, project path, build. Output: build/libs/.\nRuntime: unverified.\n", encoding="utf-8")
+        if with_tests:
+            with (stage / "STATE.md").open("a", encoding="utf-8") as stream:
+                stream.write("\nOpt-in starter: two GameTests and a recipe data provider included in src/gameTest (not yet run).\nRun: runData first, then runGameTestServer and build in a separate Gradle invocation.\nReport: build/reports/gametest/results.xml. Final JAR excludes the test mod; generated recipe is included.\n")
+        publish_project(stage, destination)
+    next_step = "gradle PROJECT runData; gradle PROJECT runGameTestServer build" if with_tests else "gradle PROJECT tasks; gradle PROJECT build"
+    return {"project": str(destination), "lock": lock, "next": next_step}
+
+
+def testing_templates() -> list[Path]:
+    files = [ROOT / "templates/testing" / name for name in TESTING_FILES]
+    for path in files:
+        if not path.is_file():
+            raise ValueError(f"Testing starter template missing: {path.relative_to(ROOT)}")
+    return files
+
+
+def publish_project(stage: Path, destination: Path):
+    # Windows readers without FILE_SHARE_DELETE can briefly block an otherwise valid rename.
+    for delay in (0.02, 0.05, 0.1, 0):
+        try:
+            stage.rename(destination)
+            return
+        except PermissionError as error:
+            if (os.name != "nt" or getattr(error, "winerror", None) not in (5, 32)
+                    or not delay or not stage.is_dir() or destination.exists()):
+                raise
+            time.sleep(delay)
+
+
+def add_testing_starter(stage: Path, mod_id: str, package: str):
+    overlay = ROOT / "templates/testing"
+    files = testing_templates()
+    snippet = files[0].read_text(encoding="utf-8")
+    for source in files[1:]:
+        relative = source.relative_to(overlay)
+        target = stage / str(relative).replace("@MOD_ID@", mod_id)
+        if relative.parts[:3] == ("src", "gameTest", "java"):
+            target = stage.joinpath("src/gameTest/java", *package.split("."), "testing", *relative.parts[3:])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        data = source.read_bytes()
+        if source.suffix != ".nbt":
+            data = data.decode("utf-8").replace("@PACKAGE@", package).replace("@MOD_ID@", mod_id).encode("utf-8")
+        target.write_bytes(data)
+    with (stage / "build.gradle").open("a", encoding="utf-8") as stream:
+        stream.write("\n" + snippet)
 
 
 def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None) -> int:

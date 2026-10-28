@@ -1,0 +1,15 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="MIT"
+
+[[mods]]
+modId="@MOD_ID@_tests"
+version="1.0.0"
+displayName="Development tests"
+
+[[dependencies.@MOD_ID@_tests]]
+modId="@MOD_ID@"
+type="required"
+versionRange="[0,)"
+ordering="AFTER"
+side="BOTH"

@@ -1,0 +1,28 @@
+// Development-only sources are loaded for datagen/tests and never enter the main JAR.
+sourceSets { gameTest }
+configurations.gameTestImplementation.extendsFrom(configurations.implementation)
+configurations.gameTestRuntimeOnly.extendsFrom(configurations.runtimeOnly, configurations.localRuntime)
+dependencies { gameTestImplementation sourceSets.main.output }
+
+neoForge {
+    addModdingDependenciesTo sourceSets.gameTest
+    mods {
+        "${mod_id}_tests" { sourceSet sourceSets.gameTest }
+    }
+    runs.configureEach {
+        loadedMods = [neoForge.mods[project.mod_id]]
+    }
+    runs.data {
+        sourceSet = sourceSets.gameTest
+        loadedMods = [neoForge.mods[project.mod_id], neoForge.mods["${project.mod_id}_tests"]]
+        // Select the provider's owner alone; multiple IDs add unwanted per-mod output folders.
+        programArguments.set(['--mod', "${project.mod_id}_tests", '--all',
+                '--output', file('src/generated/resources').absolutePath,
+                '--existing', file('src/main/resources').absolutePath])
+    }
+    runs.gameTestServer {
+        sourceSet = sourceSets.gameTest
+        loadedMods = [neoForge.mods[project.mod_id], neoForge.mods["${project.mod_id}_tests"]]
+        systemProperty 'mcforge.gameTestReport', file('build/reports/gametest/results.xml').absolutePath
+    }
+}

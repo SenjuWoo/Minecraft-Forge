@@ -35,6 +35,10 @@ From the toolkit directory:
 
 Creation uses the bundled, pinned official MDK. Inspect the generated manifest and build files before editing. Keep third-party notices and select an intentional license for your own mod. First dependency resolution requires network access and can be much slower than incremental builds.
 
+Add `--with-tests` to `init` when a working test/datagen example helps. The main mod ID must then be at most 58 characters. This option creates a separate `<id>_tests` development mod in `src/gameTest`, with a recipe provider and two tests for block placement and positive/negative crafting inputs. Bare `init` stays unchanged.
+
+For that starter, run `gradle "<project>" runData` in its own invocation, followed by `gradle "<project>" runGameTestServer build`, then `python scripts/verify_starter.py "<project>"` from the toolkit root. The verifier checks generated recipe/advancement JSON, actual cases in `build/reports/gametest/results.xml`, and the final JAR. The JAR includes generated data and excludes the test mod's classes/structure. Read [TESTING.md](TESTING.md) for the evidence and runtime limits.
+
 ## Implement one usable slice
 
 Find a target-version example or source signature before coding. Use `sources "<source tree>" "<symbol>"` and ordinary `rg`; inspect bytecode signatures with JDK `javap` when source is unavailable. Avoid dumping all decompiled sources into model context.

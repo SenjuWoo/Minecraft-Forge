@@ -16,7 +16,7 @@ URL = f"https://codeload.github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle/zip/{CO
 
 
 def fetch(url):
-    request = urllib.request.Request(url, headers={"User-Agent": "Minecraft-Forge/0.1.0"})
+    request = urllib.request.Request(url, headers={"User-Agent": "Minecraft-Forge (MDK maintenance)"})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read(8 * 1024 * 1024)
 

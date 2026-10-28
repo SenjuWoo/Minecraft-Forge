@@ -54,6 +54,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: New-Item -ItemType Directory -Force local | Out-Null
-      - run: python -m mcforge init local/ci-mod --mod-id ciprobe --package dev.mcforge.ciprobe --name 'CI Probe'
-      - run: python -m mcforge gradle local/ci-mod build runData
+      - run: python -m mcforge init local/ci-mod --mod-id ciprobe --package dev.mcforge.ciprobe --name 'CI Probe' --with-tests
+      - run: python -m mcforge gradle local/ci-mod runData
+      - run: python -m mcforge gradle local/ci-mod runGameTestServer build
+      - run: python scripts/verify_starter.py local/ci-mod
       - run: python -m mcforge jar local/ci-mod/build/libs/ciprobe-1.0.0.jar --hash

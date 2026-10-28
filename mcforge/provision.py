@@ -16,6 +16,7 @@ import urllib.request
 import zipfile
 
 from .workbench import ROOT, check_java, guard_output
+from . import __version__
 
 API = "https://api.adoptium.net/v3/assets/latest/21/hotspot?architecture=x64&image_type=jdk&os=windows&vendor=eclipse"
 
@@ -23,7 +24,7 @@ API = "https://api.adoptium.net/v3/assets/latest/21/hotspot?architecture=x64&ima
 def request(url: str):
     if urllib.parse.urlparse(url).scheme != "https":
         raise ValueError("Provisioning requires HTTPS")
-    return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Minecraft-Forge/0.1.0"}), timeout=60)
+    return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": f"Minecraft-Forge/{__version__}"}), timeout=60)
 
 
 def java_plan() -> dict:

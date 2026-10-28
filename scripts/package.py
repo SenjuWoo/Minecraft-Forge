@@ -12,12 +12,13 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from mcforge import __version__
-from mcforge.workbench import verify_vendor
+from mcforge.workbench import testing_templates, verify_vendor
 
 
 def main():
     verify_vendor()
     files = [ROOT / name for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")]
+    files.extend(testing_templates())
     for directory, patterns in {"mcforge": ("*.py",), "docs": ("*.md",), "skills": ("*.md",), "vendor": ("*.json", "*.zip", "*.txt"), "tests": ("*.py",), "scripts": ("*.py",)}.items():
         for pattern in patterns:
             files.extend((ROOT / directory).rglob(pattern))

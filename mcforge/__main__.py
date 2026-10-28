@@ -137,6 +137,7 @@ def parser() -> argparse.ArgumentParser:
     init.add_argument("--package", required=True)
     init.add_argument("--name", required=True)
     init.add_argument("--neo-version", default="21.1.265")
+    init.add_argument("--with-tests", action="store_true", help="add isolated GameTests and a working recipe data provider")
     gradle = commands.add_parser("gradle", help="run foreground Gradle tasks with discovered JDK21 and local cache")
     gradle.add_argument("path", type=Path)
     gradle.add_argument("tasks", nargs="+")
@@ -174,7 +175,7 @@ def main(argv=None) -> int:
             emit(result)
             return 1 if result["errors"] else 0
         elif args.command == "init":
-            emit(init_project(args.path, args.mod_id, args.package, args.name, args.neo_version))
+            emit(init_project(args.path, args.mod_id, args.package, args.name, args.neo_version, with_tests=args.with_tests))
         elif args.command == "gradle":
             return run_gradle(args.path, args.tasks, args.java_home)
         elif args.command == "guide":

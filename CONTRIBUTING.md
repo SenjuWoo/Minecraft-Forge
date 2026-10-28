@@ -8,6 +8,8 @@ Run `python -m mcforge self-test`, `python scripts/package.py` and `python scrip
 
 Keep the change focused. Do not add a background service, mandatory account, global configuration edit or new dependency without a concrete workflow that needs it. Never include saves, launcher/account files, credentials, full private logs or installed mod JARs in an issue or commit.
 
+For testable-scaffold changes, use `init ... --with-tests`, run `gradle PATH runData`, then `gradle PATH runGameTestServer build` separately, and run `python scripts/verify_starter.py PATH`. Keep the provider/test mod out of the production JAR and validate actual nonempty XML results. The verifier is deliberately specific to the bundled example slice; update it when changing that slice.
+
 Template refreshes are maintainer actions: update the immutable commit in scripts/vendor_mdk.py, verify official hashes/licenses, regenerate vendor/manifest.json, and test a real build. Do not change a loader, mappings or wrapper version independently without validation.
 
 Original contributions are accepted under the repository's MIT license. Preserve third-party licensing. Fabric/Forge expansion is planned, not implemented.
