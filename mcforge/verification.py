@@ -66,7 +66,9 @@ def _inputs(project: Path) -> dict:
     for base, directories, entries in os.walk(project, followlinks=False):
         relative = Path(base).relative_to(project)
         directories[:] = sorted(name for name in directories
-                                if name not in {".git", ".gradle", "build", "__pycache__"}
+                                if name != "__pycache__"
+                                and not (relative in {Path("."), Path("buildSrc"), Path("build-logic")}
+                                         and name in {".git", ".gradle", "build"})
                                 and not (relative == Path(".") and name in {"run", "run-data", "run-gametest"})
                                 and not (relative == Path("src") and name == "generated"))
         for name in directories + sorted(entries):

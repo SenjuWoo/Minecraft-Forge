@@ -262,6 +262,13 @@ class VerificationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "project-local"):
                     verification._inputs(self.project)
 
+    def test_resource_directory_named_build_is_input_not_build_output(self):
+        resource = self.write("src/main/resources/build/model.json", "original")
+        self.run_verification()
+        resource.write_text("changed")
+        with self.assertRaisesRegex(ValueError, "stale"):
+            verification.check_receipt(self.project)
+
 
 if __name__ == "__main__":
     unittest.main()
