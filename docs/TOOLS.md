@@ -20,7 +20,7 @@ If no compatible JDK exists, `Minecraft-Forge.ps1 setup-java --plan` resolves th
 
 ## Source inspection
 
-Resolve/decompile the target through ModDevGradle and use its prepared sources. `sources --project "<project>"` prints the exact-version source location and target; add a literal query to search it. It prefers `build/moddev/artifacts/neoforge-<version>-sources.jar`, then the same-version merged source artifact. It never scans unrelated global caches, fetches or launches Gradle. Missing sources require `gradle "<project>" createMinecraftArtifacts`; invalid or ambiguous artifacts fail explicitly.
+Resolve/decompile the target through ModDevGradle and use its prepared sources. `sources --project "<project>"` prints the exact-version source location and target; add a literal query to search it. It prefers `build/moddev/artifacts/neoforge-<version>-sources.jar`, then the same-version merged source artifact. It never scans unrelated global caches, fetches or launches Gradle. Missing sources require `gradle "<project>" createMinecraftArtifacts`; invalid or ambiguous artifacts fail explicitly. ModDevGradle2.0.148 skips sources with `CI=true`; scope `CI=false` to the preparation command when running in CI. Normal builds can retain their faster CI mode.
 
 Search narrowly by class, event or registry ID. Explicit `sources "<source tree or JAR>" "<symbol>"` is still supported. `javap -classpath "<dependency.jar>" -p <qualified.ClassName>` can establish a compiled signature. Add `-c` when bytecode is necessary. `jar tf "<mod.jar>"` lists archive entries without executing the mod. Never execute a supplied mod merely to read metadata.
 

@@ -56,8 +56,12 @@ jobs:
       - run: New-Item -ItemType Directory -Force local | Out-Null
       - run: python -m mcforge init local/ci-mod --mod-id ciprobe --package dev.mcforge.ciprobe --name 'CI Probe' --with-tests
       - run: python -m mcforge doctor --project local/ci-mod
+      - run: python -m mcforge gradle local/ci-mod tasks --all
       - run: python -m mcforge verify local/ci-mod --starter
       - run: python -m mcforge verify local/ci-mod --check
+      - run: python -m mcforge gradle local/ci-mod createMinecraftArtifacts
+        env:
+          CI: 'false' # ModDevGradle omits source artifacts when CI=true.
       - run: python -m mcforge sources --project local/ci-mod
       - run: python -m mcforge jar local/ci-mod/build/libs/ciprobe-1.0.0.jar --hash
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

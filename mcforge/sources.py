@@ -44,4 +44,5 @@ def resolve_sources(project: Path) -> dict:
             raise ValueError(f"Prepared source artifact is invalid: {source.name}: {error}") from error
         return {"project": str(project), "source": str(source.resolve()), "kind": kind, "target": target}
     raise ValueError(f"No prepared sources for NeoForge {version} in this project. "
-                     f"Run: gradle \"{project}\" createMinecraftArtifacts")
+                     f"Run: gradle \"{project}\" createMinecraftArtifacts. "
+                     "ModDevGradle skips sources with CI=true; set CI=false only for the preparation command if needed")

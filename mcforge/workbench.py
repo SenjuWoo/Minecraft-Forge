@@ -284,7 +284,8 @@ def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *
     suffix = ".exe" if os.name == "nt" else ""
     command = [str(home / "bin" / ("java" + suffix)), "-classpath", str(wrapper), "org.gradle.wrapper.GradleWrapperMain",
                "--console=plain", "--no-daemon", f"-Dorg.gradle.java.installations.paths={home}",
-               "-Dorg.gradle.java.installations.auto-download=false", *options, *tasks]
+               "-Dorg.gradle.java.installations.auto-download=false", *(option for option in options if option != "--all"), *tasks,
+               *(option for option in options if option == "--all")]
     log_path = Path(log_path) if log_path else project / "build/mcforge/logs" / f"gradle-{uuid.uuid4().hex}.log"
     guard_output(log_path)
     log_path.parent.mkdir(parents=True, exist_ok=True)

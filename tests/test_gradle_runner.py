@@ -48,7 +48,7 @@ class GradleRunnerTests(unittest.TestCase):
         log = self.root / "build/mcforge/probe.log"
         result, commands, stderr = self.run_child("print('native output')", options=("--all", "--offline"), log=log)
         self.assertEqual(result, 0)
-        self.assertEqual(commands[0][-3:], ["--all", "--offline", "tasks"])
+        self.assertEqual(commands[0][-3:], ["--offline", "tasks", "--all"])
         self.assertEqual(log.read_text().strip(), "native output")
         self.assertIn(str(log), stderr)
         self.assertIn("Gradle exit: 0", stderr)

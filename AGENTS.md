@@ -28,7 +28,7 @@ For a testable example, add `--with-tests` to `init` (main mod ID max 58 charact
 
 New projects lock the complete target, including wrapper/distribution hashes, plugin and mappings. `doctor --project` reports drift; builds reject drift or unresolved pins. Legacy locks warn about fields they never pinned and are not migrated automatically. Update candidates are not compatibility proof. Resolve any intentional pin change with provenance and a new build/test run.
 
-`sources --project PATH` locates exact-version prepared sources under that project's `build/moddev/artifacts`; it does not fetch or build. If absent, run `gradle PATH createMinecraftArtifacts`. Gradle supports only task names plus `--stacktrace`, `--offline`, `--info`, `--all`, `--rerun-tasks`, and `--log NEW_FILE`. Full output goes to a unique local log, with its path and a bounded failure summary on stderr.
+`sources --project PATH` locates exact-version prepared sources under that project's `build/moddev/artifacts`; it does not fetch or build. If absent, run `gradle PATH createMinecraftArtifacts` (`CI=false` for that command when CI=true normally suppresses sources). Gradle supports only task names plus `--stacktrace`, `--offline`, `--info`, `--all`, `--rerun-tasks`, and `--log NEW_FILE`. Full output goes to a unique local log, with its path and a bounded failure summary on stderr.
 
 ## Boundaries and proof
 
