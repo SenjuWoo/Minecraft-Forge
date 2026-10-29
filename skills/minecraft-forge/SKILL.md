@@ -9,13 +9,15 @@ Find the toolkit root containing `Minecraft-Forge.ps1` and `mcforge/`; do not as
 
 Initial supported target: Minecraft 1.21.1, NeoForge 21.1.265, Java 21. Read exact project pins rather than upgrading automatically. Fabric and Forge are separate future providers.
 
-1. `Minecraft-Forge.ps1 doctor` verifies runtime/tool discovery.
+1. `Minecraft-Forge.ps1 doctor` verifies runtime/tool discovery; `doctor --project "<project>"` reads actual pins and lock drift offline. New projects lock the full target; legacy locks warn about unpinned fields without automatic migration. Builds reject drift or unresolved pins. `updates "<project>"` explicitly queries official candidates without changing files; candidates require validation.
 2. `inventory --instance "<path>"` inspects a pack read-only; `jar "<path>"` inspects one mod. Add `--hash` for a recorded baseline where supported.
 3. `init "<new project>" --mod-id <id> --package <package> --name "<name>"` creates a pinned MDK project. Add `--with-tests` for a recipe data provider and two GameTests in a separate `src/gameTest` development mod `<id>_tests`; the main ID must then be at most 58 characters. Bare init still has zero GameTests.
-4. `gradle "<project>" tasks` discovers tasks; `gradle "<project>" build` builds with the project wrapper.
-5. `sources "<source tree>" "<symbol>"` finds relevant source; `search "<query>" --minecraft 1.21.1` finds NeoForge candidates on Modrinth.
+4. `gradle "<project>" tasks` discovers tasks; `gradle "<project>" build` builds with the project wrapper. Safe flags: `--stacktrace`, `--offline`, `--info`, `--all`, `--rerun-tasks`. Full output stays in a new local log; stderr gives its path and bounded failure summary. `--log NEW_FILE` selects a new path.
+5. `sources --project "<project>" ["<symbol>"]` locates/searches exact prepared source artifacts. Missing artifacts require `gradle "<project>" createMinecraftArtifacts`. Explicit `sources "<source tree or JAR>" "<symbol>"` remains available; `search "<query>" --minecraft 1.21.1` finds NeoForge candidates on Modrinth.
 
-For `--with-tests`, run `gradle "<project>" runData` first, then `gradle "<project>" runGameTestServer build` in another invocation. From the toolkit root run `python scripts/verify_starter.py "<project>"`. It verifies the generated recipe/advancement, actual test cases in `build/reports/gametest/results.xml`, and exclusion of test classes/structures from the shipped JAR. The two tests check block placement and crafting nine example items from one example block, including dirt rejection. Adapt these examples to the requested feature; their success does not establish client or pack compatibility.
+For `--with-tests`, run `verify "<project>" --starter`: separate datagen, then GameTests/build, fresh actual XML cases, example JSON and final-JAR checks. The two tests check block placement and crafting nine example items from one example block, including dirt rejection. Adapt them to the requested feature, then use plain `verify "<project>"`. Bare projects record no configured tests. `scripts/verify_starter.py` only inspects existing outputs and cannot prove freshness.
+
+The receipt at `build/mcforge/verification.json` binds current source/build inputs, generated data, JAR, report and logs. `verify "<project>" --check` rehashes evidence offline; changed/missing inputs or outputs invalidate it. A failed/interrupted new run supersedes old success. Per-run logs/receipts stay under `build/mcforge/verification/`. Single-project MDK inputs are supported; custom/external inputs require separate checks. This evidence does not establish client or pack compatibility.
 
 Load only the needed guide through `guide <topic>` or read it directly:
 

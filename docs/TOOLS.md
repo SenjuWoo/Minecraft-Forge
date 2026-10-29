@@ -20,9 +20,19 @@ If no compatible JDK exists, `Minecraft-Forge.ps1 setup-java --plan` resolves th
 
 ## Source inspection
 
-Resolve/decompile the target through ModDevGradle and use its prepared sources. Search narrowly by class, event or registry ID. `javap -classpath "<dependency.jar>" -p <qualified.ClassName>` can establish a compiled signature. Add `-c` when bytecode is necessary. `jar tf "<mod.jar>"` lists archive entries without executing the mod. Never execute a supplied mod merely to read metadata.
+Resolve/decompile the target through ModDevGradle and use its prepared sources. `sources --project "<project>"` prints the exact-version source location and target; add a literal query to search it. It prefers `build/moddev/artifacts/neoforge-<version>-sources.jar`, then the same-version merged source artifact. It never scans unrelated global caches, fetches or launches Gradle. Missing sources require `gradle "<project>" createMinecraftArtifacts`; invalid or ambiguous artifacts fail explicitly.
+
+Search narrowly by class, event or registry ID. Explicit `sources "<source tree or JAR>" "<symbol>"` is still supported. `javap -classpath "<dependency.jar>" -p <qualified.ClassName>` can establish a compiled signature. Add `-c` when bytecode is necessary. `jar tf "<mod.jar>"` lists archive entries without executing the mod. Never execute a supplied mod merely to read metadata.
 
 Prefer public API/source artifacts from the exact dependency version. Reading a mod JAR reveals its metadata and implementation; it does not grant permission to copy or redistribute its code/assets.
+
+## Project inspection and build diagnostics
+
+`doctor --project "<project>"` reads literal/plain-property Groovy MDK pins offline and compares the complete target to its lock. It does not execute Gradle. Dynamic or ambiguous expressions fail explicitly. New locks include Gradle distribution URL/checksum, wrapper hash, ModDevGradle and mappings; legacy locks retain their older fields with a warning. Builds reject unresolved targets and lock drift.
+
+`updates "<project>"` is an explicit network operation against official NeoForge, ModDevGradle, Parchment and Gradle metadata. It reports stable candidates, keeps other NeoForge lines separate as ports, and changes no files. Network failures remain errors, not evidence that pins are current. Candidates require a separate validated upgrade.
+
+Gradle accepts task names plus `--stacktrace`, `--offline`, `--info`, `--all` and `--rerun-tasks`. It rejects arbitrary switches that redirect project execution or inject scripts. Full output is saved to a unique `PROJECT/build/mcforge/logs/gradle-<id>.log`; `--log NEW_FILE` selects another new file. Stderr reports the log path, exit code and bounded failure tail. Ctrl+C stops the owned build process group. Use [verification receipts](TESTING.md) for evidence tied to a complete datagen/test/build run.
 
 ## External APIs
 

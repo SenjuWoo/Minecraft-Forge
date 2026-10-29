@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 WIP — 2026-10-29
+
+- Add project-aware diagnostics and complete target locks for new projects, including Gradle distribution, wrapper, ModDevGradle and mappings. Legacy locks remain readable with an explicit warning.
+- Add explicit, read-only upstream update checks with same-branch NeoForge candidates and separately reported port targets.
+- Add `verify` to run datagen, configured GameTests and build, then bind source, generated files, actual XML cases, JAR and logs into a verification receipt. `verify --check` rejects changed evidence; failed or interrupted runs invalidate prior success.
+- Resolve prepared Java sources from the exact project's NeoForge version. Preserve direct source-path searches.
+- Allow a small set of native Gradle diagnostic flags; retain complete per-run logs and stop owned workers on interruption.
+- Exercise new commands, stale evidence and failure handling in offline tests, portable package checks and real NeoForge CI.
+
 ## 0.2.0 WIP — 2026-10-27
 
 - Add opt-in `init --with-tests`: isolated development mod, two GameTests, a working recipe data provider and XML test reporting. Bare scaffolds retain their existing behavior.

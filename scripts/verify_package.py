@@ -24,7 +24,7 @@ def main():
             assert not name.startswith(('/', '../', 'local/', 'dist/')) and '..' not in Path(name).parts
             assert hashlib.sha256(archive.read(name)).hexdigest() == checksum, name
         archive.extractall(directory)
-        for command in (['--version'], ['doctor'], ['self-test'], ['init', 'probe', '--mod-id', 'zipprobe', '--package', 'dev.mcforge.zipprobe', '--name', 'ZIP Probe', '--with-tests']):
+        for command in (['--version'], ['doctor'], ['self-test'], ['init', 'probe', '--mod-id', 'zipprobe', '--package', 'dev.mcforge.zipprobe', '--name', 'ZIP Probe', '--with-tests'], ['doctor', '--project', 'probe']):
             subprocess.run([sys.executable, '-m', 'mcforge', *command], cwd=directory, check=True)
     print('Portable artifact checks passed')
 

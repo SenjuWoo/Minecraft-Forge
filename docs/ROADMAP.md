@@ -1,12 +1,15 @@
 # Roadmap and status
 
-## Available in 0.2.0 WIP
+## Available in 0.3.0 WIP
 
 - NeoForge1.21.1 project scaffolding from a pinned official ModDevGradle template.
 - Foreground Gradle workflow with JDK21 discovery and optional verified local Windows provisioning.
 - Read-only ATLauncher/JAR inventory, bounded source search and Modrinth discovery.
 - Focused agent guides, offline diagnostics and portable packaging.
 - Opt-in `init --with-tests`: separate development test mod, two GameTests, a recipe data provider and a verifier for generated JSON, XML test cases and the final mod JAR.
+- Complete target locks for new projects, offline project-aware doctor and explicit read-only official update checks.
+- Fresh datagen/test/build verification receipts, offline freshness checks, durable Gradle logs and bounded diagnostics.
+- Exact prepared project-source lookup without global cache searches or automatic builds.
 
 ## Next priorities
 

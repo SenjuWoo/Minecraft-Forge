@@ -1,7 +1,8 @@
-"""Check real datagen, GameTest results and the final opt-in starter JAR.
+"""Inspect existing datagen, GameTest results and the opt-in starter JAR.
 
 Run after runData, then runGameTestServer and build. Reads only the owned
 project's outputs; missing or incomplete evidence fails with JSON on stderr.
+This helper does not prove freshness. Use mcforge verify --starter for a new run.
 """
 from __future__ import annotations
 

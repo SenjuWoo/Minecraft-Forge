@@ -1,7 +1,7 @@
 """Run with Python 3.11+ or the PowerShell entrypoint. JSON goes to stdout.
 
-Network search is explicit. Debug tracebacks are opt-in; Gradle inherits the
-terminal and exits with its own status. Nothing registers an MCP or service.
+Network access is explicit. Debug tracebacks are opt-in; Gradle writes durable
+logs and exits with its own status. Nothing registers an MCP or service.
 """
 from __future__ import annotations
 
@@ -37,16 +37,25 @@ def emit(value, output: Path | None = None):
         print(text, end="")
 
 
-def doctor(java_home: Path | None = None) -> dict:
+def doctor(java_home: Path | None = None, project: Path | None = None) -> dict:
+    from .project import inspect_project
+    info = inspect_project(project) if project else None
+    required_java = info["target"].get("java_major") if info else 21
     java = [check_java(path) for path in ([java_home.resolve()] if java_home else java_candidates())]
-    ready = any(p["jdk"] and p["major"] == 21 and p.get("exit_code") == 0 for p in java)
+    ready = any(p["jdk"] and p["major"] == required_java and p.get("exit_code") == 0 for p in java)
+    if info and (info["errors"] or info["drift"]):
+        ready = False
     template = verify_vendor()
-    return {"version": __version__, "python": sys.version.split()[0], "python_executable": sys.executable,
-            "target": {"minecraft": "1.21.1", "neoforge": template["neo_version"], "java": 21},
+    result = {"version": __version__, "python": sys.version.split()[0], "python_executable": sys.executable,
+            "target": {"minecraft": info["target"].get("minecraft") if info else "1.21.1",
+                       "neoforge": info["target"].get("neo_version") if info else template["neo_version"], "java": required_java},
             "ready": ready, "java": java, "git": shutil.which("git"), "rg": shutil.which("rg"),
             "template": {"verified": True, "commit": template["commit"], "sha256": template["sha256"]},
             "gradle_cache": str(ROOT / "local/gradle"), "mcp": "not needed; no server registered",
-            "missing": [] if ready else ["JDK 21 with javac; see guide tools or set MCFORGE_JAVA_HOME"]}
+            "missing": [] if ready else [f"JDK {required_java} with javac and a resolved project target; inspect project errors/drift or guide tools"]}
+    if info:
+        result["project"] = info
+    return result
 
 
 def search_mods(query: str, minecraft: str) -> dict:
@@ -122,6 +131,15 @@ def parser() -> argparse.ArgumentParser:
     commands = cli.add_subparsers(dest="command", required=True)
     check = commands.add_parser("doctor", help="check runtimes and verify bundled template")
     check.add_argument("--java-home", type=Path)
+    check.add_argument("--project", type=Path, help="inspect actual project pins and target-lock drift offline")
+    updates = commands.add_parser("updates", help="read compatible upstream version candidates without changing project pins")
+    updates.add_argument("path", type=Path)
+    verify = commands.add_parser("verify", help="build fresh evidence or recheck a previous verification receipt")
+    verify.add_argument("path", type=Path)
+    verify.add_argument("--java-home", type=Path)
+    verify_mode = verify.add_mutually_exclusive_group()
+    verify_mode.add_argument("--check", action="store_true", help="rehash prior evidence without rebuilding")
+    verify_mode.add_argument("--starter", action="store_true", help="also assert the bundled example recipe and test identities")
     instances = commands.add_parser("instances", help="list ATLauncher instances (read-only)")
     instances.add_argument("--atlauncher", type=Path, default=default_launcher())
     scan = commands.add_parser("inventory", help="inspect installed JARs and bounded crash summaries (read-only)")
@@ -142,14 +160,18 @@ def parser() -> argparse.ArgumentParser:
     gradle.add_argument("path", type=Path)
     gradle.add_argument("tasks", nargs="+")
     gradle.add_argument("--java-home", type=Path)
+    for option in ("--stacktrace", "--offline", "--info", "--all", "--rerun-tasks"):
+        gradle.add_argument(option, action="append_const", const=option, dest="gradle_options", default=[])
+    gradle.add_argument("--log", type=Path, help="write to a new log file; default is a unique file in PROJECT/build/mcforge/logs")
     guide = commands.add_parser("guide", help="load just one focused agent reference")
     guide.add_argument("topic", choices=GUIDES)
     search = commands.add_parser("search", help="query Modrinth, filtered to NeoForge and an exact Minecraft version")
     search.add_argument("query")
     search.add_argument("--minecraft", default="1.21.1")
     sources = commands.add_parser("sources", help="literal search of local Java source directory or sources JAR")
-    sources.add_argument("path", type=Path)
-    sources.add_argument("query")
+    sources.add_argument("path", nargs="?", help="source path, or query when --project is used")
+    sources.add_argument("query", nargs="?")
+    sources.add_argument("--project", type=Path, help="resolve exact prepared project sources; omit query to print their location")
     setup = commands.add_parser("setup-java", help="explicitly provision a verified local Windows x64 JDK21")
     setup.add_argument("--plan", action="store_true", help="resolve official package identity without downloading it")
     commands.add_parser("self-test", help="run bundled offline diagnostics")
@@ -161,10 +183,20 @@ def main(argv=None) -> int:
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
     try:
         if args.command == "doctor":
-            result = doctor(args.java_home)
+            result = doctor(args.java_home, args.project)
             emit(result)
             return 0 if result["ready"] else 1
-        if args.command == "instances":
+        if args.command == "updates":
+            from .project import check_updates
+            result = check_updates(args.path)
+            emit(result)
+            return 1 if result["errors"] else 0
+        elif args.command == "verify":
+            from .verification import check_receipt, verify_project
+            if args.check and args.java_home:
+                raise ValueError("--java-home selects a new run; it cannot be combined with --check")
+            emit(check_receipt(args.path) if args.check else verify_project(args.path, args.java_home, starter=args.starter))
+        elif args.command == "instances":
             emit(discover_instances(args.atlauncher))
         elif args.command == "inventory":
             result = inventory(args.instance, args.hash)
@@ -177,13 +209,25 @@ def main(argv=None) -> int:
         elif args.command == "init":
             emit(init_project(args.path, args.mod_id, args.package, args.name, args.neo_version, with_tests=args.with_tests))
         elif args.command == "gradle":
-            return run_gradle(args.path, args.tasks, args.java_home)
+            return run_gradle(args.path, args.tasks, args.java_home, options=args.gradle_options, log_path=args.log)
         elif args.command == "guide":
             print((ROOT / "docs" / GUIDES[args.topic]).read_text(encoding="utf-8"))
         elif args.command == "search":
             emit(search_mods(args.query, args.minecraft))
         elif args.command == "sources":
-            return search_sources(args.path, args.query)
+            if args.project:
+                from .sources import resolve_sources
+                if args.query is not None:
+                    raise ValueError("Use sources --project PROJECT [QUERY], or sources SOURCE_PATH QUERY")
+                source = resolve_sources(args.project)
+                if args.path is None:
+                    emit(source)
+                    return 0
+                print(f"Source: {source['source']}", file=sys.stderr)
+                return search_sources(Path(source["source"]), args.path)
+            if args.path is None or args.query is None:
+                raise ValueError("Use sources SOURCE_PATH QUERY or sources --project PROJECT [QUERY]")
+            return search_sources(Path(args.path), args.query)
         elif args.command == "self-test":
             return subprocess.call([sys.executable, "-m", "unittest", "discover", "-s", str(ROOT / "tests"), "-v"], cwd=ROOT)
         elif args.command == "setup-java":

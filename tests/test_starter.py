@@ -63,8 +63,8 @@ class StarterTests(unittest.TestCase):
         self.assertIn('"${mod_id}_tests"', build)
         self.assertIn('neoForge.mods[project.mod_id]', build)
         self.assertNotIn("@MOD_ID@", build)
-        self.assertIn("runData", (project / "STATE.md").read_text())
-        self.assertIn("runGameTestServer", (project / "STATE.md").read_text())
+        self.assertIn("verify PROJECT --starter", (project / "STATE.md").read_text())
+        self.assertIn("build/reports/gametest/results.xml", (project / "STATE.md").read_text())
         self.assertIn("unverified", (project / "STATE.md").read_text().lower())
 
     def test_default_starter_remains_bare_and_accepts_full_length_mod_id(self):

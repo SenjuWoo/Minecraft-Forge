@@ -10,10 +10,14 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import signal
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
+import uuid
+from collections import deque
 import zipfile
 
 from . import __version__
@@ -160,15 +164,17 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
                 "template_sha256": manifest["sha256"], "gradle_wrapper_sha256": manifest["gradle_wrapper_sha256"]}
         if with_tests:
             lock["with_tests"] = True
+        from .project import read_target
+        lock["target"] = read_target(stage)
         (stage / "mcforge-project.json").write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
         (stage / "AGENTS.md").write_text(f"# Mod authoring\n\nRead mcforge-project.json and STATE.md first. Target Minecraft 1.21.1 / NeoForge {neo_version} / Java 21.\nToolkit: {ROOT}\nRead that toolkit's AGENTS.md, then only the guide needed for this task.\nUse the pinned Gradle wrapper. Keep ATLauncher, installed mods, worlds and saves read-only.\nVerify signatures in exact generated sources; build success does not prove gameplay compatibility.\nDo not publish without explicit authorization.\n", encoding="utf-8")
         (stage / "WORKSPACE_OWNERSHIP.md").write_text("# Workspace ownership\n\nProject root and active source: this directory. One owner for all agents.\nLocal/private; no remote or publication authorized. Version: gradle.properties mod_version.\nRead-only references: ATLauncher and all installed mods/saves. Outputs: build/ and run/.\nRecovery: preserve source and read STATE.md before continuing.\n", encoding="utf-8")
         (stage / "STATE.md").write_text("# State\n\nGoal: replace the official example with the requested mod.\nDone: pinned template created; no builds or runtime checks yet.\nNext: inspect source and Gradle tasks; implement one feature and add meaningful tests.\nBuild: toolkit gradle command, project path, build. Output: build/libs/.\nRuntime: unverified.\n", encoding="utf-8")
         if with_tests:
             with (stage / "STATE.md").open("a", encoding="utf-8") as stream:
-                stream.write("\nOpt-in starter: two GameTests and a recipe data provider included in src/gameTest (not yet run).\nRun: runData first, then runGameTestServer and build in a separate Gradle invocation.\nReport: build/reports/gametest/results.xml. Final JAR excludes the test mod; generated recipe is included.\n")
+                stream.write("\nOpt-in starter: two GameTests and a recipe data provider included in src/gameTest (not yet run).\nRun: toolkit verify PROJECT --starter; verify PROJECT --check rechecks receipt freshness.\nReport: build/reports/gametest/results.xml. Receipt/logs: build/mcforge/. Final JAR excludes the test mod; generated recipe is included.\n")
         publish_project(stage, destination)
-    next_step = "gradle PROJECT runData; gradle PROJECT runGameTestServer build" if with_tests else "gradle PROJECT tasks; gradle PROJECT build"
+    next_step = "verify PROJECT --starter" if with_tests else "gradle PROJECT tasks; verify PROJECT"
     return {"project": str(destination), "lock": lock, "next": next_step}
 
 
@@ -211,16 +217,66 @@ def add_testing_starter(stage: Path, mod_id: str, package: str):
         stream.write("\n" + snippet)
 
 
-def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None) -> int:
-    project = project.resolve()
+GRADLE_OPTIONS = ("--stacktrace", "--offline", "--info", "--all", "--rerun-tasks")
+
+
+def check_gradle_context(project: Path):
+    """Refuse implicit build overrides rather than claim file pins describe them."""
+    overrides = [key for key, value in os.environ.items() if value and (
+        key.upper().startswith("ORG_GRADLE_PROJECT_") or key.upper() in {"JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS"})]
+    if overrides:
+        raise ValueError("Unresolved Gradle environment overrides; unset for this process: " + ", ".join(sorted(overrides)))
+    cache = ROOT / "local/gradle"
+    custom = [cache / name for name in ("gradle.properties", "init.gradle", "init.gradle.kts") if (cache / name).is_file()]
+    if (cache / "init.d").is_dir():
+        custom += list((cache / "init.d").glob("*.gradle*"))
+    if custom:
+        raise ValueError("Custom shared Gradle properties/init scripts are outside target inspection; inspect: " + ", ".join(str(p) for p in custom))
+    properties = project / "gradle.properties"
+    if properties.is_file() and re.search(r"(?m)^\s*systemProp\.", properties.read_text(encoding="utf-8-sig")):
+        raise ValueError("Project systemProp overrides are outside target inspection")
+
+
+def stop_gradle(process):
+    """Stop only this foreground build's process group, including its game worker."""
+    if process.poll() is not None:
+        return
+    try:
+        if os.name == "nt":
+            process.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            os.killpg(process.pid, signal.SIGINT)
+        process.wait(timeout=10)
+        return
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True, timeout=10)
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    process.wait(timeout=10)
+
+
+def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *, options=(), log_path: Path | None = None) -> int:
     guard_output(project)
+    project = project.resolve()
     lock = read_json(project / "mcforge-project.json")
     if not tasks or any(not re.fullmatch(r"[A-Za-z][A-Za-z0-9_:]*", task) for task in tasks):
-        raise ValueError("Pass Gradle task names only (for example: build runData); no shell fragments or switches")
+        raise ValueError("Pass Gradle task names only; select native diagnostic options separately")
+    if any(option not in GRADLE_OPTIONS for option in options):
+        raise ValueError("Unsupported Gradle option; only --stacktrace, --offline, --info, --all and --rerun-tasks are allowed")
+    check_gradle_context(project)
+    from .project import inspect_project
+    info = inspect_project(project)
+    if info["errors"] or info["drift"]:
+        raise ValueError(f"Project target is unresolved or changed: {info['errors'] or info['drift']}; inspect doctor --project before updating its lock")
     wrapper = project / "gradle/wrapper/gradle-wrapper.jar"
     if digest(wrapper) != lock["gradle_wrapper_sha256"]:
         raise ValueError("Project wrapper changed; verify provenance before updating mcforge-project.json")
-    home = select_java(java_home, lock["java_major"])
+    home = select_java(java_home, info["target"]["java_major"])
     env = os.environ.copy()
     env["JAVA_HOME"] = str(home)
     env["PATH"] = str(home / "bin") + os.pathsep + env.get("PATH", "")
@@ -228,6 +284,22 @@ def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None) -
     suffix = ".exe" if os.name == "nt" else ""
     command = [str(home / "bin" / ("java" + suffix)), "-classpath", str(wrapper), "org.gradle.wrapper.GradleWrapperMain",
                "--console=plain", "--no-daemon", f"-Dorg.gradle.java.installations.paths={home}",
-               "-Dorg.gradle.java.installations.auto-download=false", *tasks]
-    # Inherit the console so Ctrl+C reaches Gradle; no persistent server is registered.
-    return subprocess.call(command, cwd=project, env=env)
+               "-Dorg.gradle.java.installations.auto-download=false", *options, *tasks]
+    log_path = Path(log_path) if log_path else project / "build/mcforge/logs" / f"gradle-{uuid.uuid4().hex}.log"
+    guard_output(log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Gradle log: {log_path}", file=sys.stderr)
+    group = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
+    with log_path.open("x", encoding="utf-8") as log:
+        process = subprocess.Popen(command, cwd=project, env=env, stdout=log, stderr=subprocess.STDOUT, **group)
+        try:
+            result = process.wait()
+        except BaseException:
+            stop_gradle(process)
+            raise
+    print(f"Gradle exit: {result}", file=sys.stderr)
+    if result:
+        with log_path.open(encoding="utf-8", errors="replace") as log:
+            tail = deque(log, maxlen=20)
+        print("".join(line[:500] for line in tail), end="", file=sys.stderr)
+    return result

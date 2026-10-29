@@ -19,6 +19,7 @@ cd Minecraft-Forge
 .\Minecraft-Forge.ps1 doctor
 .\Minecraft-Forge.ps1 instances
 .\Minecraft-Forge.ps1 init "D:\YourProjects\MyMod" --mod-id mymod --package dev.yourname.mymod --name "My Mod"
+.\Minecraft-Forge.ps1 doctor --project "D:\YourProjects\MyMod"
 .\Minecraft-Forge.ps1 gradle "D:\YourProjects\MyMod" build
 ```
 
@@ -32,12 +33,13 @@ Add `--with-tests` when creating a project to include two GameTests and a recipe
 
 ```powershell
 .\Minecraft-Forge.ps1 init "<new source directory>" --mod-id mymod --package dev.example.mymod --name "My Mod" --with-tests
-.\Minecraft-Forge.ps1 gradle "<new source directory>" runData
-.\Minecraft-Forge.ps1 gradle "<new source directory>" runGameTestServer build
-python scripts/verify_starter.py "<new source directory>"
+.\Minecraft-Forge.ps1 verify "<new source directory>" --starter
+.\Minecraft-Forge.ps1 verify "<new source directory>" --check
 ```
 
-Run data generation in its own Gradle invocation first so the next run loads the generated recipe. The tests verify block registration/placement and crafting nine example items from one example block, including rejection of dirt as an input. The verifier checks the generated recipe/advancement, actual XML test cases, and the final JAR.
+`verify` runs data generation in its own Gradle invocation, then tests/build, so the game loads the generated recipe. It requires a fresh nonempty passing GameTest report, inspects the final JAR and saves a receipt binding source/build inputs, generated data, output bytes and logs. `--starter` also checks this example's recipe/advancement and named tests. The tests cover block placement and crafting nine example items from one example block, including rejection of dirt.
+
+`verify --check` rehashes the recorded evidence offline, without rebuilding. Source, target, generated data, JAR, report or log changes invalidate it. The receipt is at `PROJECT/build/mcforge/verification.json`, with per-run receipts/logs under `PROJECT/build/mcforge/verification/`. A failed or interrupted new run supersedes a previous success. See [testing guidance](docs/TESTING.md) for scope and limits.
 
 Test code and its empty structure live in `src/gameTest`, under a separate development mod `<id>_tests` loaded for data generation and GameTests. They stay out of the production JAR; generated recipe and advancement JSON are included. With this option, the main mod ID can contain at most **58 characters** to leave room for `_tests`. Bare `init` stays unchanged and contains zero GameTests. See [testing guidance](docs/TESTING.md) before adapting the examples to a real feature.
 
@@ -45,19 +47,27 @@ Test code and its empty structure live in `src/gameTest`, under a separate devel
 
 | Command | Purpose |
 |---|---|
-| `doctor` | Verify template integrity and discover compatible Java/tool paths |
+| `doctor [--project PATH]` | Verify template/Java; optionally inspect actual target pins and lock drift offline |
+| `updates PATH` | Read official version candidates explicitly; change no pins/files |
 | `instances [--atlauncher PATH]` | List ATLauncher instances read-only |
 | `inventory --instance PATH [--hash] [--output NEW_FILE]` | Inspect installed JARs, declared dependencies, duplicates and bounded crash summaries |
 | `jar PATH [--hash]` | Inspect one JAR without extracting or executing it |
 | `init PATH --mod-id ID --package PACKAGE --name NAME [--with-tests]` | Create a pinned project, optionally with a test/datagen starter |
-| `gradle PATH TASK [TASK...] [--java-home PATH]` | Run wrapper tasks with Java21; exit status is Gradle's status |
+| `gradle PATH TASK [TASK...] [--java-home PATH]` | Run wrapper tasks with Java21 and durable logs; exit status is Gradle's status |
+| `verify PATH [--starter] [--java-home PATH]` | Run datagen/build and configured GameTests; save evidence tied to current inputs |
+| `verify PATH --check` | Recheck a passing receipt's hashes offline |
 | `sources PATH "literal text"` | Search Java source directory or source JAR; bounded JAR results |
+| `sources --project PATH ["literal text"]` | Locate exact prepared project sources, optionally search them |
 | `search "query" [--minecraft 1.21.1]` | Read Modrinth candidates filtered to the target and NeoForge |
 | `guide workflow\|neoforge\|tools\|testing` | Read one focused agent guide |
 | `setup-java --plan` / `setup-java` | Resolve / install an official checksum-verified Windows x64 JDK21 locally, if needed |
 | `self-test` | Run offline diagnostic tests |
 
 Global `--debug` before a command adds tracebacks to stderr. Metadata commands emit JSON; failures exit nonzero. `sources` uses exit 1 for no matches. Full inventory reports stay in files so agents can read selected records.
+
+Gradle accepts `--stacktrace`, `--offline`, `--info`, `--all` and `--rerun-tasks`. Full output goes to a new log under `PROJECT/build/mcforge/logs/`; stderr reports its path, exit code and a bounded failure tail. `--log NEW_FILE` selects another new file without overwriting it. Execution-redirection switches and arbitrary Gradle arguments are rejected.
+
+New projects lock Minecraft, NeoForge, Java, Gradle distribution/checksum, wrapper hash, ModDevGradle and Parchment mappings. Builds stop on drift or unresolved pins. Existing legacy locks remain usable with a warning about their unpinned fields; inspection never migrates them. `updates PATH` reports stable same-branch NeoForge candidates and build-tool/mapping candidates from official metadata. Candidates require separate validation; other loader lines are ports, not automatic upgrades.
 
 ## Included
 
@@ -66,8 +76,9 @@ Global `--debug` before a command adds tracebacks to stderr. Metadata commands e
 - Java discovery and optional official local JDK provisioning. Compatible installed JDKs are reused.
 - Read-only ATLauncher and mod metadata inspection, source lookup and optional Modrinth discovery.
 - Optional development-only GameTests, recipe data generation and final-artifact verification.
+- Project-aware target inspection, explicit update checks and freshness receipts with local diagnostic logs.
 
-Gradle downloads Minecraft, NeoForge, mappings and build dependencies on first use. They remain in `local/gradle/` for reuse; the first build can take several minutes and substantial disk space. Assets and source preparation can use multiple gigabytes. Ordinary builds start no permanent service. Game clients/servers run only when their Gradle tasks are explicitly invoked; Ctrl+C stops an interactive run.
+Gradle downloads Minecraft, NeoForge, mappings and build dependencies on first use. They remain in `local/gradle/` for reuse; the first build can take several minutes and substantial disk space. Assets and source preparation can use multiple gigabytes. Ordinary builds start no permanent service. Game clients/servers run only when their Gradle tasks are explicitly invoked; Ctrl+C stops the owned build process group.
 
 The toolkit does not bundle the user's modpack, worlds or Minecraft binaries. Asset editors and paid/authenticated APIs are task-specific integrations; see [docs/TOOLS.md](docs/TOOLS.md). Future Fabric/Forge support needs its own verified provider and tests.
 
@@ -75,7 +86,7 @@ The toolkit does not bundle the user's modpack, worlds or Minecraft binaries. As
 
 The development workspace's `VALIDATION.md` records tested commands and remaining runtime gaps. Your private inventory and integration logs are kept in ignored `local/`; they are excluded from the portable toolkit. The current pack crash is a separate repair task. Mod projects should pass a clean development run before integration with that pack.
 
-Version: **0.2.0 (WIP)**. There is no stable release yet. Download the source or a successful CI run's portable artifact. See [roadmap](docs/ROADMAP.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md) and [third-party notices](THIRD-PARTY.md).
+Version: **0.3.0 (WIP)**. There is no stable release yet. Download the source or a successful CI run's portable artifact. See [roadmap](docs/ROADMAP.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md) and [third-party notices](THIRD-PARTY.md).
 
 ## Development checks
 
@@ -85,4 +96,4 @@ python scripts/package.py
 python scripts/verify_package.py
 ```
 
-CI tests Python 3.11 and 3.14 on Windows/Linux and verifies an extracted package. Its Windows NeoForge workflow creates the optional starter, runs data generation, executes the two GameTests, builds the mod, and verifies its JSON, XML report and JAR contents. This covers the example slice; client rendering and compatibility with an arbitrary modpack require separate runtime checks. See [testing guidance](docs/TESTING.md).
+CI tests Python 3.11 and 3.14 on Windows/Linux and verifies an extracted package. Its Windows NeoForge workflow creates the optional starter and verifies fresh datagen, two GameTests, build/JAR evidence and the receipt. This covers the example slice; client rendering and compatibility with an arbitrary modpack require separate runtime checks. See [testing guidance](docs/TESTING.md).
