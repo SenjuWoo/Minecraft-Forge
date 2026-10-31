@@ -119,7 +119,7 @@ class StarterTests(unittest.TestCase):
         source = workbench.ROOT
         toolkit = self.root / "toolkit"
         toolkit.mkdir()
-        for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md"):
+        for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CREDITS.md", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md"):
             shutil.copyfile(source / name, toolkit / name)
         for name in ("vendor", "skills", "templates"):
             shutil.copytree(source / name, toolkit / name)

@@ -17,7 +17,7 @@ from mcforge.workbench import testing_templates, verify_vendor
 
 def main():
     verify_vendor()
-    files = [ROOT / name for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")]
+    files = [ROOT / name for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CREDITS.md", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md")]
     files.extend(testing_templates())
     for directory, patterns in {"mcforge": ("*.py",), "docs": ("*.md",), "skills": ("*.md",), "vendor": ("*.json", "*.zip", "*.txt"), "tests": ("*.py",), "scripts": ("*.py",)}.items():
         for pattern in patterns:

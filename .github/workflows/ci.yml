@@ -38,6 +38,15 @@ jobs:
           name: Minecraft-Forge-WIP
           path: dist/*
           if-no-files-found: error
+  hygiene:
+    name: Release hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: python3 scripts/check_hygiene.py
   neoforge-build:
     name: NeoForge 1.21.1 build
     runs-on: windows-latest

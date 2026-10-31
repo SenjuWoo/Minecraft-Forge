@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 WIP — 2026-10-31
+
+- Add a Contributor Covenant 2.1 code of conduct and a short credits index pointing at the existing third-party notices.
+- Add a release-hygiene gate that rejects tracked build artifacts, local paths, stale legacy-account links, unexpanded manifest versions and credential-shaped strings; run it in CI.
+- Document the workbench's scope and explicit non-claims in the README.
+
 ## 0.3.0 WIP — 2026-10-29
 
 - Add project-aware diagnostics and complete target locks for new projects, including Gradle distribution, wrapper, ModDevGradle and mappings. Legacy locks remain readable with an explicit warning.

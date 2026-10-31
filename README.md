@@ -78,6 +78,13 @@ New projects lock Minecraft, NeoForge, Java, Gradle distribution/checksum, wrapp
 - Optional development-only GameTests, recipe data generation and final-artifact verification.
 - Project-aware target inspection, explicit update checks and freshness receipts with local diagnostic logs.
 
+## Scope and limits
+
+- **What it does:** scaffolds and verifies NeoForge **1.21.1** projects from a pinned official MDK; inspects installed packs, JARs and prepared sources read-only.
+- **What it does not modify:** ATLauncher instances, installed mods, configs, worlds, saves, launcher profiles, global Java/Gradle settings or the active pack. `init` writes only to the new path you pass it and never overwrites existing data.
+- **Verified in CI:** Python 3.11/3.14 on Windows and Linux, portable-package extraction, and a real NeoForge 1.21.1 datagen → two GameTests → build → receipt run on Windows. See the CI badge and the [v0.3.0 prerelease](https://github.com/SenjuWoo/Minecraft-Forge/releases/tag/v0.3.0).
+- **Not claimed:** client rendering, dedicated-server play, save upgrades, arbitrary modpack compatibility, automatic crash repair, measured FPS gains, or Fabric/Forge support. Those require separate runtime checks.
+
 Gradle downloads Minecraft, NeoForge, mappings and build dependencies on first use. They remain in `local/gradle/` for reuse; the first build can take several minutes and substantial disk space. Assets and source preparation can use multiple gigabytes. Ordinary builds start no permanent service. Game clients/servers run only when their Gradle tasks are explicitly invoked; Ctrl+C stops the owned build process group.
 
 The toolkit does not bundle the user's modpack, worlds or Minecraft binaries. Asset editors and paid/authenticated APIs are task-specific integrations; see [docs/TOOLS.md](docs/TOOLS.md). Future Fabric/Forge support needs its own verified provider and tests.
@@ -86,7 +93,7 @@ The toolkit does not bundle the user's modpack, worlds or Minecraft binaries. As
 
 The development workspace's `VALIDATION.md` records tested commands and remaining runtime gaps. Your private inventory and integration logs are kept in ignored `local/`; they are excluded from the portable toolkit. The current pack crash is a separate repair task. Mod projects should pass a clean development run before integration with that pack.
 
-Version: **0.3.0 (WIP)**. There is no stable release yet. Download the source or a successful CI run's portable artifact. See [roadmap](docs/ROADMAP.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md) and [third-party notices](THIRD-PARTY.md).
+Version: **0.3.1 (WIP)**. There is no stable release yet. Download the source or a successful CI run's portable artifact. See [roadmap](docs/ROADMAP.md), [contribution guide](CONTRIBUTING.md), [security policy](SECURITY.md) and [third-party notices](THIRD-PARTY.md).
 
 ## Development checks
 

@@ -1,6 +1,6 @@
 # Roadmap and status
 
-## Available in 0.3.0 WIP
+## Available in 0.3.1 WIP
 
 - NeoForge1.21.1 project scaffolding from a pinned official ModDevGradle template.
 - Foreground Gradle workflow with JDK21 discovery and optional verified local Windows provisioning.
