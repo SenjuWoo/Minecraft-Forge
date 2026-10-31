@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 WIP — 2026-10-31
+
+- Replace the generic Contributor Covenant with the project's own code of conduct: any content is allowed except backdoors, sexual content involving minors, malware and hidden destructive behavior.
+
 ## 0.3.1 WIP — 2026-10-31
 
 - Add a Contributor Covenant 2.1 code of conduct and a short credits index pointing at the existing third-party notices.
