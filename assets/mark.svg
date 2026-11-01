@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Minecraft Forge">
+  <rect width="64" height="64" rx="14" fill="#4E7A3A"/>
+  <path d="M32 13 50 23v18L32 51 14 41V23z" fill="none" stroke="#0E1214" stroke-width="3" stroke-linejoin="round"/><path d="M14 23l18 10 18-10M32 33v18" fill="none" stroke="#0E1214" stroke-width="3" stroke-linejoin="round"/>
+</svg>
