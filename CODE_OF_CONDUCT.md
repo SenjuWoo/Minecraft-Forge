@@ -1,10 +1,10 @@
 # Code of conduct
 
-This is a modding workbench, not a content moderation committee. The toolkit does not filter what you build, and this project does not police taste.
+This is a build project, not a content moderation committee. The tools here do not filter what you build, and this project does not police taste.
 
 ## Build whatever
 
-Gore, horror, porn mods, adult content, dark humor, slurs in fiction, weird fetish mechanics, cursed tech, whatever you want. If it is legal where you ship it, it is in scope. The forge is a tool, not a babysitter.
+Gore, horror, porn mods, adult content, dark humor, slurs in fiction, weird fetish mechanics, cursed tech, whatever you want. If it is legal where you ship it, it is in scope. A toolkit is a tool, not a babysitter.
 
 ## The only hard lines
 
@@ -24,4 +24,10 @@ Backdoors, malware, hidden destructive behavior, or sexual content involving min
 
 Everything else: open an issue.
 
-This policy covers contributions to this repository and mods published under this project's name. It is not a promise that the toolkit scans third-party mods for you.
+## Scope
+
+This policy covers contributions to this repository and anything published under this project's name. It is not a promise that the project scans third-party mods, plugins or dependencies for you.
+
+## Conduct between people
+
+Keep technical disagreement direct and evidence-based. Harassment, threats, discriminatory abuse, doxxing, deliberate sabotage and repeated bad-faith disruption are not accepted, and are handled the same way as the hard lines above.
