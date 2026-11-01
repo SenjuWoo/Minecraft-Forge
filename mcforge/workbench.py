@@ -178,6 +178,16 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
     return {"project": str(destination), "lock": lock, "next": next_step}
 
 
+def quickstart_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str = "21.1.265",
+                       *, with_tests: bool = True, style: str = "auto", size: int = 16) -> dict:
+    """Create the pinned scaffold and dress its example content in one command."""
+    result = init_project(destination, mod_id, package, name, neo_version, with_tests=with_tests)
+    from .assets import generate_assets
+    result["assets"] = generate_assets(destination, style=style, size=size)
+    result["next"] = "verify PROJECT --starter" if with_tests else "gradle PROJECT build"
+    return result
+
+
 def testing_templates() -> list[Path]:
     files = [ROOT / "templates/testing" / name for name in TESTING_FILES]
     for path in files:

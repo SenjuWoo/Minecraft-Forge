@@ -12,17 +12,13 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from mcforge import __version__
-from mcforge.workbench import testing_templates, verify_vendor
+from mcforge.product import product_files
+from mcforge.workbench import verify_vendor
 
 
 def main():
     verify_vendor()
-    files = [ROOT / name for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CREDITS.md", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md")]
-    files.extend(testing_templates())
-    for directory, patterns in {"mcforge": ("*.py",), "docs": ("*.md",), "skills": ("*.md",), "vendor": ("*.json", "*.zip", "*.txt"), "tests": ("*.py",), "scripts": ("*.py",)}.items():
-        for pattern in patterns:
-            files.extend((ROOT / directory).rglob(pattern))
-    payload = {path.relative_to(ROOT).as_posix(): path.read_bytes() for path in sorted(set(files))}
+    payload = {path.relative_to(ROOT).as_posix(): path.read_bytes() for path in product_files(ROOT)}
     if "skills/minecraft-forge/SKILL.md" not in payload:
         raise ValueError("Agent skill missing from toolkit source")
     payload["PACKAGE-MANIFEST.json"] = (json.dumps({"version": __version__, "files": {key: hashlib.sha256(data).hexdigest() for key, data in payload.items()}}, indent=2) + "\n").encode()

@@ -1,8 +1,11 @@
 # Roadmap and status
 
-## Available in 0.3.2 WIP
+## Available in 0.4.0 WIP
 
 - NeoForge1.21.1 project scaffolding from a pinned official ModDevGradle template.
+- Free deterministic procedural textures, block/item models, blockstates, language entries, block loot tables and an asset manifest.
+- One-command `quickstart` for a pinned testable project with dressed example content.
+- Versionless local `install` with a launcher and timestamped update backup.
 - Foreground Gradle workflow with JDK21 discovery and optional verified local Windows provisioning.
 - Read-only ATLauncher/JAR inventory, bounded source search and Modrinth discovery.
 - Focused agent guides, offline diagnostics and portable packaging.

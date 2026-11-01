@@ -2,6 +2,15 @@
 
 This is a local NeoForge mod workbench. Read `STATE.md` for current evidence when present. Before editing the toolkit, read or establish `WORKSPACE_OWNERSHIP.md`; portable packages omit workspace ledgers. For a mod project, read that project's state and build pins first.
 
+## Win path
+
+1. `Minecraft-Forge.ps1 install` once (or run this clone directly). The installed copy gets a `Minecraft-Forge.cmd` launcher.
+2. `Minecraft-Forge.ps1 quickstart PATH --mod-id ID --package PACKAGE --name "Name"` creates a pinned testable project and dresses the example block/item with free procedural art.
+3. `Minecraft-Forge.ps1 verify PATH --starter` runs datagen, the two real GameTests and the build, then writes a freshness receipt.
+4. For more content, `asset PATH --id name:block --id name:item [--style auto|stone|wood|gem|metal|organic|arcane] [--size 16|32]`. Register the same IDs in Java, then run `verify PATH`.
+
+The asset generator uses only the Python standard library: no paid service, no downloaded art, no account. Existing files are skipped unless `--force` is set.
+
 ## Start small
 
 Run `Minecraft-Forge.ps1 doctor` using an absolute path when outside this folder, or `python -m mcforge doctor` from here. Python 3.11+ and JDK21 are required. The PowerShell launcher discovers the shared Python; Gradle selects JDK21 without changing global Java. No MCP, daemon registration, account or global skill install is needed.
@@ -11,7 +20,10 @@ Only initial provider: **Minecraft 1.21.1 / NeoForge 21.1.265 / Java 21**, pinne
 | Need | Command / guide |
 |---|---|
 | Installed reality | `instances`, `inventory --instance PATH [--hash]`, `jar PATH [--hash]` |
-| New mod | `init PATH --mod-id ID --package dev.owner.mod --name "Mod Name" [--with-tests]` |
+| New mod | `quickstart PATH --mod-id ID --package dev.owner.mod --name "Mod Name"` (pinned tests + free example assets) |
+| Bare scaffold | `init PATH --mod-id ID --package dev.owner.mod --name "Mod Name" [--with-tests]` |
+| Free assets | `asset PATH [--id ID:KIND]... [--style STYLE] [--size 16\|32] [--force]` |
+| Install/update | `install [--root PATH] [--force]` |
 | Project pins / currency | `doctor --project PATH` offline; `updates PATH` explicitly queries official candidates without changing files |
 | Build/tasks/data | `gradle PATH tasks`, `gradle PATH build`, `gradle PATH runData` |
 | Fresh build/test evidence | `verify PATH`; `verify PATH --starter` for the bundled example; `verify PATH --check` rehashes a prior success offline |

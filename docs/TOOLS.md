@@ -42,9 +42,23 @@ For a download, record immutable project/version identity, original URL and the 
 
 The [CurseForge API](https://docs.curseforge.com/rest-api/) uses an `x-api-key` and third-party access requirements. There is no bundled user key or automatic account setup. Some files restrict third-party distribution. Keep credentials in the caller's environment and honor the file's actual download permissions; never work around an absent download URL by guessing a CDN URL.
 
+## Free asset generation
+
+`asset` is built in and uses only the Python standard library. It writes deterministic 16/32 px RGBA PNG textures, block/item models, blockstates, language entries, block loot tables and a project asset manifest. It downloads no art, calls no paid service and needs no account. See [ASSETS.md](ASSETS.md).
+
+`doctor` reports which optional free tools are on `PATH`; none are required:
+
+| Gap | Free tool | Role |
+|---|---|---|
+| Paint or replace textures | Krita, GIMP | Layered raster editing and PNG export |
+| Complex models/animation | Blockbench | Minecraft model formats and previews |
+| Batch image work | ImageMagick | Resize, palette, format conversion |
+| OGG audio | FFmpeg, Audacity | Minecraft uses OGG Vorbis |
+| 3D assets | Blender | Export for custom pipelines |
+
 ## Optional specialist tools
 
-Use an existing image editor for textures, Blockbench for an appropriate model workflow, Blender for assets that need it, or an audio tool for sound. Resolve the installed tool and exact export format when that task arises. Do not preload editor bridges, cloud APIs or asset-generation services for ordinary Java work. A tool being available does not require using it.
+Use an existing image editor for final textures, Blockbench for an appropriate model workflow, Blender for assets that need it, or an audio tool for sound. Resolve the installed tool and exact export format when that task arises. Do not preload editor bridges, cloud APIs or asset-generation services for ordinary Java work. A tool being available does not require using it.
 
 No Minecraft MCP server is registered or running by default. The CLI supplies the current workflows without standing schemas or a background process. Add a project-scoped, on-demand MCP only if a future operation needs persistent editor/game state that the CLI cannot inspect efficiently.
 

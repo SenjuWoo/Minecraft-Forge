@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 WIP — 2026-10-31
+
+- Add `asset`: deterministic, standard-library-only 16/32 px textures, block/item models, blockstates, language entries, block loot tables and an asset manifest. No paid service or downloaded art.
+- Add `quickstart`: create a pinned `--with-tests` project and dress its example block/item in one command.
+- Add `install`: copy the portable product into a versionless local root with a launcher and a timestamped backup on update. No PATH or global settings changes.
+- Report optional free asset tools (`magick`, `ffmpeg`, `blockbench`, `krita`, `gimp`, `audacity`) from `doctor`.
+- Add asset, install and CLI regression tests plus the free-asset guide.
+
 ## 0.3.2 WIP — 2026-10-31
 
 - Replace the generic Contributor Covenant with the project's own code of conduct: any content is allowed except backdoors, sexual content involving minors, malware and hidden destructive behavior.

@@ -20,10 +20,12 @@ import zipfile
 import zlib
 
 from . import __version__
+from .assets import STYLES
 from .inventory import MAX_ARCHIVE_BYTES, MAX_ARCHIVE_ENTRIES, MAX_METADATA_BYTES, discover_instances, inspect_jar, inventory
-from .workbench import ROOT, check_java, default_launcher, guard_output, init_project, java_candidates, run_gradle, verify_vendor
+from .workbench import ROOT, check_java, default_launcher, guard_output, init_project, java_candidates, quickstart_project, run_gradle, verify_vendor
 
 GUIDES = {"workflow": "WORKFLOW.md", "neoforge": "NEOFORGE.md", "tools": "TOOLS.md", "testing": "TESTING.md"}
+OPTIONAL_TOOLS = ("magick", "ffmpeg", "blockbench", "krita", "gimp", "audacity")
 
 
 def emit(value, output: Path | None = None):
@@ -35,6 +37,19 @@ def emit(value, output: Path | None = None):
         print(json.dumps({"report": str(output)}))
     else:
         print(text, end="")
+
+
+def parse_asset_specs(values: list[str]) -> list[tuple[str, str]] | None:
+    """Parse repeated ``ID:KIND`` arguments; no specs means the example pair."""
+    if not values:
+        return None
+    specs = []
+    for value in values:
+        if value.count(":") != 1:
+            raise ValueError("--id must be ID:KIND, e.g. ruby_block:block or ruby:item")
+        asset_id, kind = value.split(":", 1)
+        specs.append((asset_id, kind))
+    return specs
 
 
 def doctor(java_home: Path | None = None, project: Path | None = None) -> dict:
@@ -50,6 +65,7 @@ def doctor(java_home: Path | None = None, project: Path | None = None) -> dict:
             "target": {"minecraft": info["target"].get("minecraft") if info else "1.21.1",
                        "neoforge": info["target"].get("neo_version") if info else template["neo_version"], "java": required_java},
             "ready": ready, "java": java, "git": shutil.which("git"), "rg": shutil.which("rg"),
+            "optional_tools": {name: shutil.which(name) for name in OPTIONAL_TOOLS},
             "template": {"verified": True, "commit": template["commit"], "sha256": template["sha256"]},
             "gradle_cache": str(ROOT / "local/gradle"), "mcp": "not needed; no server registered",
             "missing": [] if ready else [f"JDK {required_java} with javac and a resolved project target; inspect project errors/drift or guide tools"]}
@@ -156,6 +172,24 @@ def parser() -> argparse.ArgumentParser:
     init.add_argument("--name", required=True)
     init.add_argument("--neo-version", default="21.1.265")
     init.add_argument("--with-tests", action="store_true", help="add isolated GameTests and a working recipe data provider")
+    asset = commands.add_parser("asset", help="generate free procedural textures, models, blockstates, lang and loot tables")
+    asset.add_argument("path", type=Path)
+    asset.add_argument("--id", action="append", dest="ids", default=[], metavar="ID:KIND", help="asset id and kind, e.g. ruby_block:block; repeatable")
+    asset.add_argument("--style", choices=STYLES, default="auto")
+    asset.add_argument("--size", type=int, choices=(16, 32), default=16)
+    asset.add_argument("--force", action="store_true", help="overwrite existing generated files")
+    quick = commands.add_parser("quickstart", help="create a pinned project and generate starter assets in one command")
+    quick.add_argument("path", type=Path)
+    quick.add_argument("--mod-id", required=True)
+    quick.add_argument("--package", required=True)
+    quick.add_argument("--name", required=True)
+    quick.add_argument("--neo-version", default="21.1.265")
+    quick.add_argument("--no-tests", action="store_true", help="skip the optional GameTest/datagen starter")
+    quick.add_argument("--style", choices=STYLES, default="auto")
+    quick.add_argument("--size", type=int, choices=(16, 32), default=16)
+    install = commands.add_parser("install", help="install or update this toolkit in a versionless local root")
+    install.add_argument("--root", type=Path)
+    install.add_argument("--force", action="store_true", help="replace an existing install; keeps a timestamped backup")
     gradle = commands.add_parser("gradle", help="run foreground Gradle tasks with discovered JDK21 and local cache")
     gradle.add_argument("path", type=Path)
     gradle.add_argument("tasks", nargs="+")
@@ -208,6 +242,15 @@ def main(argv=None) -> int:
             return 1 if result["errors"] else 0
         elif args.command == "init":
             emit(init_project(args.path, args.mod_id, args.package, args.name, args.neo_version, with_tests=args.with_tests))
+        elif args.command == "asset":
+            from .assets import generate_assets
+            emit(generate_assets(args.path, parse_asset_specs(args.ids), style=args.style, size=args.size, force=args.force))
+        elif args.command == "quickstart":
+            emit(quickstart_project(args.path, args.mod_id, args.package, args.name, args.neo_version,
+                                    with_tests=not args.no_tests, style=args.style, size=args.size))
+        elif args.command == "install":
+            from .install import install_toolkit
+            emit(install_toolkit(args.root, args.force))
         elif args.command == "gradle":
             return run_gradle(args.path, args.tasks, args.java_home, options=args.gradle_options, log_path=args.log)
         elif args.command == "guide":

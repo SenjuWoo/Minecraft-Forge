@@ -65,6 +65,9 @@ jobs:
       - run: New-Item -ItemType Directory -Force local | Out-Null
       - run: python -m mcforge init local/ci-mod --mod-id ciprobe --package dev.mcforge.ciprobe --name 'CI Probe' --with-tests
       - run: python -m mcforge doctor --project local/ci-mod
+      - run: python -m mcforge quickstart local/ci-quick --mod-id ciquick --package dev.mcforge.ciquick --name 'CI Quick' --no-tests --style metal
+      - run: python -m mcforge doctor --project local/ci-quick
+      - run: python -m mcforge asset local/ci-mod --id ruby_block:block --id ruby:item --style gem --size 32
       - run: python -m mcforge gradle local/ci-mod tasks --all
       - run: python -m mcforge verify local/ci-mod --starter
       - run: python -m mcforge verify local/ci-mod --check
@@ -73,6 +76,7 @@ jobs:
           CI: 'false' # ModDevGradle omits source artifacts when CI=true.
       - run: python -m mcforge sources --project local/ci-mod
       - run: python -m mcforge jar local/ci-mod/build/libs/ciprobe-1.0.0.jar --hash
+      - run: python -c "import zipfile; names=zipfile.ZipFile('local/ci-mod/build/libs/ciprobe-1.0.0.jar').namelist(); assert 'assets/ciprobe/textures/block/example_block.png' in names; assert 'assets/ciprobe/textures/item/ruby.png' in names; print('generated assets present')"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

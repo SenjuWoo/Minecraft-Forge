@@ -21,7 +21,7 @@ New projects lock the complete target: game, loader, Java, Gradle distribution/c
 | New content or gameplay logic | NeoForge events and registry APIs in the target version |
 | Integration with another mod | Its exact release API/source and declared optional/required dependency |
 | Private or missing hook | Check access transformers and available events before a narrowly targeted mixin |
-| Client visual asset | Existing resource format and tools; add asset tooling only for that asset |
+| Client visual asset | `asset` for free placeholder textures/models, then an editor for final art |
 
 Do not install a second loader, multiloader framework, editor bridge or MCP server for a task the CLI already handles. They can be introduced when a concrete requirement justifies them.
 
@@ -30,10 +30,17 @@ Do not install a second loader, multiloader framework, editor bridge or MCP serv
 From the toolkit directory:
 
 ```powershell
+# Fast path: pinned testable project + free example textures/models/lang/loot
+.\Minecraft-Forge.ps1 quickstart "<new source directory>" --mod-id examplemod --package dev.example.examplemod --name "Example Mod"
+
+# Or a bare scaffold, then add assets explicitly
 .\Minecraft-Forge.ps1 init "<new source directory>" --mod-id examplemod --package dev.example.examplemod --name "Example Mod"
+.\Minecraft-Forge.ps1 asset "<new source directory>" --id ruby_block:block --id ruby:item --style gem --size 32
 .\Minecraft-Forge.ps1 gradle "<new source directory>" tasks
 .\Minecraft-Forge.ps1 gradle "<new source directory>" build
 ```
+
+`quickstart` is `init --with-tests` plus the default `asset` pass. `asset` writes only resources/data: new IDs must also be registered in Java. Existing generated files are skipped unless `--force`; `en_us.json` is merged. See [ASSETS.md](ASSETS.md).
 
 Creation uses the bundled, pinned official MDK. Inspect the generated manifest and build files before editing. Keep third-party notices and select an intentional license for your own mod. First dependency resolution requires network access and can be much slower than incremental builds.
 
@@ -51,6 +58,6 @@ For diagnosis, Gradle accepts `--stacktrace`, `--offline`, `--info`, `--all` and
 
 ## Handoff
 
-Keep `STATE.md` current: goal, exact versions, completed changes, next step, commands/results, receipt/log locations and runtime gaps. Record a checksum for the final mod JAR. A useful report says which commands passed, what behavior was observed and which combinations remain untested. Keep development ledgers, receipts, logs, saves and caches out of a mod release.
+Keep `STATE.md` current: goal, exact versions, completed changes, next step, commands/results, receipt/log locations and runtime gaps. Record a checksum for the final mod JAR. A useful report says which commands passed, what behavior was observed and which combinations remain untested. Keep development ledgers, receipts, logs, saves and caches out of a mod release. Generated asset provenance is in `mcforge-assets.json`; replace placeholder art before a public art pass.
 
 Current pack failures are a separate baseline problem. Demonstrate the new mod in a clean development run before testing it with the pack in a separate disposable instance. Never silently deploy into the user's active instance.

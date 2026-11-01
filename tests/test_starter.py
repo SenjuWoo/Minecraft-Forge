@@ -121,7 +121,7 @@ class StarterTests(unittest.TestCase):
         toolkit.mkdir()
         for name in ("Minecraft-Forge.ps1", "README.md", "AGENTS.md", "LICENSE", "THIRD-PARTY.md", "CREDITS.md", "CHANGELOG.md", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md"):
             shutil.copyfile(source / name, toolkit / name)
-        for name in ("vendor", "skills", "templates"):
+        for name in ("vendor", "skills", "templates", "docs", "mcforge", "scripts", "tests", "assets"):
             shutil.copytree(source / name, toolkit / name)
         (toolkit / "templates/testing/src/gameTest/java/SmokeTests.java").unlink()
         entrypoint = runpy.run_path(str(source / "scripts/package.py"))["main"]

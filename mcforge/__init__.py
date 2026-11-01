@@ -1,3 +1,3 @@
 """Minecraft Forge: a local CLI workbench for NeoForge mod authors."""
 
-__version__ = "0.3.2"
+__version__ = "0.4.0"
