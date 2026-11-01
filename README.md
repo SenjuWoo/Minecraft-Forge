@@ -9,7 +9,7 @@
 <p>
   <a href="https://github.com/SenjuWoo/Minecraft-Forge/actions/workflows/ci.yml"><img src="https://github.com/SenjuWoo/Minecraft-Forge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/SenjuWoo/Minecraft-Forge/releases/latest"><img src="https://img.shields.io/github/v/release/SenjuWoo/Minecraft-Forge?label=release&color=4E7A3A&labelColor=0d1117" alt="latest release"></a>
+  <a href="https://github.com/SenjuWoo/Minecraft-Forge/releases"><img src="https://img.shields.io/github/v/release/SenjuWoo/Minecraft-Forge?include_prereleases&label=release&color=4E7A3A&labelColor=0d1117" alt="latest release"></a>
 </p>
 
 </div>
