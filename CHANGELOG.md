@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 WIP — 2026-11-12
+
+- Fix `Minecraft-Forge.ps1` under Windows PowerShell 5.1. Every command failed with `NameError: name 'mcforge' is not defined`, because that shell removes the double quotes inside an argument passed to a native program and the launcher carried its Python start-up code in one. The launcher now runs the package with `python -m`.
+- Add a launcher regression test that starts the script through `powershell.exe -File` from a folder whose name has a space, `!` and parentheses, and checks the exit code and that arguments arrive unchanged.
+
 ## 0.4.0 WIP — 2026-10-31
 
 - Add `asset`: deterministic, standard-library-only 16/32 px textures, block/item models, blockstates, language entries, block loot tables and an asset manifest. No paid service or downloaded art.

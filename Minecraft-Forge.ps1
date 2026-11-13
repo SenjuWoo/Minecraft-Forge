@@ -16,7 +16,19 @@ foreach ($pythonCandidate in ($pythonCandidates | Where-Object { $_ } | Select-O
         & $pythonCandidate -c 'import sys; sys.exit(0 if sys.version_info >= (3,11) else 1)' 2>$null
         if ($LASTEXITCODE -ne 0) { continue }
     } catch { continue }
-    & $pythonCandidate -c 'import sys,runpy; sys.path.insert(0,sys.argv.pop(1)); runpy.run_module("mcforge",run_name="__main__")' $PSScriptRoot @args
-    exit $LASTEXITCODE
+    # Run the package beside this file with `-m`. An inline `-c` program cannot be
+    # used here: Windows PowerShell 5.1 drops the double quotes inside an argument
+    # to a native program, which turned the module name into a bare identifier.
+    $previousPath = $env:PYTHONPATH
+    $env:PYTHONPATH = if ($previousPath) { $PSScriptRoot + [IO.Path]::PathSeparator + $previousPath } else { $PSScriptRoot }
+    try {
+        # -P keeps the current directory off the import path, so a folder named
+        # mcforge in the caller's working directory cannot shadow this one.
+        & $pythonCandidate -P -m mcforge @args
+        $code = $LASTEXITCODE
+    } finally {
+        $env:PYTHONPATH = $previousPath
+    }
+    exit $code
 }
 throw 'Python 3.11+ is required. Set UABS_PYTHON to your existing Python executable; see README.md.'

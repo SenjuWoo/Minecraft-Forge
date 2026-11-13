@@ -137,7 +137,7 @@ The toolkit does not bundle the user's modpack, worlds or Minecraft binaries. As
 
 The development workspace's `VALIDATION.md` records tested commands and remaining runtime gaps. Your private inventory and integration logs are kept in ignored `local/`; they are excluded from the portable toolkit. The current pack crash is a separate repair task. Mod projects should pass a clean development run before integration with that pack.
 
-Version: **0.4.0 (WIP)**. There is no stable release yet. Download the source or a successful CI run's portable artifact. See [roadmap](docs/ROADMAP.md), [contribution guide](CONTRIBUTING.md), [code of conduct](CODE_OF_CONDUCT.md), [security policy](SECURITY.md) and [third-party notices](THIRD-PARTY.md).
+Version: **0.4.1 (WIP)**. There is no stable release yet. Download the source or a successful CI run's portable artifact. See [roadmap](docs/ROADMAP.md), [contribution guide](CONTRIBUTING.md), [code of conduct](CODE_OF_CONDUCT.md), [security policy](SECURITY.md) and [third-party notices](THIRD-PARTY.md).
 
 ## Development checks
 
