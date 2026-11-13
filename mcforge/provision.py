@@ -1,7 +1,7 @@
 """Optional JDK provisioning from Adoptium's official API.
 
-Only explicit setup-java downloads a JDK (17, 21 or 25) into this toolkit's
-local/tools folder. The resolved release and SHA-256 are recorded locally; no
+Only explicit setup-java downloads a JDK (8, 17, 21 or 25) into the per-user
+JDK folder that every copy of the toolkit reads (workbench.jdk_root). The resolved release and SHA-256 are recorded locally; no
 global PATH, registry or launcher files are modified.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-from .workbench import ROOT, check_java, guard_output
+from .workbench import ROOT, check_java, guard_output, jdk_root
 from . import __version__
 
 MAJORS = (8, 17, 21, 25)
@@ -71,7 +71,7 @@ def java_plan(major: int = 21) -> dict:
     if not 0 < package["size"] <= 350 * 1024 * 1024:
         raise ValueError("JDK package exceeds download budget")
     return {"release": asset["release_name"], "url": package["link"], "sha256": checksum,
-            "size_bytes": package["size"], "source": source, "destination": str(ROOT / f"local/tools/jdk{major}")}
+            "size_bytes": package["size"], "source": source, "destination": str(jdk_root() / f"jdk{major}")}
 
 
 def extract_jdk(archive: Path, stage: Path):

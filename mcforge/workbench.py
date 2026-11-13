@@ -42,6 +42,15 @@ def default_launcher() -> Path:
     return Path(os.environ.get("APPDATA", Path.home() / "AppData/Roaming")) / "ATLauncher"
 
 
+def jdk_root() -> Path:
+    """Where setup-java puts JDKs: shared by every copy of the toolkit for this user (MCFORGE_JDK_ROOT overrides)."""
+    if os.environ.get("MCFORGE_JDK_ROOT"):
+        return Path(os.environ["MCFORGE_JDK_ROOT"])
+    if os.name == "nt":
+        return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local")) / "Minecraft-Tools" / "jdks"
+    return Path.home() / ".local/share/minecraft-forge-jdks"
+
+
 def java_candidates(explicit: Path | None = None) -> list[Path]:
     candidates = [explicit] if explicit else []
     candidates += [Path(os.environ[key]) for key in ("MCFORGE_JAVA_HOME", "JAVA_HOME") if os.environ.get(key)]
@@ -57,7 +66,7 @@ def java_candidates(explicit: Path | None = None) -> list[Path]:
     program_files = Path(os.environ.get("ProgramFiles", "C:/Program Files"))
     for base in (program_files / "Eclipse Adoptium", program_files / "Microsoft", program_files / "Java",
                  program_files / "Zulu", program_files / "Amazon Corretto", program_files / "BellSoft",
-                 Path.home() / ".jdks", ROOT / "local/tools", Path("/usr/lib/jvm"), Path.home() / ".sdkman/candidates/java"):
+                 Path.home() / ".jdks", jdk_root(), ROOT / "local/tools", Path("/usr/lib/jvm"), Path.home() / ".sdkman/candidates/java"):
         if base.is_dir():
             candidates.extend(sorted(path for path in base.iterdir() if path.is_dir() and path.name != "current"))
     mac = Path("/Library/Java/JavaVirtualMachines")

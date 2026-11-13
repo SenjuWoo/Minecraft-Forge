@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 - 2026-11-13
+
+- `setup-java` installs JDKs into one per-user folder (`%LOCALAPPDATA%\Minecraft-Tools\jdks`, `~/.local/share/minecraft-forge-jdks`, or `MCFORGE_JDK_ROOT`) that every copy of the toolkit reads, so a clone and an installed copy share them. JDKs in an older copy's `local/tools/` are still found by that copy.
+- `install --force` keeps the previous install's `local/` folder (Gradle cache, fetched templates) instead of leaving it in the backup.
+
 ## 1.0.1 - 2026-11-13
 
 - Release checksum files (`.zip.sha256`) are written with LF line endings on every platform, so `sha256sum -c` works on Linux and macOS. `verify_package.py` now rejects a CRLF checksum file and one that does not match the ZIP. The 1.0.0 release's checksum asset was replaced with an LF copy of the same hash; its ZIP is unchanged.

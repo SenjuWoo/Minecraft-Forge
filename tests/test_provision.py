@@ -77,7 +77,7 @@ class ProvisionTests(unittest.TestCase):
 
     def test_plan_preserves_official_identity_hash_and_has_no_writes(self):
         metadata = self.metadata()
-        with patch.object(provision, "ROOT", self.root), patch.object(provision, "request", return_value=io.BytesIO(json.dumps(metadata).encode())) as request:
+        with patch.dict(os.environ, {"MCFORGE_JDK_ROOT": str(self.root / "local/tools")}), patch.object(provision, "request", return_value=io.BytesIO(json.dumps(metadata).encode())) as request:
             plan = provision.java_plan()
         self.assertEqual(request.call_args.args, (provision.API,))
         self.assertEqual(plan["release"], metadata[0]["release_name"])
@@ -110,7 +110,7 @@ class ProvisionTests(unittest.TestCase):
                 metadata = self.metadata()
                 metadata[0]["binary"]["package"].update(checksum=checksum, size=size)
                 responses = [io.BytesIO(json.dumps(metadata).encode()), io.BytesIO(b"jdk bytes")]
-                with patch.object(provision, "ROOT", self.root), patch.object(provision, "request", side_effect=responses), patch.object(provision, "check_java") as check:
+                with patch.dict(os.environ, {"MCFORGE_JDK_ROOT": str(self.root / "local/tools")}), patch.object(provision, "request", side_effect=responses), patch.object(provision, "check_java") as check:
                     with self.assertRaisesRegex(ValueError, "size|checksum"):
                         provision.setup_java()
                     check.assert_not_called()
@@ -125,7 +125,7 @@ class ProvisionTests(unittest.TestCase):
         metadata = self.metadata(content)
         responses = [io.BytesIO(json.dumps(metadata).encode()), io.BytesIO(content)]
         runtime = {"major": 21, "jdk": True, "exit_code": 0}
-        with patch.object(provision, "ROOT", self.root), patch.object(provision, "request", side_effect=responses), patch.object(provision, "check_java", return_value=runtime) as check:
+        with patch.dict(os.environ, {"MCFORGE_JDK_ROOT": str(self.root / "local/tools")}), patch.object(provision, "request", side_effect=responses), patch.object(provision, "check_java", return_value=runtime) as check:
             result = provision.setup_java()
         target = self.root / "local/tools/jdk21"
         self.assertEqual(result["installed"], str(target))

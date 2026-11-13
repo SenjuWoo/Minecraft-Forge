@@ -80,6 +80,9 @@ def install_toolkit(root: Path | None = None, force: bool = False) -> dict:
             backup = target.with_name(target.name + ".bak-" + time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6])
             target.rename(backup)
         stage.rename(target)
+        # The previous install's local/ holds the Gradle cache, fetched templates and test scratch: keep it.
+        if backup is not None and (backup / "local").is_dir():
+            (backup / "local").rename(target / "local")
     except BaseException:
         shutil.rmtree(stage, ignore_errors=True)
         if backup is not None and not target.exists():
@@ -92,5 +95,6 @@ def install_toolkit(root: Path | None = None, force: bool = False) -> dict:
         "files": len(files),
         "launcher": str(launcher),
         "backup": str(backup) if backup else None,
+        "kept": ["local"] if (target / "local").is_dir() else [],
         "next": f"{launcher} doctor",
     }

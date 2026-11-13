@@ -36,6 +36,16 @@ class InstallTests(unittest.TestCase):
         self.assertTrue(Path(result["backup"]).is_dir())
         self.assertTrue((self.root / "mcforge/__init__.py").is_file())
 
+    def test_update_keeps_the_previous_local_folder(self):
+        install.install_toolkit(self.root)
+        cache = self.root / "local/gradle/marker.txt"
+        cache.parent.mkdir(parents=True)
+        cache.write_text("cached")
+        result = install.install_toolkit(self.root, force=True)
+        self.assertEqual(cache.read_text(), "cached")
+        self.assertEqual(result["kept"], ["local"])
+        self.assertFalse((Path(result["backup"]) / "local").exists())
+
     def test_source_root_is_rejected(self):
         with self.assertRaises(ValueError):
             install.install_toolkit(ROOT.resolve())

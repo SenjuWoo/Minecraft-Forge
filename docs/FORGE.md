@@ -19,7 +19,7 @@ Bundled: **forge-1.20.1** (Forge 47.4.28, Java 17, ForgeGradle 6.0.54) and **for
 ## ForgeGradle 7 (26.3)
 
 - Minecraft is unobfuscated; plain `implementation` works for mod dependencies.
-- The run tasks start ForgeGradle's Slime Launcher on a **Java 8** toolchain. The toolkit offers every local JDK to Gradle as a toolchain; if none is Java 8, `setup-java --major 8` installs one into `local/tools/`. Build and test tasks need only Java 25.
+- The run tasks start ForgeGradle's Slime Launcher on a **Java 8** toolchain. The toolkit offers every local JDK to Gradle as a toolchain; if none is Java 8, `setup-java --major 8` installs one into the per-user JDK folder. Build and test tasks need only Java 25.
 - Events moved to the EventBus 7 API (`FMLCommonSetupEvent.getBus(modBusGroup).addListener(...)`, `BuildCreativeModeTabContentsEvent.BUS`); read the MDK's `ExampleMod` and the exact sources before writing listeners. The toolkit has no 26.3 Java kit yet: `add` writes assets and data and says so.
 
 ## Sources
