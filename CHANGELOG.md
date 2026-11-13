@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 - 2026-11-13
+
+- Release checksum files (`.zip.sha256`) are written with LF line endings on every platform, so `sha256sum -c` works on Linux and macOS. `verify_package.py` now rejects a CRLF checksum file and one that does not match the ZIP. The 1.0.0 release's checksum asset was replaced with an LF copy of the same hash; its ZIP is unchanged.
+
 ## 1.0.0 - 2026-11-13
 
 First stable release: one workbench for NeoForge, Fabric and Forge.

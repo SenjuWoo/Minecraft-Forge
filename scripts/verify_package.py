@@ -18,6 +18,9 @@ def main():
     scratch.mkdir(exist_ok=True)
     with zipfile.ZipFile(package) as archive, tempfile.TemporaryDirectory(dir=scratch) as directory:
         assert archive.testzip() is None, 'ZIP CRC failure'
+        checksum_file = package.with_suffix('.zip.sha256').read_bytes()
+        assert b'\r' not in checksum_file, 'checksum file must use LF line endings'
+        assert checksum_file.split()[0].decode() == hashlib.sha256(package.read_bytes()).hexdigest(), 'checksum file does not match the ZIP'
         manifest = json.loads(archive.read('PACKAGE-MANIFEST.json'))
         assert set(manifest['files']) == set(archive.namelist()) - {'PACKAGE-MANIFEST.json'}
         for name, checksum in manifest['files'].items():

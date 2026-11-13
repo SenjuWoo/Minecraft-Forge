@@ -31,7 +31,8 @@ def main():
             info.external_attr = 0o100644 << 16
             archive.writestr(info, data)
     checksum = hashlib.sha256(output.read_bytes()).hexdigest()
-    output.with_suffix(".zip.sha256").write_text(f"{checksum}  {output.name}\n", encoding="utf-8")
+    # LF on every platform so `sha256sum -c` works on Linux and macOS too.
+    output.with_suffix(".zip.sha256").write_text(f"{checksum}  {output.name}\n", encoding="utf-8", newline="\n")
     print(json.dumps({"archive": str(output), "sha256": checksum, "files": len(payload), "size_bytes": output.stat().st_size}))
 
 
