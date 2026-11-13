@@ -63,7 +63,7 @@ def inspect_jar(path: Path, hash_file: bool = False) -> dict:
             if len(archive.infolist()) > MAX_ARCHIVE_ENTRIES:
                 raise ValueError("archive has too many entries")
             names = archive.namelist()
-            expected = ["META-INF/neoforge.mods.toml", "META-INF/mods.toml", "fabric.mod.json"]
+            expected = ["META-INF/neoforge.mods.toml", "META-INF/mods.toml", "fabric.mod.json", "quilt.mod.json"]
             result["metadata"] = [name for name in expected if name in names]
             manifest = {}
             if "META-INF/MANIFEST.MF" in names:
@@ -112,6 +112,15 @@ def inspect_jar(path: Path, hash_file: bool = False) -> dict:
                                     "side": dependency.get("side"), "ordering": dependency.get("ordering"),
                                 })
                         result["mixins"].extend(entry.get("config") for entry in data.get("mixins", []) if isinstance(entry, dict) and entry.get("config"))
+                    elif preferred is None and name == "quilt.mod.json":
+                        loader = data.get("quilt_loader") or {}
+                        if "fabric.mod.json" in names:
+                            continue
+                        if not isinstance(loader.get("id"), str):
+                            raise ValueError("Quilt metadata requires quilt_loader.id")
+                        result["mods"].append({"mod_id": loader["id"], "version": loader.get("version"),
+                                               "name": (loader.get("metadata") or {}).get("name"), "side": None,
+                                               "description": str((loader.get("metadata") or {}).get("description", ""))[:1000]})
                     elif preferred is None:
                         if not isinstance(data.get("id"), str):
                             raise ValueError("Fabric metadata requires id")
@@ -196,9 +205,11 @@ def _crashes(instance: Path) -> list[dict]:
 def inventory(instance: Path, hash_files: bool = False) -> dict:
     """Inventory actual files, independently of potentially stale launcher listings."""
     instance = Path(instance)
-    result = _instance_summary(instance)
+    from .launchers import describe, game_dir
+    result = _instance_summary(instance) if (instance / "instance.json").is_file() else describe(instance)
     result["instance"] = result.pop("path")
-    mods = instance / "mods"
+    mods = game_dir(instance) / "mods"
+    instance = game_dir(instance)
     result["enabled"] = [inspect_jar(path, hash_files) for path in sorted(mods.glob("*.jar"))]
     if not mods.is_dir():
         result["errors"].append("mods directory does not exist")

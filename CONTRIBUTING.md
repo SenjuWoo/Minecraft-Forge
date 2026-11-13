@@ -1,8 +1,8 @@
 # Contributing
 
-This is an early NeoForge-first workbench. Open an issue before a large provider, architecture or dependency change. Small reproducible fixes and documentation corrections are welcome.
+This is a multi-loader workbench (NeoForge, Fabric, Forge). Open an issue before a large provider, architecture or dependency change. Small reproducible fixes and documentation corrections are welcome.
 
-Use Python 3.11+, a JDK21 and ripgrep for source search. No Python packages are required. Read AGENTS.md and the guide for the affected workflow. Preserve the pinned template and third-party notices; never modify launcher instances during tests.
+Use Python 3.11+, the JDKs the touched targets need (17, 21, 25; 8 for ForgeGradle 7 runs) and ripgrep for source search. No Python packages are required. Read AGENTS.md and the guide for the affected workflow. Preserve the pinned template and third-party notices; never modify launcher instances during tests.
 
 Run `python -m mcforge self-test`, `python scripts/package.py` and `python scripts/verify_package.py`. For scaffold/build changes, create a disposable project with `init`, inspect it with `doctor --project PATH`, then run `verify PATH` and the relevant runtime checks. Keep one meaningful regression for changed behavior. Report the exact target, commands and results in the PR; distinguish build success from gameplay proof.
 
@@ -12,6 +12,6 @@ For testable-scaffold changes, use `init ... --with-tests`, run `verify PATH --s
 
 Target inspection must remain offline. `updates PATH` is an explicit read-only network command; candidates are not validated upgrades. Preserve legacy lock behavior and reject ambiguous/dynamic pin syntax rather than executing a build during inspection. Changes to verification must cover stale input/output rejection and failure/interruption invalidating old success. Full build logs and receipts stay in the disposable project's `build/mcforge/`.
 
-Template refreshes are maintainer actions: update the immutable commit in scripts/vendor_mdk.py, verify official hashes/licenses, regenerate vendor/manifest.json, and test a real build. Do not change a loader, mappings or wrapper version independently without validation.
+Template refreshes are maintainer actions: update the immutable commit in scripts/vendor_templates.py, verify official hashes/licenses, regenerate vendor/targets.json and vendor/manifest.json, and test a real build. Do not change a loader, mappings or wrapper version independently without validation.
 
-Original contributions are accepted under the repository's MIT license. Preserve third-party licensing. Fabric/Forge expansion is planned, not implemented.
+Original contributions are accepted under the repository's MIT license. Preserve third-party licensing. A change to a target, kit or generator needs a real build of that target (`verify`), not only unit tests.

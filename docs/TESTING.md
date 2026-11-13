@@ -13,6 +13,18 @@ Record these gates separately. A later gate does not make an earlier skipped gat
 | Integration | Behavior observed with the exact dependency set in a disposable pack instance |
 | Persistence | Save/reload and relevant upgrade/multiplayer behavior observed |
 
+## Evidence tiers per target
+
+Every receipt carries `tiers`: `compile`, `package`, `server_load`, `client_load`, `gameplay`. The toolkit can run the first three headlessly; `client_load` and `gameplay` stay `not_run` until a person or a client automation observes them.
+
+| Target | How `verify` reaches `server_load` |
+|---|---|
+| fabric-* | Always: the scaffold carries Fabric's official game-test wiring and a `LoadSmokeTest`; `build` runs the game-test server and the receipt records the actual test cases |
+| neoforge-1.21.1 (and fetched NeoForge before 1.21.5) | After `tests PROJECT` (adds the test mod and one load test) or `init --with-tests`; this game version refuses to start a test server with zero tests |
+| neoforge-26.3, forge-1.20.1, forge-26.3 | `verify PROJECT --load` boots the game-test server after the build |
+
+`server_load` passes only when the log shows the server started; Gradle's exit code alone is not accepted (NeoForge 1.21.1 exits 0 after refusing to start).
+
 ## Optional testable starter
 
 From the toolkit root:
@@ -52,7 +64,7 @@ For [NeoForge 1.21.1 GameTests](https://docs.neoforged.net/docs/1.21.1/misc/game
 
 Use `runClient` for rendering, interaction and visual checks. Use `runServer` for dedicated-server classloading and behavior when applicable; follow the actual generated run's EULA handling. A mod that works in single-player can still accidentally load client-only classes on the dedicated server.
 
-Bare `init` keeps the stock MDK, which contains **zero GameTests**; its `runGameTestServer` can fail until tests are added. `verify` runs datagen/build for this project, records `tests.status = not_configured` and warns that it has no behavioral coverage. It selects the GameTest workflow from the project's `with_tests` marker; custom test setups need their own configured checks. The optional starter's two tests cover only their example slice. Replace their assertions as the mod changes, and run separate client, server, persistence and pack-integration checks for the intended behavior.
+Bare NeoForge 1.21.1 `init` keeps the stock MDK, which contains **zero GameTests**; its `runGameTestServer` refuses to start until a test exists (`tests PROJECT` adds one). `verify` runs datagen/build for this project, records `tests.status = not_configured` and warns that it has no behavioral coverage. It selects the GameTest workflow from the project's `with_tests` marker; custom test setups need their own configured checks. The optional starter's two tests cover only their example slice. Replace their assertions as the mod changes, and run separate client, server, persistence and pack-integration checks for the intended behavior.
 
 ## Existing crash baseline
 

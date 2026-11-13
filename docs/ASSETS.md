@@ -1,5 +1,7 @@
 # Free procedural assets
 
+For whole content pieces (tools, armor, furniture, mobs) with Java, use `add` (`guide content`); this page covers the original cube/flat-item `asset` generator and free art tools.
+
 `asset` generates original placeholder art and the resource/data files needed to
 see it in-game. It uses only the Python standard library: no paid API, no
 account, no downloaded art, and no external process. The same project + id +

@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.0 - 2026-11-13
+
+First stable release: one workbench for NeoForge, Fabric and Forge.
+
+- **Loaders and versions.** Seven bundled targets from pinned official templates (NeoForge 1.21.1/26.3, Fabric 1.20.1/1.21.1/26.3, Forge 1.20.1/26.3) via `init`/`quickstart --loader --minecraft` or `--target`; `targets` lists them; `--fetch` resolves any other official template on demand. Fabric Loom and ForgeGradle version ranges/snapshots are replaced by exact releases. Project locks, drift detection and `updates` cover all three build systems.
+- **Content.** `add` writes blocks, items, food, swords, pickaxes, axes, shovels, hoes, toolsets, armor sets, furniture (8 shapes, facing, collision) and mobs (3 rigs, AI goals, model, renderer, spawn egg) with assets and data for the project's exact version, and compiling Java on NeoForge 1.21.1, Fabric 1.21.1/1.20.1 and Forge 1.20.1.
+- **Blockbench and previews.** Furniture and mobs ship `.bbmodel` projects; `bbmodel` imports block and entity projects back (exact round trip, Blockbench's own export arithmetic); `preview` renders models and textures without the game.
+- **Libraries.** `libs`: catalog of ~60 popular libraries read from Modrinth; `--resolve` and `--add` write an exact Modrinth version id with the right Gradle configuration per build system.
+- **Packs.** `pack` creates resource packs (with procedural retextures), data packs and Iris/OptiFine shader packs; pack formats, folder names and recipe JSON shape are read from each release's client JAR (1.14 to 26.3).
+- **Launchers.** `instances` reads ATLauncher, Prism/MultiMC, CurseForge, Modrinth App and the official launcher; `deploy` copies a verified JAR into an instance with a backup, only with `--apply`.
+- **Evidence.** Receipts record compile, package, server load, client load and gameplay as separate tiers. Fabric projects get Fabric's official game-test wiring and a load test; `tests` adds one to NeoForge 1.21.1; `verify --load` boots the game-test server elsewhere. A server that did not start can no longer pass.
+- **Tooling.** `plan` routes a request before any file is written; `capabilities` is generated from the parser. JDK discovery covers common vendors, CI and Linux/macOS layouts; `setup-java --major 8|17|21|25` on Windows, Linux and macOS. Every local JDK is offered to Gradle as a toolchain.
+
 ## 0.4.1 WIP — 2026-11-12
 
 - Fix `Minecraft-Forge.ps1` under Windows PowerShell 5.1. Every command failed with `NameError: name 'mcforge' is not defined`, because that shell removes the double quotes inside an argument passed to a native program and the launcher carried its Python start-up code in one. The launcher now runs the package with `python -m`.

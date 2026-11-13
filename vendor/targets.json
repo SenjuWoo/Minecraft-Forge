@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "default": "neoforge-1.21.1",
+  "targets": {
+    "neoforge-1.21.1": {
+      "loader": "neoforge",
+      "family": "neoforge-mdg",
+      "minecraft": "1.21.1",
+      "java_major": 21,
+      "gradle_java_major": 21,
+      "archive": "neoforge-1.21.1-mdk.zip",
+      "sha256": "3a72acbcc32c028b42014ebed2962dc9498ed493bb8883c7f97c4e310e439167",
+      "url": "https://codeload.github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle/zip/f7002b1b6011723c7b12fde95147689491a6ddab",
+      "verified_date": "2026-11-13",
+      "gradle": "9.2.1",
+      "gradle_distribution_sha256": "72f44c9f8ebcb1af43838f45ee5c4aa9c5444898b3468ab3f4af7b6076c5bc3f",
+      "gradle_wrapper_version": "8.14.5",
+      "gradle_wrapper_sha256": "7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172",
+      "licenses": [
+        "TEMPLATE_LICENSE.txt"
+      ],
+      "overrides": {},
+      "repository": "https://github.com/NeoForgeMDKs/MDK-1.21.1-ModDevGradle",
+      "commit": "f7002b1b6011723c7b12fde95147689491a6ddab",
+      "loader_version": "21.1.265"
+    },
+    "neoforge-26.3": {
+      "loader": "neoforge",
+      "family": "neoforge-mdg",
+      "minecraft": "26.3",
+      "java_major": 25,
+      "gradle_java_major": 25,
+      "archive": "neoforge-26.3-mdk.zip",
+      "sha256": "de21c8b31d094f018d3092d64ae9f78b9c36c44b33f84273c0b3623b09cebbda",
+      "url": "https://codeload.github.com/NeoForgeMDKs/MDK-26.3-ModDevGradle/zip/3ed230cf177d44b4be4a69034d4a3259fd9c2b49",
+      "verified_date": "2026-11-13",
+      "gradle": "9.2.1",
+      "gradle_distribution_sha256": "72f44c9f8ebcb1af43838f45ee5c4aa9c5444898b3468ab3f4af7b6076c5bc3f",
+      "gradle_wrapper_version": "8.14.5",
+      "gradle_wrapper_sha256": "7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172",
+      "licenses": [
+        "TEMPLATE_LICENSE.txt"
+      ],
+      "overrides": {},
+      "repository": "https://github.com/NeoForgeMDKs/MDK-26.3-ModDevGradle",
+      "commit": "3ed230cf177d44b4be4a69034d4a3259fd9c2b49",
+      "loader_version": "26.3.0.103"
+    },
+    "fabric-1.20.1": {
+      "loader": "fabric",
+      "family": "fabric-loom",
+      "minecraft": "1.20.1",
+      "java_major": 17,
+      "gradle_java_major": 25,
+      "archive": "fabric-1.20.1-template.zip",
+      "sha256": "c52cc7533eb69bffa996c942add93ffff53a434e2b204d85b44f0bd57c059cbd",
+      "url": "https://codeload.github.com/FabricMC/fabric-example-mod/zip/cbac69685181b0104c2d1c94c4fb69bb51c8e685",
+      "verified_date": "2026-11-13",
+      "gradle": "9.8.2",
+      "gradle_distribution_sha256": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607",
+      "gradle_wrapper_version": "9.8.2",
+      "gradle_wrapper_sha256": "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98",
+      "licenses": [
+        "LICENSE"
+      ],
+      "overrides": {
+        "loom_version": "1.19.4"
+      },
+      "repository": "https://github.com/FabricMC/fabric-example-mod",
+      "commit": "cbac69685181b0104c2d1c94c4fb69bb51c8e685"
+    },
+    "fabric-1.21.1": {
+      "loader": "fabric",
+      "family": "fabric-loom",
+      "minecraft": "1.21.1",
+      "java_major": 21,
+      "gradle_java_major": 25,
+      "archive": "fabric-1.21.1-template.zip",
+      "sha256": "cfe3150f5e031a88a3cb33d3799810567b4b4cc6338481aad86c685c6dd76793",
+      "url": "https://codeload.github.com/FabricMC/fabric-example-mod/zip/4c47210589a9ff72a6075c8dd1d73315dcc3e010",
+      "verified_date": "2026-11-13",
+      "gradle": "9.8.2",
+      "gradle_distribution_sha256": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607",
+      "gradle_wrapper_version": "9.8.2",
+      "gradle_wrapper_sha256": "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98",
+      "licenses": [
+        "LICENSE"
+      ],
+      "overrides": {
+        "loom_version": "1.19.4"
+      },
+      "repository": "https://github.com/FabricMC/fabric-example-mod",
+      "commit": "4c47210589a9ff72a6075c8dd1d73315dcc3e010"
+    },
+    "fabric-26.3": {
+      "loader": "fabric",
+      "family": "fabric-loom",
+      "minecraft": "26.3",
+      "java_major": 25,
+      "gradle_java_major": 25,
+      "archive": "fabric-26.3-template.zip",
+      "sha256": "bc41b1fa9918b1b6e2f503100cd8e08fca51cb9ac7508510862d5088395f9672",
+      "url": "https://codeload.github.com/FabricMC/fabric-example-mod/zip/bb432bac6559cf5f57a2d02f300fa6fa4b870d66",
+      "verified_date": "2026-11-13",
+      "gradle": "9.8.2",
+      "gradle_distribution_sha256": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607",
+      "gradle_wrapper_version": "9.8.2",
+      "gradle_wrapper_sha256": "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98",
+      "licenses": [
+        "LICENSE"
+      ],
+      "overrides": {
+        "loom_version": "1.19.4"
+      },
+      "repository": "https://github.com/FabricMC/fabric-example-mod",
+      "commit": "bb432bac6559cf5f57a2d02f300fa6fa4b870d66"
+    },
+    "forge-1.20.1": {
+      "loader": "forge",
+      "family": "forge-fg",
+      "minecraft": "1.20.1",
+      "java_major": 17,
+      "gradle_java_major": 17,
+      "archive": "forge-1.20.1-mdk.zip",
+      "sha256": "3a738a7511df78e9aa45333cc53b9c31f6f1c2984e7af8c510157535153c8906",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.28/forge-1.20.1-47.4.28-mdk.zip",
+      "verified_date": "2026-11-13",
+      "gradle": "8.8",
+      "gradle_distribution_sha256": "a4b4158601f8636cdeeab09bd76afb640030bb5b144aafe261a5e8af027dc612",
+      "gradle_wrapper_version": "8.1.1",
+      "gradle_wrapper_sha256": "ed2c26eba7cfb93cc2b7785d05e534f07b5b48b5e7fc941921cd098628abca58",
+      "licenses": [
+        "LICENSE.txt"
+      ],
+      "overrides": {
+        "forgegradle": "6.0.54"
+      },
+      "repository": "https://maven.minecraftforge.net/net/minecraftforge/forge/",
+      "loader_version": "47.4.28"
+    },
+    "forge-26.3": {
+      "loader": "forge",
+      "family": "forge-fg",
+      "minecraft": "26.3",
+      "java_major": 25,
+      "gradle_java_major": 25,
+      "archive": "forge-26.3-mdk.zip",
+      "sha256": "1e48dffd5eecdb0479c1bacfd382dcbb16be6d711c985bf6117be9b81c4ff374",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/26.3-66.1.8/forge-26.3-66.1.8-mdk.zip",
+      "verified_date": "2026-11-13",
+      "gradle": "9.7.1",
+      "gradle_distribution_sha256": "acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a",
+      "gradle_wrapper_version": "9.7.1",
+      "gradle_wrapper_sha256": "7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d",
+      "licenses": [
+        "LICENSE.txt"
+      ],
+      "overrides": {
+        "forgegradle": "7.0.40"
+      },
+      "repository": "https://maven.minecraftforge.net/net/minecraftforge/forge/",
+      "loader_version": "66.1.8",
+      "run_java_major": 8
+    }
+  }
+}

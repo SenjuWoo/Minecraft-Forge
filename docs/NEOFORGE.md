@@ -1,6 +1,16 @@
-# NeoForge 1.21.1 implementation routes
+# NeoForge implementation routes
 
-Use these routes to find evidence, then read the actual class or signature in the pinned dependency. Docs for 26.x, a later 1.21.x release, Forge or Fabric may describe different APIs.
+Bundled: **neoforge-1.21.1** (NeoForge 21.1.265, Java 21, the default and the reference pack's target) and **neoforge-26.3** (NeoForge 26.3.0.103, Java 25). Both use the official ModDevGradle MDK. Fabric and Forge have their own guides (`guide fabric`, `guide forge`); content generation is in `guide content`.
+
+Use these routes to find evidence, then read the actual class or signature in the pinned dependency. Docs for another Minecraft version, Forge or Fabric may describe different APIs; select the documentation version explicitly (the default docs site tracks the newest line).
+
+## 26.3 differences to expect
+
+Minecraft 26.1+ ships unobfuscated, so the 26.3 MDK has no Parchment block; its data run uses `clientData()`; Java 25 is required. Registries, item properties (`setId(...)`), data components and resource layouts (item definitions, equipment assets) differ from 1.21.1. The toolkit builds and server-loads the 26.3 scaffold (`verify PROJECT --load`) but has no 26.3 Java kit for `add`: write registration against the MDK's `ExampleMod` and the prepared sources.
+
+## Load evidence on 1.21.1
+
+1.21.1's game-test server refuses to start with zero tests. Run `tests PROJECT` once: it adds the `<id>_tests` development mod and a `LoadSmokeTest`, after which every `verify PROJECT` boots the server and records the case. `init --with-tests` / `quickstart` add the fuller example starter instead.
 
 ## Workspace and source
 

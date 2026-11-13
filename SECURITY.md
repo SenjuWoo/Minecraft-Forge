@@ -1,6 +1,6 @@
 # Security policy
 
-Only the current main branch is maintained during WIP development. No stable security support window is promised yet.
+The latest release (1.x) and the main branch receive security fixes. Older releases are not patched; update to the latest release.
 
 Report vulnerabilities privately through [GitHub private vulnerability reporting](https://github.com/SenjuWoo/Minecraft-Forge/security/advisories/new). Include a minimal reproducer, affected commit, platform and impact. Do not post credentials, private launcher files or a working exploit against another person's system in a public issue.
 

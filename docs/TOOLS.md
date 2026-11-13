@@ -8,7 +8,10 @@
 | Official NeoForge MDK snapshot | Reproducible starting project | Bundled with immutable provenance and checksum |
 | Gradle wrapper | Select the project build tool | In the MDK; downloads its pinned distribution on first use |
 | Python 3.11+ | Run the CLI | Reuse the user's installed Python; `UABS_PYTHON` can select it |
-| Java 21 JDK | Compile and run the 1.21.1 target | Discover/reuse a compatible installed JDK, including a complete launcher JDK |
+| JDK 17 / 21 / 25 (and 8) | 17: Forge 1.20.1; 21: NeoForge 1.21.1; 25: 26.x targets and every Fabric build (Loom 1.19 runs on 25); 8: ForgeGradle 7's run tool | Discover/reuse installed JDKs (Program Files vendors, `JAVA_HOME_<n>_*`, `~/.jdks`, `/usr/lib/jvm`, SDKMAN, macOS, launcher runtimes); `setup-java --major N` installs a verified Temurin into `local/tools/` |
+| Blockbench project codec | `.bbmodel` import/export for blocks and entity models | Included; follows Blockbench's own Java-export arithmetic |
+| Software previewer | Renders models and textures to PNG without the game | Included |
+| Version facts and library catalog | Pack formats, folder names per release; ~60 libraries | `mcforge/data/*.json`, rebuilt by `scripts/build_facts.py` and `scripts/build_libraries.py` |
 | Minecraft, NeoForge and library artifacts | Build/runtime dependencies | Resolved by Gradle from the project's repositories and pins |
 | `rg`, JDK `javap` | Find source and inspect exact signatures | Reuse installed CLIs; no MCP required |
 
@@ -16,7 +19,7 @@ This is a workbench, not a redistribution of Minecraft, the installed modpack, o
 
 Use the correct JDK per target. A newer system JDK is not evidence that the 1.21.1 build is using Java 21. Avoid changing global PATH/JAVA_HOME, launcher runtimes or other agents' settings to make one project work.
 
-If no compatible JDK exists, `Minecraft-Forge.ps1 setup-java --plan` resolves the official Windows x64 Temurin21 release, size and SHA-256. `setup-java` downloads and verifies it into the toolkit's `local/tools/jdk21`, preserving its notices and provenance. It never edits global Java settings. Other platforms can supply an official JDK21 through `MCFORGE_JAVA_HOME`.
+If no compatible JDK exists, `Minecraft-Forge.ps1 setup-java --plan --major N` resolves the official Temurin release (Windows, Linux or macOS; x64 or aarch64), size and SHA-256. `setup-java --major N` downloads and verifies it into the toolkit's `local/tools/jdkN`, preserving its notices and provenance. It never edits global Java settings. Every local JDK is offered to Gradle as a toolchain, so a build that needs a second Java version finds it without auto-download.
 
 ## Source inspection
 

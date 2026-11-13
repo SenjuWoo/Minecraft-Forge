@@ -1,0 +1,1370 @@
+{
+ "schema": 1,
+ "source": "https://api.modrinth.com/v2",
+ "generated": "2026-11-13",
+ "note": "Titles, loaders, licences, links and version ranges come from each project's Modrinth record. The maven coordinate is Modrinth's own repository (https://api.modrinth.com/maven); resolve an exact version with: libs --resolve SLUG.",
+ "libraries": {
+  "accessories": {
+   "title": "Accessories",
+   "category": "equipment",
+   "purpose": "Data-driven equipment slots on every loader",
+   "project_id": "jtmvUHXj",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/wisp-forest/accessories/",
+   "docs": "https://docs.wispforest.io/accessories/home",
+   "issues": "https://github.com/wisp-forest/accessories/issues",
+   "page": "https://modrinth.com/mod/accessories",
+   "minecraft": {
+    "oldest": "1.20",
+    "newest": "1.21.10"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:accessories:<version>"
+  },
+  "ae2": {
+   "title": "Applied Energistics 2",
+   "category": "content",
+   "purpose": "Applied Energistics 2: storage network API",
+   "project_id": "XxWD5pD3",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LicenseRef-Multiple",
+   "source": "https://github.com/AppliedEnergistics/Applied-Energistics-2",
+   "docs": "https://appliedenergistics.github.io/",
+   "issues": "https://github.com/AppliedEnergistics/Applied-Energistics-2/issues",
+   "page": "https://modrinth.com/mod/ae2",
+   "minecraft": {
+    "oldest": "1.18",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:ae2:<version>"
+  },
+  "architectury-api": {
+   "title": "Architectury API",
+   "category": "multiloader",
+   "purpose": "One API over Fabric, Forge and NeoForge for registries, events and networking",
+   "project_id": "lhGA9TYQ",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/architectury/architectury",
+   "docs": null,
+   "issues": "https://github.com/architectury/architectury/issues",
+   "page": "https://modrinth.com/mod/architectury-api",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:architectury-api:<version>"
+  },
+  "azurelib": {
+   "title": "AzureLib",
+   "category": "animation",
+   "purpose": "Animation engine in the GeckoLib family",
+   "project_id": "7zlUOZvb",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/AzureDoom/AzureLib",
+   "docs": "https://wiki.azuredoom.com/",
+   "issues": "https://github.com/AzureDoom/AzureLib/issues",
+   "page": "https://modrinth.com/mod/azurelib",
+   "minecraft": {
+    "oldest": "1.7.10",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:azurelib:<version>"
+  },
+  "balm": {
+   "title": "Balm",
+   "category": "multiloader",
+   "purpose": "Multi-loader abstraction layer for content, config and networking",
+   "project_id": "MBAkmtvl",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LicenseRef-All-Rights-Reserved",
+   "source": "https://github.com/TwelveIterations/Balm",
+   "docs": "https://balm.twelveiterations.com/",
+   "issues": "https://github.com/TwelveIterations/Balm/issues",
+   "page": "https://modrinth.com/mod/balm",
+   "minecraft": {
+    "oldest": "1.18",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:balm:<version>"
+  },
+  "bookshelf-lib": {
+   "title": "Bookshelf",
+   "category": "multiloader",
+   "purpose": "Shared utility code: registration, data loading, commands",
+   "project_id": "uy4Cnpcm",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-2.1-only",
+   "source": "https://github.com/Darkhax-Minecraft/Bookshelf",
+   "docs": null,
+   "issues": "https://github.com/Darkhax-Minecraft/Bookshelf/issues",
+   "page": "https://modrinth.com/mod/bookshelf-lib",
+   "minecraft": {
+    "oldest": "1.7.10",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:bookshelf-lib:<version>"
+  },
+  "botarium": {
+   "title": "Botarium",
+   "category": "content",
+   "purpose": "Cross-loader energy, fluid and item transfer API",
+   "project_id": "2u6LRnMa",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/terrarium-earth/Botarium",
+   "docs": null,
+   "issues": "https://github.com/terrarium-earth/Botarium/issues",
+   "page": "https://modrinth.com/mod/botarium",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "1.20.4"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:botarium:<version>"
+  },
+  "caelus": {
+   "title": "Caelus API",
+   "category": "equipment",
+   "purpose": "Elytra flight as an attribute, for custom wings",
+   "project_id": "40FYwb4z",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-or-later",
+   "source": "https://github.com/TheIllusiveC4/Caelus",
+   "docs": null,
+   "issues": "https://github.com/TheIllusiveC4/Caelus/issues",
+   "page": "https://modrinth.com/mod/caelus",
+   "minecraft": {
+    "oldest": "1.13.2",
+    "newest": "1.21.5"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:caelus:<version>"
+  },
+  "cardinal-components-api": {
+   "title": "Cardinal Components API",
+   "category": "data",
+   "purpose": "Attach data components to entities, chunks, worlds and items on Fabric",
+   "project_id": "K01OU20C",
+   "loaders": [
+    "fabric",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Ladysnake/Cardinal-Components-API",
+   "docs": "https://ladysnake.org/wiki/cardinal-components-api",
+   "issues": "https://github.com/Ladysnake/Cardinal-Components-API/issues",
+   "page": "https://modrinth.com/mod/cardinal-components-api",
+   "minecraft": {
+    "oldest": "1.18",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "required",
+   "maven": "maven.modrinth:cardinal-components-api:<version>"
+  },
+  "cc-tweaked": {
+   "title": "CC: Tweaked",
+   "category": "content",
+   "purpose": "Programmable computers; peripheral API",
+   "project_id": "gu7yAYhd",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LicenseRef-CCPL",
+   "source": "https://github.com/cc-tweaked/CC-Tweaked/",
+   "docs": "https://tweaked.cc/",
+   "issues": "https://github.com/cc-tweaked/CC-Tweaked/issues",
+   "page": "https://modrinth.com/mod/cc-tweaked",
+   "minecraft": {
+    "oldest": "1.4.7",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:cc-tweaked:<version>"
+  },
+  "citadel": {
+   "title": "Citadel",
+   "category": "animation",
+   "purpose": "Entity animation and utility library on NeoForge/Forge",
+   "project_id": "jJfV67b1",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/Alex-the-666/Citadel",
+   "docs": null,
+   "issues": "https://github.com/Alex-the-666/Citadel/issues",
+   "page": "https://modrinth.com/mod/citadel",
+   "minecraft": {
+    "oldest": "1.14.4",
+    "newest": "1.21.11"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:citadel:<version>"
+  },
+  "cloth-config": {
+   "title": "Cloth Config API",
+   "category": "config",
+   "purpose": "Config screen builder used by many mods",
+   "project_id": "9s6osm5g",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/shedaniel/ClothConfig/",
+   "docs": "https://shedaniel.gitbook.io/cloth-config/",
+   "issues": "https://github.com/shedaniel/ClothConfig/issues",
+   "page": "https://modrinth.com/mod/cloth-config",
+   "minecraft": {
+    "oldest": "1.14",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:cloth-config:<version>"
+  },
+  "collective": {
+   "title": "Collective",
+   "category": "multiloader",
+   "purpose": "Shared library for a large family of small mods",
+   "project_id": "e0M1UDsY",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-All-Rights-Reserved",
+   "source": "https://github.com/Serilum/Collective",
+   "docs": null,
+   "issues": "https://github.com/Serilum/.issue-tracker/issues?q=state:open+label:\"Library:+Collective\"",
+   "page": "https://modrinth.com/mod/collective",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:collective:<version>"
+  },
+  "connector": {
+   "title": "Sinytra Connector",
+   "category": "core",
+   "purpose": "Runs Fabric mods on NeoForge; a compatibility target, not a build dependency",
+   "project_id": "u58R1TMW",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Sinytra/Connector",
+   "docs": "https://connector.sinytra.org",
+   "issues": "https://github.com/Sinytra/Connector/issues",
+   "page": "https://modrinth.com/mod/connector",
+   "minecraft": {
+    "oldest": "1.20.1",
+    "newest": "26.2"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:connector:<version>"
+  },
+  "create": {
+   "title": "Create",
+   "category": "content",
+   "purpose": "Mechanical contraptions; large API for kinetic blocks",
+   "project_id": "LNytGWDc",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "LicenseRef-Create-Mod-License",
+   "source": "https://github.com/Creators-of-Create/Create",
+   "docs": "https://wiki.createmod.net",
+   "issues": "https://github.com/Creators-of-Create/Create/issues",
+   "page": "https://modrinth.com/mod/create",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "1.21.1"
+   },
+   "client_side": "optional",
+   "server_side": "required",
+   "maven": "maven.modrinth:create:<version>"
+  },
+  "create-fabric": {
+   "title": "Create Fabric",
+   "category": "content",
+   "purpose": "Create on Fabric",
+   "project_id": "Xbc0uyRg",
+   "loaders": [
+    "fabric",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Fabricators-of-Create/Create",
+   "docs": "https://github.com/Creators-of-Create/Create/wiki",
+   "issues": "https://github.com/Fabricators-of-Create/Create/issues",
+   "page": "https://modrinth.com/mod/create-fabric",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "1.20.1"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:create-fabric:<version>"
+  },
+  "creativecore": {
+   "title": "CreativeCore",
+   "category": "ui",
+   "purpose": "GUI, config and networking library",
+   "project_id": "OsZiaDHq",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/CreativeMD/CreativeCore",
+   "docs": null,
+   "issues": "https://github.com/CreativeMD/CreativeCore/issues",
+   "page": "https://modrinth.com/mod/creativecore",
+   "minecraft": {
+    "oldest": "1.12.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "optional",
+   "maven": "maven.modrinth:creativecore:<version>"
+  },
+  "curios": {
+   "title": "Curios API",
+   "category": "equipment",
+   "purpose": "Extra equipment slots (rings, belts, charms) on NeoForge/Forge",
+   "project_id": "vvuO3ImH",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-or-later",
+   "source": "https://github.com/TheIllusiveC4/Curios",
+   "docs": "https://docs.illusivesoulworks.com/category/curios",
+   "issues": "https://github.com/TheIllusiveC4/Curios/issues",
+   "page": "https://modrinth.com/mod/curios",
+   "minecraft": {
+    "oldest": "1.13.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:curios:<version>"
+  },
+  "emi": {
+   "title": "EMI",
+   "category": "recipes",
+   "purpose": "Recipe viewer with its own plugin API",
+   "project_id": "fRiHVvU7",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/emilyploszaj/emi/",
+   "docs": "https://github.com/emilyploszaj/emi/wiki/",
+   "issues": "https://github.com/emilyploszaj/emi/issues/",
+   "page": "https://modrinth.com/mod/emi",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "1.21.1"
+   },
+   "client_side": "required",
+   "server_side": "optional",
+   "maven": "maven.modrinth:emi:<version>"
+  },
+  "entity-model-features": {
+   "title": "[EMF] Entity Model Features",
+   "category": "rendering",
+   "purpose": "Custom entity models from resource packs (OptiFine CEM format)",
+   "project_id": "4I1XuqiY",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/Traben-0/Entity_Model_Features",
+   "docs": "https://github.com/Traben-0/Entity_Model_Features/blob/master/FEATURES.md",
+   "issues": "https://github.com/Traben-0/Entity_Model_Features/issues",
+   "page": "https://modrinth.com/mod/entity-model-features",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:entity-model-features:<version>"
+  },
+  "fabric-api": {
+   "title": "Fabric API",
+   "category": "core",
+   "purpose": "Fabric's standard hooks: registries, events, networking, rendering, data generation",
+   "project_id": "P7dR8mSH",
+   "loaders": [
+    "fabric"
+   ],
+   "license": "Apache-2.0",
+   "source": "https://github.com/FabricMC/fabric-api",
+   "docs": "https://docs.fabricmc.net/",
+   "issues": "https://github.com/FabricMC/fabric-api/issues",
+   "page": "https://modrinth.com/mod/fabric-api",
+   "minecraft": {
+    "oldest": "1.14",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:fabric-api:<version>"
+  },
+  "fabric-language-kotlin": {
+   "title": "Fabric Language Kotlin",
+   "category": "language",
+   "purpose": "Kotlin language adapter for Fabric",
+   "project_id": "Ha28R6CL",
+   "loaders": [
+    "fabric"
+   ],
+   "license": "Apache-2.0",
+   "source": "https://github.com/FabricMC/fabric-language-kotlin/",
+   "docs": "https://fabricmc.net/wiki/",
+   "issues": "https://github.com/FabricMC/fabric-language-kotlin/issues",
+   "page": "https://modrinth.com/mod/fabric-language-kotlin",
+   "minecraft": {
+    "oldest": "1.14",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:fabric-language-kotlin:<version>"
+  },
+  "forge-config-api-port": {
+   "title": "Forge Config API Port",
+   "category": "config",
+   "purpose": "NeoForge/Forge config system on every loader",
+   "project_id": "ohNO6lps",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MPL-2.0",
+   "source": "https://github.com/Fuzss/forgeconfigapiport",
+   "docs": "https://github.com/Fuzss/forgeconfigapiport/wiki",
+   "issues": "https://github.com/Fuzss/forgeconfigapiport/issues",
+   "page": "https://modrinth.com/mod/forge-config-api-port",
+   "minecraft": {
+    "oldest": "1.16",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:forge-config-api-port:<version>"
+  },
+  "forgified-fabric-api": {
+   "title": "Forgified Fabric API",
+   "category": "core",
+   "purpose": "Fabric API implemented on NeoForge, for mods ported from Fabric",
+   "project_id": "Aqlf1Shp",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "Apache-2.0",
+   "source": "https://github.com/Sinytra/ForgifiedFabricAPI",
+   "docs": "https://github.com/Sinytra/ForgifiedFabricAPI/discussions",
+   "issues": "https://github.com/Sinytra/ForgifiedFabricAPI/issues",
+   "page": "https://modrinth.com/mod/forgified-fabric-api",
+   "minecraft": {
+    "oldest": "1.20.1",
+    "newest": "26.2"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:forgified-fabric-api:<version>"
+  },
+  "fzzy-config": {
+   "title": "Fzzy Config",
+   "category": "config",
+   "purpose": "Kotlin-friendly config with generated screens and sync",
+   "project_id": "hYykXjDp",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-TDL-M",
+   "source": "https://github.com/fzzyhmstrs/fconfig",
+   "docs": "https://github.com/fzzyhmstrs/fconfig/wiki",
+   "issues": "https://github.com/fzzyhmstrs/fconfig/issues",
+   "page": "https://modrinth.com/mod/fzzy-config",
+   "minecraft": {
+    "oldest": "1.20.1",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:fzzy-config:<version>"
+  },
+  "geckolib": {
+   "title": "Geckolib",
+   "category": "animation",
+   "purpose": "Keyframed entity, block, item and armor animation from Blockbench",
+   "project_id": "8BmcQJ2H",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/bernie-g/geckolib",
+   "docs": "https://github.com/bernie-g/geckolib/wiki",
+   "issues": "https://github.com/bernie-g/geckolib/issues",
+   "page": "https://modrinth.com/mod/geckolib",
+   "minecraft": {
+    "oldest": "1.12.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "optional",
+   "maven": "maven.modrinth:geckolib:<version>"
+  },
+  "glitchcore": {
+   "title": "GlitchCore",
+   "category": "multiloader",
+   "purpose": "Multi-loader core used by Biomes O' Plenty family mods",
+   "project_id": "s3dmwKy5",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LicenseRef-All-Rights-Reserved",
+   "source": "https://github.com/Glitchfiend/GlitchCore",
+   "docs": null,
+   "issues": "https://github.com/Glitchfiend/GlitchCore/issues",
+   "page": "https://modrinth.com/mod/glitchcore",
+   "minecraft": {
+    "oldest": "1.10.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:glitchcore:<version>"
+  },
+  "iceberg": {
+   "title": "Iceberg",
+   "category": "ui",
+   "purpose": "Tooltip and UI utility library",
+   "project_id": "5faXoLqX",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "CC-BY-NC-ND-4.0",
+   "source": "https://github.com/AHilyard/Iceberg/",
+   "docs": "https://github.com/AHilyard/Iceberg/wiki/Item-Selectors-Documentation",
+   "issues": "https://discord.gg/UCKjnamDaW",
+   "page": "https://modrinth.com/mod/iceberg",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:iceberg:<version>"
+  },
+  "iris": {
+   "title": "Iris Shaders",
+   "category": "rendering",
+   "purpose": "Shader pack loader; shader packs target its pipeline",
+   "project_id": "YL57xq9U",
+   "loaders": [
+    "fabric",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/IrisShaders/Iris",
+   "docs": null,
+   "issues": "https://github.com/IrisShaders/Iris/issues",
+   "page": "https://modrinth.com/mod/iris",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:iris:<version>"
+  },
+  "jade": {
+   "title": "Jade \ud83d\udd0d",
+   "category": "info",
+   "purpose": "Block/entity tooltip overlay with a provider API",
+   "project_id": "nvQzSEkH",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "CC-BY-NC-SA-4.0",
+   "source": "https://github.com/Snownee/Jade",
+   "docs": null,
+   "issues": "https://github.com/Snownee/Jade/issues?q=is%3Aissue",
+   "page": "https://modrinth.com/mod/jade",
+   "minecraft": {
+    "oldest": "1.16.4",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:jade:<version>"
+  },
+  "jei": {
+   "title": "Just Enough Items (JEI)",
+   "category": "recipes",
+   "purpose": "Recipe viewer; plugin API for custom recipe categories",
+   "project_id": "u6dRKJwZ",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/mezz/JustEnoughItems",
+   "docs": "https://github.com/mezz/JustEnoughItems/wiki",
+   "issues": "https://github.com/mezz/JustEnoughItems/issues?q=is%3Aissue",
+   "page": "https://modrinth.com/mod/jei",
+   "minecraft": {
+    "oldest": "1.8",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:jei:<version>"
+  },
+  "kotlin-for-forge": {
+   "title": "Kotlin for Forge",
+   "category": "language",
+   "purpose": "Kotlin language adapter for NeoForge/Forge",
+   "project_id": "ordsPcFz",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-2.1-only",
+   "source": "https://github.com/thedarkcolour/KotlinForForge",
+   "docs": "https://github.com/thedarkcolour/KotlinForForge/blob/3.x/README.md",
+   "issues": "https://github.com/thedarkcolour/KotlinForForge/issues",
+   "page": "https://modrinth.com/mod/kotlin-for-forge",
+   "minecraft": {
+    "oldest": "1.14",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:kotlin-for-forge:<version>"
+  },
+  "kubejs": {
+   "title": "KubeJS",
+   "category": "scripting",
+   "purpose": "Pack scripting: recipes, events and simple content without compiling a mod",
+   "project_id": "umyGl7zF",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/KubeJS-Mods/KubeJS",
+   "docs": "https://kubejs.com/",
+   "issues": "https://kubejs.com/support?source=kubejs",
+   "page": "https://modrinth.com/mod/kubejs",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "26.1.2"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:kubejs:<version>"
+  },
+  "lithostitched": {
+   "title": "Lithostitched",
+   "category": "worldgen",
+   "purpose": "Data-driven worldgen modifiers for compatibility",
+   "project_id": "XaDC71GB",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Apollounknowndev/lithostitched/",
+   "docs": "https://github.com/Apollounknowndev/lithostitched/wiki",
+   "issues": "https://github.com/Apollounknowndev/lithostitched/issues",
+   "page": "https://modrinth.com/mod/lithostitched",
+   "minecraft": {
+    "oldest": "1.20",
+    "newest": "26.3"
+   },
+   "client_side": "unsupported",
+   "server_side": "required",
+   "maven": "maven.modrinth:lithostitched:<version>"
+  },
+  "mekanism": {
+   "title": "Mekanism",
+   "category": "content",
+   "purpose": "Tech mod with an API for chemicals and energy",
+   "project_id": "Ce6I4WUE",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/mekanism/Mekanism",
+   "docs": "https://wiki.aidancbrady.com/wiki/Main_Page",
+   "issues": "https://github.com/mekanism/Mekanism/issues",
+   "page": "https://modrinth.com/mod/mekanism",
+   "minecraft": {
+    "oldest": "1.7.10",
+    "newest": "1.21.1"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:mekanism:<version>"
+  },
+  "midnightlib": {
+   "title": "MidnightLib",
+   "category": "config",
+   "purpose": "Small annotation-driven config library",
+   "project_id": "codAaoxh",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/TeamMidnightDust/MidnightLib",
+   "docs": "https://midnightdust.eu/wiki/midnightlib/",
+   "issues": "https://github.com/TeamMidnightDust/MidnightLib/issues/",
+   "page": "https://modrinth.com/mod/midnightlib",
+   "minecraft": {
+    "oldest": "1.17",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:midnightlib:<version>"
+  },
+  "modmenu": {
+   "title": "Mod Menu",
+   "category": "config",
+   "purpose": "Fabric mod list screen; where config screens are opened",
+   "project_id": "mOgUt4GM",
+   "loaders": [
+    "fabric",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/TerraformersMC/ModMenu",
+   "docs": "https://github.com/TerraformersMC/ModMenu/wiki",
+   "issues": "https://github.com/TerraformersMC/ModMenu/issues",
+   "page": "https://modrinth.com/mod/modmenu",
+   "minecraft": {
+    "oldest": "1.14.4",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:modmenu:<version>"
+  },
+  "moonlight": {
+   "title": "Moonlight Lib",
+   "category": "multiloader",
+   "purpose": "Dynamic assets and data, custom map markers, fluid and misc helpers",
+   "project_id": "twkfQtEc",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LicenseRef-LGPL-with-additional-dependency-clause",
+   "source": "https://github.com/MehVahdJukaar/Moonlight/tree/multi-loader",
+   "docs": null,
+   "issues": null,
+   "page": "https://modrinth.com/mod/moonlight",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.1.2"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:moonlight:<version>"
+  },
+  "owo-lib": {
+   "title": "o\u03c9o (owo-lib)",
+   "category": "ui",
+   "purpose": "Declarative UI, config and networking for Fabric",
+   "project_id": "ccKDOlHs",
+   "loaders": [
+    "fabric",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/glisco03/owo-lib",
+   "docs": "https://docs.wispforest.io/owo/setup",
+   "issues": "https://github.com/glisco03/owo-lib/issues",
+   "page": "https://modrinth.com/mod/owo-lib",
+   "minecraft": {
+    "oldest": "1.17",
+    "newest": "26.2"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:owo-lib:<version>"
+  },
+  "patchouli": {
+   "title": "Patchouli",
+   "category": "books",
+   "purpose": "Data-driven in-game guide books",
+   "project_id": "nU0bVIaL",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "CC-BY-NC-SA-3.0",
+   "source": "https://github.com/VazkiiMods/Patchouli/",
+   "docs": "https://vazkiimods.github.io/Patchouli/",
+   "issues": "https://github.com/VazkiiMods/Patchouli/issues",
+   "page": "https://modrinth.com/mod/patchouli",
+   "minecraft": {
+    "oldest": "1.12.2",
+    "newest": "26.1.2"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:patchouli:<version>"
+  },
+  "pehkui": {
+   "title": "Pehkui",
+   "category": "entity",
+   "purpose": "Entity scaling API",
+   "project_id": "t5W7Jfwy",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Virtuoel/Pehkui",
+   "docs": null,
+   "issues": "https://github.com/Virtuoel/Pehkui/issues",
+   "page": "https://modrinth.com/mod/pehkui",
+   "minecraft": {
+    "oldest": "1.14.4",
+    "newest": "1.21.1"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:pehkui:<version>"
+  },
+  "placebo": {
+   "title": "Placebo",
+   "category": "core",
+   "purpose": "NeoForge/Forge utility library",
+   "project_id": "tCkE8p2N",
+   "loaders": [
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Shadows-of-Fire/Placebo",
+   "docs": null,
+   "issues": "https://github.com/Shadows-of-Fire/Placebo/issues",
+   "page": "https://modrinth.com/mod/placebo",
+   "minecraft": {
+    "oldest": "1.20.1",
+    "newest": "26.1.2"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:placebo:<version>"
+  },
+  "playeranimator": {
+   "title": "playerAnimator",
+   "category": "animation",
+   "purpose": "Keyframed animations for the player model",
+   "project_id": "gedNE4y2",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/KosmX/fabricPlayerAnimation",
+   "docs": null,
+   "issues": "https://github.com/KosmX/fabricPlayerAnimation/issues",
+   "page": "https://modrinth.com/mod/playeranimator",
+   "minecraft": {
+    "oldest": "1.16.4",
+    "newest": "1.21.7"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:playeranimator:<version>"
+  },
+  "polymer": {
+   "title": "Polymer",
+   "category": "server",
+   "purpose": "Server-side content that vanilla clients can see",
+   "project_id": "xGdtZczs",
+   "loaders": [
+    "fabric",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/Patbox/polymer",
+   "docs": "https://polymer.pb4.eu",
+   "issues": "https://github.com/Patbox/polymer/issues",
+   "page": "https://modrinth.com/mod/polymer",
+   "minecraft": {
+    "oldest": "1.18",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "required",
+   "maven": "maven.modrinth:polymer:<version>"
+  },
+  "prism-lib": {
+   "title": "Prism",
+   "category": "ui",
+   "purpose": "Colour utility library",
+   "project_id": "1OE8wbN0",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "CC-BY-NC-ND-4.0",
+   "source": "https://github.com/AHilyard/Prism/",
+   "docs": "https://github.com/AHilyard/Prism/wiki/Prism-Documentation",
+   "issues": "https://discord.gg/UCKjnamDaW",
+   "page": "https://modrinth.com/mod/prism-lib",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:prism-lib:<version>"
+  },
+  "puzzles-lib": {
+   "title": "Puzzles Lib",
+   "category": "multiloader",
+   "purpose": "Multi-loader library with registration, config and event helpers",
+   "project_id": "QAGBst4M",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MPL-2.0",
+   "source": "https://github.com/Fuzss/puzzleslib",
+   "docs": null,
+   "issues": "https://github.com/Fuzss/puzzleslib/issues",
+   "page": "https://modrinth.com/mod/puzzles-lib",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:puzzles-lib:<version>"
+  },
+  "rei": {
+   "title": "Roughly Enough Items (REI)",
+   "category": "recipes",
+   "purpose": "Recipe viewer with its own plugin API",
+   "project_id": "nfn13YXA",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/shedaniel/RoughlyEnoughItems",
+   "docs": "https://www.craft.do/s/qj8mHyTVd7qkOZ",
+   "issues": "https://github.com/shedaniel/RoughlyEnoughItems/discussions",
+   "page": "https://modrinth.com/mod/rei",
+   "minecraft": {
+    "oldest": "1.13",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:rei:<version>"
+  },
+  "resourceful-lib": {
+   "title": "Resourceful Lib",
+   "category": "multiloader",
+   "purpose": "Cross-loader registries, networking and codec utilities",
+   "project_id": "G1hIVOrD",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Team-Resourceful/ResourcefulLib",
+   "docs": "https://team-resourceful.gitbook.io/resourceful-lib/highlights",
+   "issues": "https://github.com/Team-Resourceful/ResourcefulLib/issues",
+   "page": "https://modrinth.com/mod/resourceful-lib",
+   "minecraft": {
+    "oldest": "1.19.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:resourceful-lib:<version>"
+  },
+  "smartbrainlib": {
+   "title": "SmartBrainLib",
+   "category": "entity",
+   "purpose": "Brain-based mob AI builders, a cleaner alternative to goals",
+   "project_id": "PuyPazRT",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MPL-2.0",
+   "source": "https://github.com/Tslat/SmartBrainLib",
+   "docs": "https://github.com/Tslat/SmartBrainLib/wiki",
+   "issues": "https://github.com/Tslat/SmartBrainLib/issues",
+   "page": "https://modrinth.com/mod/smartbrainlib",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "unsupported",
+   "server_side": "required",
+   "maven": "maven.modrinth:smartbrainlib:<version>"
+  },
+  "sodium": {
+   "title": "Sodium",
+   "category": "rendering",
+   "purpose": "Rendering engine most packs use; test rendering code against it",
+   "project_id": "AANobbMI",
+   "loaders": [
+    "fabric",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-Polyform-Shield-1.0.0",
+   "source": "https://github.com/CaffeineMC/sodium",
+   "docs": "https://github.com/CaffeineMC/sodium/wiki",
+   "issues": "https://github.com/CaffeineMC/sodium/issues",
+   "page": "https://modrinth.com/mod/sodium",
+   "minecraft": {
+    "oldest": "1.16.3",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:sodium:<version>"
+  },
+  "spark": {
+   "title": "spark",
+   "category": "diagnostics",
+   "purpose": "Profiler; use it to measure tick and memory cost of a mod",
+   "project_id": "l6YH9Als",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "GPL-3.0-only",
+   "source": "https://github.com/lucko/spark",
+   "docs": "https://spark.lucko.me/docs",
+   "issues": "https://github.com/lucko/spark/issues",
+   "page": "https://modrinth.com/mod/spark",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:spark:<version>"
+  },
+  "supermartijn642s-config-lib": {
+   "title": "SuperMartijn642's Config Lib",
+   "category": "config",
+   "purpose": "Small cross-loader config library",
+   "project_id": "LN9BxssP",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-All-Rights-Reserved",
+   "source": "https://github.com/SuperMartijn642/SuperMartijn642sConfigLib",
+   "docs": null,
+   "issues": "https://github.com/SuperMartijn642/SuperMartijn642sConfigLib/issues",
+   "page": "https://modrinth.com/mod/supermartijn642s-config-lib",
+   "minecraft": {
+    "oldest": "1.12",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:supermartijn642s-config-lib:<version>"
+  },
+  "supermartijn642s-core-lib": {
+   "title": "SuperMartijn642's Core Lib",
+   "category": "multiloader",
+   "purpose": "Registration, GUI and networking helpers",
+   "project_id": "rOUBggPv",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-All-Rights-Reserved",
+   "source": "https://github.com/SuperMartijn642/SuperMartijn642sCoreLib",
+   "docs": null,
+   "issues": "https://github.com/SuperMartijn642/SuperMartijn642sCoreLib/issues",
+   "page": "https://modrinth.com/mod/supermartijn642s-core-lib",
+   "minecraft": {
+    "oldest": "1.12",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:supermartijn642s-core-lib:<version>"
+  },
+  "terrablender": {
+   "title": "TerraBlender",
+   "category": "worldgen",
+   "purpose": "Adds biomes to the overworld and nether without replacing vanilla regions",
+   "project_id": "kkmrDlKT",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/Glitchfiend/TerraBlender/",
+   "docs": "https://github.com/Glitchfiend/TerraBlender/wiki",
+   "issues": "https://github.com/Glitchfiend/TerraBlender/",
+   "page": "https://modrinth.com/mod/terrablender",
+   "minecraft": {
+    "oldest": "1.18.1",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:terrablender:<version>"
+  },
+  "the-one-probe": {
+   "title": "The One Probe",
+   "category": "info",
+   "purpose": "Block/entity probe overlay with a provider API",
+   "project_id": "Eyw0UxEx",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/McJtyMods/TheOneProbe",
+   "docs": null,
+   "issues": "https://github.com/McJtyMods/TheOneProbe/issues",
+   "page": "https://modrinth.com/mod/the-one-probe",
+   "minecraft": {
+    "oldest": "1.9",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:the-one-probe:<version>"
+  },
+  "trinkets": {
+   "title": "Trinkets",
+   "category": "equipment",
+   "purpose": "Extra equipment slots on Fabric",
+   "project_id": "5aaWibi9",
+   "loaders": [
+    "fabric",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/emilyalexandra/trinkets",
+   "docs": "https://github.com/emilyalexandra/trinkets/wiki",
+   "issues": "https://github.com/emilyalexandra/trinkets/issues",
+   "page": "https://modrinth.com/mod/trinkets",
+   "minecraft": {
+    "oldest": "1.17.1",
+    "newest": "1.21.1"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:trinkets:<version>"
+  },
+  "wthit": {
+   "title": "WTHIT",
+   "category": "info",
+   "purpose": "Block/entity tooltip overlay with a provider API",
+   "project_id": "6AQIaxuO",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "CC-BY-NC-SA-4.0",
+   "source": "https://github.com/badasintended/wthit",
+   "docs": null,
+   "issues": "https://github.com/badasintended/wthit/issues",
+   "page": "https://modrinth.com/mod/wthit",
+   "minecraft": {
+    "oldest": "1.16.2",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:wthit:<version>"
+  },
+  "yacl": {
+   "title": "YetAnotherConfigLib (YACL)",
+   "category": "config",
+   "purpose": "YetAnotherConfigLib: declarative config screens",
+   "project_id": "1eAoo2KR",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-or-later",
+   "source": "https://github.com/isXander/YetAnotherConfigLib",
+   "docs": "https://docs.isxander.dev/yet-another-config-lib",
+   "issues": "https://github.com/isXander/YetAnotherConfigLib/issues",
+   "page": "https://modrinth.com/mod/yacl",
+   "minecraft": {
+    "oldest": "1.19",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:yacl:<version>"
+  },
+  "yungs-api": {
+   "title": "YUNG's API",
+   "category": "worldgen",
+   "purpose": "Structure and jigsaw utilities",
+   "project_id": "Ua7DFN59",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/YUNG-GANG/YUNGs-API",
+   "docs": null,
+   "issues": "https://github.com/YUNG-GANG/YUNGs-API/issues",
+   "page": "https://modrinth.com/mod/yungs-api",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "26.1.2"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:yungs-api:<version>"
+  }
+ }
+}

@@ -107,10 +107,27 @@ def _project_info(project: Path) -> dict:
     info = inspect_project(project)
     if info.get("errors") or info.get("drift") or info.get("lock_status") in {"drift", "unresolved"}:
         raise ValueError(f"Project inspection failed: {info.get('errors') or info.get('drift')}")
-    target = info["target"]
-    if target.get("minecraft") != "1.21.1" or target.get("java_major") != 21:
-        raise ValueError("Verification currently supports only Minecraft 1.21.1 / Java 21")
     return info
+
+
+# The headless game-test server loads the mod, freezes registries and reads its data pack, then exits.
+LOAD_TASKS = {"neoforge-mdg": ["runGameTestServer"], "forge-fg": ["runGameTestServer"]}
+
+
+def _steps(family: str, lock: dict, load: bool) -> list[tuple[str, list[str]]]:
+    if lock.get("with_tests"):
+        return [("datagen", ["runData"]), ("tests-build", ["runGameTestServer", "build"])]
+    steps = [("datagen", ["runData"])] if family == "neoforge-mdg" else []
+    # Fabric's official test wiring makes `build` run the game-test server itself.
+    steps.append(("tests-build" if lock.get("game_tests") == "fabric" else "build", ["build"]))
+    if load and family in LOAD_TASKS:
+        from .workbench import needs_load_test
+        if needs_load_test(dict(lock, family=family)):
+            # Before 1.21.5 the game refuses to start a game-test server that has no tests.
+            raise ValueError(f"NeoForge on Minecraft {lock.get('minecraft')} needs one game test to boot its test server: "
+                             "run `tests PROJECT`, then `verify PROJECT`")
+        steps.append(("server-load", LOAD_TASKS[family]))
+    return steps
 
 
 def _identity(project: Path):
@@ -124,9 +141,12 @@ def _identity(project: Path):
     if not isinstance(package, str) or not re.fullmatch(r"[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+", package):
         raise ValueError("Invalid locked Java package")
     props = _relative(project, "gradle.properties").read_text(encoding="utf-8-sig")
-    versions = re.findall(r"(?m)^\s*mod_version\s*=\s*([^\r\n]+)", props)
     ids = re.findall(r"(?m)^\s*mod_id\s*=\s*([^\r\n]+)", props)
-    if len(versions) != 1 or len(ids) != 1 or ids[0].strip() != mod_id:
+    # Templates name the version differently: mod_version (NeoForge, Forge 1.20), version (Fabric) or a build.gradle literal.
+    versions = (re.findall(r"(?m)^\s*mod_version\s*=\s*([^\r\n]+)", props)
+                or re.findall(r"(?m)^\s*version\s*=\s*([^\r\n]+)", props)
+                or re.findall(r"(?m)^\s*version\s*=\s*['\"]([^'\"\r\n]+)['\"]\s*$", _relative(project, "build.gradle").read_text(encoding="utf-8-sig")))
+    if len(versions) != 1 or len(ids) > 1 or (ids and ids[0].strip() != mod_id):
         raise ValueError("Project identity/properties are missing, ambiguous or differ from the lock")
     version = versions[0].strip()
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+\-]*", version):
@@ -188,12 +208,12 @@ def _save(project: Path, run_dir: Path, receipt: dict):
 
 
 def _summary(project: Path, receipt: dict) -> dict:
-    return {key: receipt[key] for key in ("status", "run_id", "project", "target", "tests", "artifact", "warnings") if key in receipt} | {
+    return {key: receipt[key] for key in ("status", "run_id", "project", "target", "tiers", "tests", "artifact", "warnings") if key in receipt} | {
         "receipt": str(project / "build/mcforge/verification.json"),
         "logs": [step["log"] for step in receipt.get("commands", [])]}
 
 
-def verify_project(project: Path, java_home: Path | None = None, *, starter: bool = False) -> dict:
+def verify_project(project: Path, java_home: Path | None = None, *, starter: bool = False, load: bool = False) -> dict:
     project = Path(os.path.abspath(project))
     guard_output(project)
     if not project.is_dir():
@@ -219,14 +239,20 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
         inputs = _inputs(project)
         info = _project_info(project)
         lock, version = _identity(project)
-        if starter and not lock.get("with_tests"):
+        if starter and not (lock.get("with_tests") and lock.get("starter", True)):
             raise ValueError("Starter assertions require a project created with --with-tests")
-        home = select_java(java_home, info["target"]["java_major"])
+        home = select_java(java_home, info.get("gradle_java_major") or info["target"]["java_major"])
         receipt.update(inputs=inputs, target=info["target"], java=check_java(home), warnings=info.get("warnings", []))
-        receipt["tests"] = {"status": "pending"} if lock.get("with_tests") else {"status": "not_configured", "count": 0}
-        if not lock.get("with_tests"):
+        tested = bool(lock.get("with_tests") or lock.get("game_tests"))
+        receipt["tests"] = {"status": "pending"} if tested else {"status": "not_configured", "count": 0}
+        if not tested:
             receipt["warnings"].append("No configured GameTests; successful build is not behavioral coverage")
-        steps = [("datagen", ["runData"]), ("tests-build", ["runGameTestServer", "build"])] if lock.get("with_tests") else [("datagen", ["runData"]), ("build", ["build"])]
+        family = info.get("family", "neoforge-mdg")
+        steps = _steps(family, lock, load)
+        # Each tier is a separate claim; anything not exercised stays named as not run.
+        receipt["tiers"] = {"compile": "pending", "package": "pending",
+                            "server_load": "pending" if load or tested else "not_run",
+                            "client_load": "not_run", "gameplay": "not_run"}
         for name, tasks in steps:
             if name == "tests-build":
                 report = _relative(project, "build/reports/gametest/results.xml")
@@ -244,20 +270,29 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
                 raise ValueError(f"Gradle {' '.join(tasks)} exited {code}; see {log}")
             if _inputs(project) != inputs:
                 raise ValueError("Project inputs changed during verification; rerun with stable sources")
-            if name == "datagen":
+            if name == "datagen" or "generated" not in receipt:
                 receipt["generated"] = _generated(project)
             elif _generated(project) != receipt["generated"]:
                 raise ValueError("Generated data changed after datagen; verification evidence is inconsistent")
-        if lock.get("with_tests"):
+            if name == "server-load":
+                # Gradle can exit 0 although the server never started (NeoForge 1.21.1 with zero tests does).
+                text = log.read_text(encoding="utf-8", errors="replace")
+                if "Failed to start the minecraft server" in text or "Started game test server" not in text:
+                    receipt["tiers"]["server_load"] = "failed"
+                    raise ValueError(f"The game-test server did not start; see {log}")
+                receipt["tiers"]["server_load"] = "passed"
+        if tested:
             receipt["tests"] = _test_result(project)
+            receipt["tiers"]["server_load"] = "passed"
         artifact = _artifact(project, lock, version)
+        receipt["tiers"].update(compile="passed", package="passed")
         if starter:
             from scripts.verify_starter import verify
             receipt["starter"] = verify(project)
         if _inputs(project) != inputs or _generated(project) != receipt["generated"]:
             raise ValueError("Project inputs/generated data changed while collecting verification evidence")
         outputs = [artifact.relative_to(project).as_posix()]
-        if lock.get("with_tests"):
+        if tested:
             outputs.append("build/reports/gametest/results.xml")
         outputs += [Path(step["log"]).relative_to(project).as_posix() for step in receipt["commands"]]
         receipt.update(outputs=_hashes(project, outputs), artifact={"path": str(artifact), "sha256": digest(artifact)}, status="passed", finished_at=_now())

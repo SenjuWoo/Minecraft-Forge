@@ -1,5 +1,16 @@
 # Decisions
 
+## 1.0.0
+
+- One provider layer driven by data (`vendor/targets.json`), not a class per loader: every family differs only in template rewrites, pin reading and verification steps. Official templates stay the source of truth; the toolkit never reimplements loader build logic.
+- Exact pins over ranges: Loom `1.19-SNAPSHOT` and ForgeGradle `[6.0,6.2)` / `[7.0.17,8)` are replaced at scaffold time by the newest matching release, recorded in the registry, so a project builds the same next month.
+- Gradle's JDK per family: Loom 1.19 needs Java 25 whatever the mod targets; ForgeGradle 7 run tasks need a Java 8 toolchain. All local JDKs are offered as toolchains instead of enabling auto-download.
+- Server-load evidence only from a log that shows the server started: NeoForge 1.21.1 exits 0 after refusing to start a zero-test server, so exit codes alone were a false pass.
+- Java kits only where CI compiles them. 26.x targets get assets and data, and say plainly that Java is not generated, rather than shipping unverified code.
+- Facts read from the game, not remembered: pack formats, folder names and recipe JSON shape come from each release's client JAR (range requests, nothing executed). Library metadata comes from each project's Modrinth record.
+- Modrinth version ids in Gradle coordinates: version numbers are ambiguous across loaders and Minecraft versions (a real 1.20.1 build resolved a 1.21.4 file).
+- `deploy` is the only write into a launcher instance: plan by default, `--apply` to write, receipt required, backups kept.
+
 ## 0.2.0
 
 - Testable starters are opt-in (`init --with-tests`); existing callers and plain scaffolds are preserved.

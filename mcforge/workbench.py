@@ -52,10 +52,17 @@ def java_candidates(explicit: Path | None = None) -> list[Path]:
     runtimes = default_launcher() / "runtimes/minecraft"
     if runtimes.is_dir():
         candidates.extend(p.parent.parent for p in sorted(runtimes.glob("*/windows-x64/*/bin/javac.exe")))
-    for base in (Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Eclipse Adoptium",
-                 Path.home() / ".jdks", ROOT / "local/tools"):
+    # CI images and version managers publish one home per major.
+    candidates += [Path(value) for key, value in sorted(os.environ.items()) if re.fullmatch(r"JAVA_HOME_\d+_\w+", key) and value]
+    program_files = Path(os.environ.get("ProgramFiles", "C:/Program Files"))
+    for base in (program_files / "Eclipse Adoptium", program_files / "Microsoft", program_files / "Java",
+                 program_files / "Zulu", program_files / "Amazon Corretto", program_files / "BellSoft",
+                 Path.home() / ".jdks", ROOT / "local/tools", Path("/usr/lib/jvm"), Path.home() / ".sdkman/candidates/java"):
         if base.is_dir():
-            candidates.extend(sorted(base.glob("jdk*")))
+            candidates.extend(sorted(path for path in base.iterdir() if path.is_dir() and path.name != "current"))
+    mac = Path("/Library/Java/JavaVirtualMachines")
+    if mac.is_dir():
+        candidates.extend(sorted(path / "Contents/Home" for path in mac.iterdir()))
     return list(dict.fromkeys(p.resolve() for p in candidates if p))
 
 
@@ -70,7 +77,7 @@ def check_java(home: Path) -> dict:
     try:
         completed = subprocess.run([str(java), "-version"], capture_output=True, text=True, timeout=15)
         output = completed.stderr + completed.stdout
-        match = re.search(r'version "(\d+)', output)
+        match = re.search(r'version "(?:1\.)?(\d+)', output)
         result.update(major=int(match[1]) if match else None, version=output.splitlines()[0] if output else "", exit_code=completed.returncode)
     except (OSError, subprocess.TimeoutExpired) as error:
         result["error"] = str(error)
@@ -84,7 +91,7 @@ def select_java(explicit: Path | None = None, major: int = 21) -> Path:
             return path
         if explicit:
             break
-    raise ValueError(f"JDK {major} with javac is required. Set MCFORGE_JAVA_HOME or use --java-home; see guide tools. No global Java settings were changed.")
+    raise ValueError(f"JDK {major} with javac is required. Run setup-java --major {major}, set MCFORGE_JAVA_HOME or use --java-home; see guide tools. No global Java settings were changed.")
 
 
 def verify_vendor() -> dict:
@@ -102,89 +109,34 @@ def guard_output(path: Path):
     for parent in (path, *path.parents):
         if parent.is_symlink() or (parent.exists() and getattr(parent.lstat(), "st_file_attributes", 0) & 0x400):
             raise ValueError("Output ancestry contains a symlink/junction; select a direct owned path")
-        if (parent / "instance.json").exists():
+        if any((parent / marker).exists() for marker in ("instance.json", "mmc-pack.json", "minecraftinstance.json", "launcher_profiles.json")):
             raise ValueError("Launcher instances are read-only; select an owned development directory")
 
 
-def init_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str = "21.1.265", *, with_tests: bool = False) -> dict:
-    destination = Path(os.path.abspath(destination))
-    guard_output(destination)
-    if destination.exists():
-        raise ValueError("Destination must not exist; existing files are never overwritten")
-    if not destination.parent.is_dir():
-        raise ValueError("Destination parent must already exist")
-    if not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", mod_id):
-        raise ValueError("mod-id must match [a-z][a-z0-9_]{1,63}")
-    if with_tests and len(mod_id) > 58:
-        raise ValueError("--with-tests requires mod-id at most 58 characters to leave room for _tests")
-    if not re.fullmatch(r"[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+", package) or any(p in JAVA_WORDS for p in package.split(".")):
-        raise ValueError("package must be dotted lowercase Java identifiers, without Java keywords")
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _.-]{0,79}", name):
-        raise ValueError("name must be 1-80 plain letters, numbers, spaces, underscores, dots or hyphens")
-    if not re.fullmatch(r"21\.1\.\d+", neo_version):
-        raise ValueError("This provider supports only Minecraft 1.21.1 / NeoForge 21.1.x")
-    manifest = verify_vendor()
-    with tempfile.TemporaryDirectory(prefix=".mcforge-", dir=destination.parent) as scratch:
-        stage = Path(scratch) / "project"
-        stage.mkdir()
-        with zipfile.ZipFile(ROOT / "vendor" / manifest["archive"]) as archive:
-            for entry in archive.infolist():
-                relative = PurePosixPath(entry.filename)
-                if relative.is_absolute() or ".." in relative.parts or "\\" in entry.filename:
-                    raise ValueError("Unsafe template archive path")
-                parts = relative.parts[1:]
-                if not parts or parts[0] == ".github" or entry.is_dir():
-                    continue
-                # Change only the known template namespace, never arbitrary binary bytes.
-                target = stage.joinpath(*[mod_id if p == "examplemod" else p for p in parts])
-                if parts[:6] == ("src", "main", "java", "com", "example", "examplemod"):
-                    target = stage.joinpath("src/main/java", *package.split("."), *parts[6:])
-                target.parent.mkdir(parents=True, exist_ok=True)
-                data = archive.read(entry)
-                if target.suffix != ".jar":
-                    text = data.decode("utf-8").replace("examplemod", mod_id)
-                    if target.suffix == ".java":
-                        # Rewrite the namespace last so literal template words in a chosen package survive.
-                        text = text.replace(f"com.example.{mod_id}", package)
-                    if target.name == "gradle.properties":
-                        for key, value in {"mod_id": mod_id, "mod_name": name, "mod_group_id": package, "neo_version": neo_version, "org.gradle.daemon": "false"}.items():
-                            text = re.sub(r"(?m)^" + re.escape(key) + r"=.*$", lambda _: f"{key}={value}", text)
-                    if target.name == "gradle-wrapper.properties":
-                        text += f"\ndistributionSha256Sum={manifest['gradle_distribution_sha256']}\n"
-                    # Normal builds should not silently provision a different JDK.
-                    if target.name == "settings.gradle":
-                        text = text.split("\nplugins {")[0] + "\n"
-                    data = text.encode("utf-8")
-                target.write_bytes(data)
-        (stage / "gradlew").chmod(0o755)
-        if with_tests:
-            add_testing_starter(stage, mod_id, package)
-        lock = {"toolkit_version": __version__, "minecraft": "1.21.1", "neo_version": neo_version,
-                "java_major": 21, "mod_id": mod_id, "package": package, "template_commit": manifest["commit"],
-                "template_sha256": manifest["sha256"], "gradle_wrapper_sha256": manifest["gradle_wrapper_sha256"]}
-        if with_tests:
-            lock["with_tests"] = True
-        from .project import read_target
-        lock["target"] = read_target(stage)
-        (stage / "mcforge-project.json").write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
-        (stage / "AGENTS.md").write_text(f"# Mod authoring\n\nRead mcforge-project.json and STATE.md first. Target Minecraft 1.21.1 / NeoForge {neo_version} / Java 21.\nToolkit: {ROOT}\nRead that toolkit's AGENTS.md, then only the guide needed for this task.\nUse the pinned Gradle wrapper. Keep ATLauncher, installed mods, worlds and saves read-only.\nVerify signatures in exact generated sources; build success does not prove gameplay compatibility.\nDo not publish without explicit authorization.\n", encoding="utf-8")
-        (stage / "WORKSPACE_OWNERSHIP.md").write_text("# Workspace ownership\n\nProject root and active source: this directory. One owner for all agents.\nLocal/private; no remote or publication authorized. Version: gradle.properties mod_version.\nRead-only references: ATLauncher and all installed mods/saves. Outputs: build/ and run/.\nRecovery: preserve source and read STATE.md before continuing.\n", encoding="utf-8")
-        (stage / "STATE.md").write_text("# State\n\nGoal: replace the official example with the requested mod.\nDone: pinned template created; no builds or runtime checks yet.\nNext: inspect source and Gradle tasks; implement one feature and add meaningful tests.\nBuild: toolkit gradle command, project path, build. Output: build/libs/.\nRuntime: unverified.\n", encoding="utf-8")
-        if with_tests:
-            with (stage / "STATE.md").open("a", encoding="utf-8") as stream:
-                stream.write("\nOpt-in starter: two GameTests and a recipe data provider included in src/gameTest (not yet run).\nRun: toolkit verify PROJECT --starter; verify PROJECT --check rechecks receipt freshness.\nReport: build/reports/gametest/results.xml. Receipt/logs: build/mcforge/. Final JAR excludes the test mod; generated recipe is included.\n")
-        publish_project(stage, destination)
-    next_step = "verify PROJECT --starter" if with_tests else "gradle PROJECT tasks; verify PROJECT"
-    return {"project": str(destination), "lock": lock, "next": next_step}
+def init_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str | None = None, **options) -> dict:
+    """Create a pinned project; see scaffold.init_project for the loader/version options."""
+    from .scaffold import init_project as create
+    return create(destination, mod_id, package, name, neo_version, **options)
 
 
-def quickstart_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str = "21.1.265",
-                       *, with_tests: bool = True, style: str = "auto", size: int = 16) -> dict:
+def quickstart_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str | None = None,
+                       *, with_tests: bool = True, style: str = "auto", size: int = 16, **options) -> dict:
     """Create the pinned scaffold and dress its example content in one command."""
-    result = init_project(destination, mod_id, package, name, neo_version, with_tests=with_tests)
-    from .assets import generate_assets
-    result["assets"] = generate_assets(destination, style=style, size=size)
-    result["next"] = "verify PROJECT --starter" if with_tests else "gradle PROJECT build"
+    from .targets import select_target
+    if not options.get("fetch") and select_target(options.get("loader"), options.get("minecraft"), options.get("target_id"))["id"] != "neoforge-1.21.1":
+        with_tests = False
+    result = init_project(destination, mod_id, package, name, neo_version, with_tests=with_tests, **options)
+    family = result["lock"]["family"]
+    if family == "fabric-loom":
+        # The Fabric template registers no example content: add a real block and item (Java on kit targets).
+        from .content import add_content
+        result["assets"] = [add_content(destination, "block", "example_block", style=style, size=size),
+                            add_content(destination, "item", "example_item", style=style, size=size)]
+    else:
+        # The NeoForge and Forge MDKs register example_block and example_item; dress those.
+        from .assets import generate_assets
+        result["assets"] = generate_assets(destination, style=style, size=size)
+    result["next"] = "verify PROJECT --starter" if with_tests else "verify PROJECT"
     return result
 
 
@@ -209,10 +161,51 @@ def publish_project(stage: Path, destination: Path):
             time.sleep(delay)
 
 
-def add_testing_starter(stage: Path, mod_id: str, package: str):
+LOAD_TEST = "templates/testing-load/LoadSmokeTest.java"
+
+
+def needs_load_test(lock: dict) -> bool:
+    """NeoForge before 1.21.5 (the classic GameTest framework) refuses to start a test server with zero tests."""
+    if lock.get("family", "neoforge-mdg") != "neoforge-mdg":
+        return False
+    version = tuple(int(part) for part in str(lock.get("minecraft", "1.21.1")).split(".") if part.isdigit())
+    return version < (1, 21, 5)
+STARTER_ONLY = {"SmokeTests.java", "ExampleRecipes.java"}
+
+
+def add_load_tests(project: Path) -> dict:
+    """Add the game-test wiring and one load smoke test to an existing NeoForge 1.21.1 project."""
+    project = Path(project).resolve()
+    guard_output(project)
+    lock_path = project / "mcforge-project.json"
+    lock = read_json(lock_path)
+    if lock.get("game_tests") or lock.get("with_tests"):
+        return {"project": str(project), "status": "already_configured", "next": "verify PROJECT"}
+    if not needs_load_test(lock):
+        raise ValueError("Only NeoForge before Minecraft 1.21.5 needs this: Fabric projects ship a smoke test, and the other "
+                         "targets start their game-test server without one (verify PROJECT --load)")
+    if (project / "src/gameTest").exists():
+        raise ValueError("src/gameTest already exists; wire your own tests instead of overwriting them")
+    if len(lock["mod_id"]) > 58:
+        raise ValueError("The test mod id needs room for _tests: mod-id must be at most 58 characters")
+    add_testing_starter(project, lock["mod_id"], lock["package"], load_only=True)
+    lock.update(with_tests=True, starter=False)
+    lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+    return {"project": str(project), "status": "added", "tests": ["LoadSmokeTest.modLoads"],
+            "next": "verify PROJECT (runs datagen, the game-test server and the build)"}
+
+
+def add_testing_starter(stage: Path, mod_id: str, package: str, *, load_only: bool = False):
     overlay = ROOT / "templates/testing"
     files = testing_templates()
     snippet = files[0].read_text(encoding="utf-8")
+    if load_only:
+        files = [path for path in files if path.name not in STARTER_ONLY]
+        source = ROOT / LOAD_TEST
+        target = stage.joinpath("src/gameTest/java", *package.split("."), "testing", source.name)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(source.read_text(encoding="utf-8").replace("@PACKAGE@", package).replace("@MOD_ID@", mod_id),
+                          encoding="utf-8", newline="\n")
     for source in files[1:]:
         relative = source.relative_to(overlay)
         target = stage / str(relative).replace("@MOD_ID@", mod_id)
@@ -286,14 +279,18 @@ def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *
     wrapper = project / "gradle/wrapper/gradle-wrapper.jar"
     if digest(wrapper) != lock["gradle_wrapper_sha256"]:
         raise ValueError("Project wrapper changed; verify provenance before updating mcforge-project.json")
-    home = select_java(java_home, info["target"]["java_major"])
+    home = select_java(java_home, info.get("gradle_java_major") or info["target"]["java_major"])
+    # Gradle may need further toolchains (ForgeGradle 7 launches its run tool on Java 8); offer every local JDK.
+    suffix = ".exe" if os.name == "nt" else ""
+    installations = ",".join(dict.fromkeys(str(path) for path in [home, *java_candidates()]
+                                           if (path / "bin" / ("javac" + suffix)).is_file() and "," not in str(path)))
     env = os.environ.copy()
     env["JAVA_HOME"] = str(home)
     env["PATH"] = str(home / "bin") + os.pathsep + env.get("PATH", "")
     env["GRADLE_USER_HOME"] = str(ROOT / "local/gradle")
     suffix = ".exe" if os.name == "nt" else ""
     command = [str(home / "bin" / ("java" + suffix)), "-classpath", str(wrapper), "org.gradle.wrapper.GradleWrapperMain",
-               "--console=plain", "--no-daemon", f"-Dorg.gradle.java.installations.paths={home}",
+               "--console=plain", "--no-daemon", f"-Dorg.gradle.java.installations.paths={installations}",
                "-Dorg.gradle.java.installations.auto-download=false", *(option for option in options if option != "--all"), *tasks,
                *(option for option in options if option == "--all")]
     log_path = Path(log_path) if log_path else project / "build/mcforge/logs" / f"gradle-{uuid.uuid4().hex}.log"

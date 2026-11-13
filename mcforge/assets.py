@@ -200,6 +200,9 @@ def generate_assets(project: Path, specs: list[tuple[str, str]] | None = None, *
         raise ValueError("At least one asset is required")
     assets_root = project / "src/main/resources/assets" / mod_id
     data_root = project / "src/main/resources/data" / mod_id
+    # Folder names follow the project's Minecraft version (plural loot_tables before 1.21, item definitions from 1.21.4).
+    from .resources import facts
+    layout = facts(str(lock.get("minecraft") or "1.21.1"))["layout"]
     lang_path = assets_root / "lang/en_us.json"
     lang: dict[str, str] = {}
     if lang_path.is_file():
@@ -230,8 +233,11 @@ def generate_assets(project: Path, specs: list[tuple[str, str]] | None = None, *
                 (assets_root / "models/item" / f"{asset_id}.json",
                  _json({"parent": f"{mod_id}:block/{asset_id}"})),
                 (assets_root / "textures/block" / f"{asset_id}.png", texture),
-                (data_root / "loot_table/blocks" / f"{asset_id}.json", _json(_loot_table(mod_id, asset_id))),
+                (data_root / layout["loot_table"] / "blocks" / f"{asset_id}.json", _json(_loot_table(mod_id, asset_id))),
             ])
+            if layout["item_definitions"]:
+                files.append((assets_root / "items" / f"{asset_id}.json",
+                              _json({"model": {"type": "minecraft:model", "model": f"{mod_id}:block/{asset_id}"}})))
             lang[f"block.{mod_id}.{asset_id}"] = _display_name(asset_id)
         else:
             files.extend([
@@ -239,6 +245,9 @@ def generate_assets(project: Path, specs: list[tuple[str, str]] | None = None, *
                  _json({"parent": "minecraft:item/generated", "textures": {"layer0": f"{mod_id}:item/{asset_id}"}})),
                 (assets_root / "textures/item" / f"{asset_id}.png", texture),
             ])
+            if layout["item_definitions"]:
+                files.append((assets_root / "items" / f"{asset_id}.json",
+                              _json({"model": {"type": "minecraft:model", "model": f"{mod_id}:item/{asset_id}"}})))
             lang[f"item.{mod_id}.{asset_id}"] = _display_name(asset_id)
         record = {"id": asset_id, "kind": kind, "style": resolved,
                   "texture_sha256": hashlib.sha256(texture).hexdigest(), "files": [], "skipped": []}

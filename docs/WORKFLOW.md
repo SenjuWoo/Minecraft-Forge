@@ -9,7 +9,9 @@ Read this first. Load the other guides only for the current phase. Work in an ow
 3. For pack integration, run `python -m mcforge inventory --instance "<instance directory>"`. Add `--hash` when recording a reproducible pack baseline. Inspect one relevant mod with `python -m mcforge jar "<mod.jar>"`.
 4. Record Minecraft, loader, loader version, JDK, Gradle wrapper, ModDevGradle, mappings, physical side and required libraries in the project. A mod filename alone does not establish any of these.
 
-The initial target is Minecraft **1.21.1**, NeoForge **21.1.265**, Java **21**. This matches the inspected pack, rather than following a moving newest release. A new game version is a port with separate validation.
+Seven targets are bundled and built in CI (`targets` lists them): NeoForge 1.21.1 (default) and 26.3, Fabric 1.20.1, 1.21.1 and 26.3, Forge 1.20.1 and 26.3. Match the pack you build for: `instances` prints the `init` options for each installed instance. `--fetch` resolves the official template for any other version; such a target was not built by this release, so its own build and tests are the only evidence. A new game version is a port with separate validation.
+
+`plan "<request>"` routes a plain-language request to the commands, the one guide to read and the pitfalls, without writing anything. `capabilities` lists every command and option of this version.
 
 New projects lock the complete target: game, loader, Java, Gradle distribution/checksum, wrapper hash, ModDevGradle and Parchment. Builds reject drift and unresolved pins. Legacy locks retain their existing fields and warn about unpinned components; no automatic migration occurs. When currency matters, `updates "<project>"` explicitly reads official metadata without changing files. Its candidates require validation and do not authorize a port.
 
@@ -21,7 +23,10 @@ New projects lock the complete target: game, loader, Java, Gradle distribution/c
 | New content or gameplay logic | NeoForge events and registry APIs in the target version |
 | Integration with another mod | Its exact release API/source and declared optional/required dependency |
 | Private or missing hook | Check access transformers and available events before a narrowly targeted mixin |
-| Client visual asset | `asset` for free placeholder textures/models, then an editor for final art |
+| Client visual asset | `add` / `asset` for free placeholder textures/models, then an editor for final art |
+| Blocks, items, tools, armor, furniture, mobs | `add PROJECT KIND NAME` (guide content) |
+| Resource, data or shader pack | `pack` (guide packs); no compiled mod |
+| A popular library (GeckoLib, Curios, Architectury, ...) | `libs` (guide libraries) |
 
 Do not install a second loader, multiloader framework, editor bridge or MCP server for a task the CLI already handles. They can be introduced when a concrete requirement justifies them.
 

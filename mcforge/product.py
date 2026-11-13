@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .workbench import TESTING_FILES
+from .workbench import LOAD_TEST, TESTING_FILES
 
 PRODUCT_NAMES = (
     "Minecraft-Forge.ps1",
@@ -25,7 +25,7 @@ PRODUCT_NAMES = (
 
 PRODUCT_GLOBS = {
     "assets": ("*.svg", "*.png"),
-    "mcforge": ("*.py",),
+    "mcforge": ("*.py", "*.json"),
     "docs": ("*.md",),
     "skills": ("*.md",),
     "vendor": ("*.json", "*.zip", "*.txt"),
@@ -38,6 +38,7 @@ def product_files(root: Path) -> list[Path]:
     """Return the exact portable payload, failing on a missing required file."""
     files = [root / name for name in PRODUCT_NAMES]
     files.extend(root / "templates/testing" / name for name in TESTING_FILES)
+    files.append(root / LOAD_TEST)
     for directory, patterns in PRODUCT_GLOBS.items():
         for pattern in patterns:
             files.extend((root / directory).rglob(pattern))

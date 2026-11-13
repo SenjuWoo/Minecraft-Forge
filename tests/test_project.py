@@ -124,7 +124,9 @@ class ProjectTests(unittest.TestCase):
         self.assertNotIn("private", json.dumps(result))
         wrapper.write_text(original)
         self.rewrite("build.gradle", "JavaLanguageVersion.of(21)", "JavaLanguageVersion.of(25)")
-        self.assertIn("outside the tested", project.inspect_project(self.mod)["errors"][0])
+        result = project.inspect_project(self.mod)
+        self.assertEqual(result["errors"], [])
+        self.assertIn("untested here", result["warnings"][-1])
 
     def test_malformed_or_partial_lock_cannot_claim_full_pinning(self):
         self.write_lock(target={"minecraft": "1.21.1"})

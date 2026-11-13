@@ -35,7 +35,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: matrix.os == 'windows-latest' && matrix.python == '3.14'
         with:
-          name: Minecraft-Forge-WIP
+          name: Minecraft-Forge
           path: dist/*
           if-no-files-found: error
   hygiene:
@@ -48,9 +48,9 @@ jobs:
           persist-credentials: false
       - run: python3 scripts/check_hygiene.py
   neoforge-build:
-    name: NeoForge 1.21.1 build
+    name: NeoForge 1.21.1 starter (Windows)
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -82,4 +82,36 @@ jobs:
         with:
           name: NeoForge-verification
           path: local/ci-mod/build/mcforge/
+          if-no-files-found: warn
+  targets:
+    name: Target ${{ matrix.target }} (scaffold, every content kind, verify)
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [neoforge-1.21.1, neoforge-26.3, fabric-1.20.1, fabric-1.21.1, fabric-26.3, forge-1.20.1, forge-26.3]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          # 8: ForgeGradle 7 run tool; 17: Forge 1.20.1; 21: NeoForge 1.21.1; 25: 26.x and Fabric Loom.
+          java-version: |
+            8
+            17
+            21
+            25
+      - run: python -m mcforge doctor
+      - run: python scripts/ci_target.py ${{ matrix.target }} local/ci-targets
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: target-${{ matrix.target }}
+          path: local/ci-targets/${{ matrix.target }}/build/mcforge/
           if-no-files-found: warn
