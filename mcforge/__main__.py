@@ -28,7 +28,7 @@ from .workbench import ROOT, check_java, default_launcher, guard_output, init_pr
 
 GUIDES = {"workflow": "WORKFLOW.md", "neoforge": "NEOFORGE.md", "fabric": "FABRIC.md", "forge": "FORGE.md", "content": "CONTENT.md",
           "assets": "ASSETS.md", "libraries": "LIBRARIES.md", "launchers": "LAUNCHERS.md", "packs": "PACKS.md",
-          "tools": "TOOLS.md", "testing": "TESTING.md"}
+          "tools": "TOOLS.md", "testing": "TESTING.md", "entities": "ENTITIES.md", "audio": "AUDIO.md"}
 OPTIONAL_TOOLS = ("blockbench", "magick", "ffmpeg", "krita", "gimp", "aseprite", "audacity", "blender", "rg")
 
 

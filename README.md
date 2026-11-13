@@ -66,6 +66,8 @@ On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies th
 | Armor sets (icons + worn layers) | `add P armor NAME --tier iron --repair ITEM` | `guide content` |
 | Furniture (shaped, facing, collision) | `add P furniture NAME --shape chair\|table\|stool\|bench\|shelf\|cabinet\|lamp\|pedestal` | `guide content` |
 | Mobs (entity, AI, model, renderer, spawn egg) | `add P mob NAME --shape quadruped\|biped\|blob [--hostile]` | `guide content` |
+| Animated GeckoLib entities, secondary motion, custom AI | `libs --add geckolib --project P` | `guide entities` |
+| Sounds, original SFX and voice lines | `sounds.json`, OGG pipeline | `guide audio` |
 | Blockbench models in and out | `bbmodel P FILE --block ID` / `--entity ID`; furniture and mobs ship a `.bbmodel` | `guide content` |
 | See a model without launching | `preview P FILE` (block model, `.bbmodel`, texture) | `guide content` |
 | Popular libraries (GeckoLib, Curios, Architectury, JEI, Cloth Config, ~60) | `libs`, `libs --add SLUG --project P` | `guide libraries` |

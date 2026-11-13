@@ -24,7 +24,7 @@ Shapes: furniture `chair table stool bench shelf cabinet lamp pedestal`; mobs `q
 
 Generated classes are standalone files under `<package>.content` (client code under `.content.client`, or `src/client` on Fabric). NeoForge and Forge find them by `@EventBusSubscriber`; Fabric through entry points the command appends to `fabric.mod.json`. They are yours to edit; the toolkit never rewrites one unless you pass `--force`.
 
-What the mob kit leaves to you: natural spawning (biome modifiers / spawn placements; the spawn egg works immediately), sounds, loot (an empty loot table is written), and animations beyond walk and head-look. For keyframed animation, add GeckoLib (`libs --add geckolib --project P`) and follow its docs.
+What the mob kit leaves to you: natural spawning (biome modifiers / spawn placements; the spawn egg works immediately), sounds, loot (an empty loot table is written), and animations beyond walk and head-look. For keyframed animation, add GeckoLib (`libs --add geckolib --project P`) and read `guide entities` (coordinate conventions, head look, triggered actions, secondary motion, custom AI); sounds are in `guide audio`.
 
 ## Blockbench round trip
 

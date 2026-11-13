@@ -95,7 +95,8 @@ class StarterProofTests(unittest.TestCase):
 
     def test_rejects_test_classes_structure_and_metadata_in_product(self):
         original = dict(self.entries)
-        for leaked in ("dev/example/garden/testing/SmokeTests.class", "data/garden/structure/empty.nbt"):
+        for leaked in ("dev/example/garden/testing/SmokeTests.class", "data/garden/structure/empty.nbt",
+                       "data/garden/structure/arena.nbt"):
             with self.subTest(leaked=leaked):
                 self.entries = {**original, leaked: b"leak"}
                 self.write_jar()

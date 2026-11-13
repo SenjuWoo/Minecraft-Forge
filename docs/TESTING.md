@@ -66,6 +66,58 @@ Use `runClient` for rendering, interaction and visual checks. Use `runServer` fo
 
 Bare NeoForge 1.21.1 `init` keeps the stock MDK, which contains **zero GameTests**; its `runGameTestServer` refuses to start until a test exists (`tests PROJECT` adds one). `verify` runs datagen/build for this project, records `tests.status = not_configured` and warns that it has no behavioral coverage. It selects the GameTest workflow from the project's `with_tests` marker; custom test setups need their own configured checks. The optional starter's two tests cover only their example slice. Replace their assertions as the mod changes, and run separate client, server, persistence and pack-integration checks for the intended behavior.
 
+## Entity and AI GameTests (NeoForge 1.21.1)
+
+- The starter's `empty` template is 3x3x3: a mob spawned there is boxed in and AI tests fail for the wrong reason. `--with-tests` also ships `arena` (15x7x15, smooth-stone floor, air above): `@GameTest(template = "arena", timeoutTicks = 200)` with `@PrefixGameTestTemplate(false)` on the holder. Positions inside it are relative (`new BlockPos(7, 1, 7)` is the centre, on the floor).
+- GameTest plots are placed millions of blocks from the origin. There, float precision breaks pathfinding (paths come back empty) and line-of-sight rays. Test the behaviour at melee or cast range, call `setTarget` directly, and keep pathing out of the assertion; skip line-of-sight checks for point-blank actions in the mod itself.
+- Use husks, not zombies, as attackers: zombies burn in the test's daylight, so "the monster lost health" passes without your mob doing anything. Give dummies `setNoAi(true)` so only the actor under test acts.
+- Assert the outcome with `succeedWhen(() -> assertTrue(...))` and a failure message carrying the value (`"not healed: " + v.getHealth()`). Add the negative case (friendly fire is rejected, health unchanged) next to the positive one.
+- `runAfterDelay(ticks, ...)` stages a provocation after spawn settles.
+
+## Client screenshot automation
+
+`client_load` and looks are only proven in a client. A development-only client run can stage scenes, save screenshots and quit with nobody at the keyboard, which is far cheaper than asking the user to look. Put it in the `gameTest` source set so it never reaches the JAR.
+
+`build.gradle`:
+
+```groovy
+neoForge { runs { devShots {
+    client(); gameDirectory = project.file('run-devshots')
+    systemProperty "${mod_id}.devshots", 'true'
+    programArguments.addAll('--width', '1600', '--height', '1000')
+    sourceSet = sourceSets.gameTest
+    loadedMods = [neoForge.mods[project.mod_id], neoForge.mods["${project.mod_id}_tests"]]
+} } }
+```
+
+In the test mod constructor: `if (System.getProperty("<mod>.devshots") != null && FMLEnvironment.dist.isClient()) NeoForge.EVENT_BUS.addListener(DevShots::onClientTick);`. The driver (verified on 1.21.1):
+
+```java
+public static void onClientTick(ClientTickEvent.Post event) {
+    Minecraft mc = Minecraft.getInstance();
+    if (mc.level == null || mc.player == null) {
+        if (!requested && mc.screen instanceof TitleScreen title) {           // create a fresh flat creative world
+            requested = true;
+            String name = "devshots_" + System.currentTimeMillis();
+            LevelSettings s = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.EASY, true, new GameRules(), WorldDataConfiguration.DEFAULT);
+            mc.createWorldOpenFlows().createFreshLevel(name, s, new WorldOptions(1L, false, false),
+                    ra -> ra.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(), title);
+        }
+        return;
+    }
+    tick++;   // then run scripted steps by tick: commands, camera moves, screenshots, finally mc.stop()
+}
+static void cmd(String c) { Minecraft.getInstance().player.connection.sendCommand(c); }
+static void shot(String n) { var mc = Minecraft.getInstance(); Screenshot.grab(mc.gameDirectory, n + ".png", mc.getMainRenderTarget(), m -> {}); }
+```
+
+- First steps: `gamerule doDaylightCycle false`, `time set 6000`, `gamerule doMobSpawning false`, `weather clear`, `gamemode spectator`, `options.hideGui = true`; flat world surface is y = -60.
+- Camera: `tp @s x y z yaw pitch` with `yaw = atan2(-dx, dz)`, `pitch = -atan2(dy, horizontal)` toward the subject (eye height 1.62).
+- Turntable: front, both three-quarters, both sides, back, plus close-ups; `summon ... {NoAI:1b,Rotation:[180f,0f]}` for posed shots. Burst frames (`shot` every 2 ticks) for each action; a hostile dummy with `effect give ... resistance` keeps a fight going.
+- Structures and villages: `place structure minecraft:village_plains x y z` (a non-spectator player must be nearby for chunk ticking).
+- Log numeric state too (spring offsets, health, positions) to `latest.log`; numbers settle tuning questions screenshots cannot.
+- Run it in the background with a timeout; read the PNGs (`run-devshots/screenshots/`) and the log. Report what was looked at; it is still not a pack-integration test.
+
 ## Existing crash baseline
 
 Inventory the active pack read-only and save the report outside the instance. Read the newest crash plus the relevant part of the matching log. Identify the first meaningful exception and any transforms of the failing class; a mod named in a stack trace is an isolation candidate, not automatically the cause.

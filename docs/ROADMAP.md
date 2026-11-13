@@ -11,11 +11,17 @@
 - Verification receipts with separate evidence tiers; headless server-load proof on every bundled target.
 - JDK 8/17/21/25 discovery and verified provisioning on Windows, Linux and macOS.
 
+## Added in 1.1.0
+
+- `guide entities`: GeckoLib geometry/animation coordinate conventions for scripted assets, head look, triggered actions, prop swaps, translucent rendering, spring-based secondary motion, villager-brain goals and village spawning.
+- `guide audio`: `sounds.json` and registry wiring, OGG encoding, synthesized original effects, voice generation practice.
+- `--with-tests` ships a 15x7x15 `arena` GameTest structure; `guide testing` covers entity/AI GameTests and a client screenshot automation run.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).
 - Natural mob spawning, sounds and loot presets; ranged weapons; block entities with GUIs.
-- Optional client-run evidence (a scripted client smoke run) so `client_load` can be recorded automatically.
+- A generated client screenshot run (`guide testing` documents the pattern) so `client_load` can be recorded automatically.
 - More furniture shapes and mob archetypes; animated textures.
 
 Roadmap items have no promised dates. The project does not claim universal modpack compatibility or automatic crash repair.

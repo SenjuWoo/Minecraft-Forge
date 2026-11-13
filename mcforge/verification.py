@@ -186,8 +186,9 @@ def _artifact(project: Path, lock: dict, version: str) -> Path:
         import zipfile
         with zipfile.ZipFile(artifact) as archive:
             prefix = lock["package"].replace(".", "/") + "/testing/"
-            structure = f"data/{lock['mod_id']}/structure/empty.nbt"
-            if any(name.startswith(prefix) or name == structure for name in archive.namelist()):
+            from .workbench import TEST_STRUCTURES
+            structures = {f"data/{lock['mod_id']}/structure/{name}.nbt" for name in TEST_STRUCTURES}
+            if any(name.startswith(prefix) or name in structures for name in archive.namelist()):
                 raise ValueError("Development test content leaked into the mod JAR")
     return artifact
 

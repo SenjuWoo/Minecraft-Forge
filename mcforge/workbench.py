@@ -25,7 +25,10 @@ from . import __version__
 ROOT = Path(__file__).resolve().parents[1]
 TESTING_FILES = ("build.gradle", "src/gameTest/java/TestMod.java", "src/gameTest/java/SmokeTests.java",
                  "src/gameTest/java/ExampleRecipes.java", "src/gameTest/resources/META-INF/neoforge.mods.toml",
-                 "src/gameTest/resources/data/@MOD_ID@/structure/empty.nbt")
+                 "src/gameTest/resources/data/@MOD_ID@/structure/empty.nbt",
+                 "src/gameTest/resources/data/@MOD_ID@/structure/arena.nbt")
+# GameTest structures shipped by the starter; development-only, never in the mod JAR.
+TEST_STRUCTURES = ("empty", "arena")
 JAVA_WORDS = set("abstract assert boolean break byte case catch char class const continue default do double else enum extends final finally float for goto if implements import instanceof int interface long native new package private protected public return short static strictfp super switch synchronized this throw throws transient try void volatile while true false null var record sealed permits yield _".split())
 
 

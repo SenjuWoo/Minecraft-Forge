@@ -61,6 +61,15 @@ Build the smallest player-visible feature, then add the tests its behavior needs
 
 For diagnosis, Gradle accepts `--stacktrace`, `--offline`, `--info`, `--all` and `--rerun-tasks`. It saves full output to a unique log under `build/mcforge/logs/` and prints its path, exit code and a bounded failure tail. `--log NEW_FILE` chooses a new path without overwriting. Read the relevant log section before retrying.
 
+## Larger content mods (custom models, animation, sound)
+
+- Match the pack before writing code: read the instance's loader, Minecraft and library builds (`instances`, `inventory --instance PATH`) and pin exactly those (for example the GeckoLib build the pack ships). The user's pack is the target, not the newest release.
+- Generate art from scripts, not by hand: a model generator (Blender headless or plain Python) that writes `.bbmodel` and `.geo.json`, an animation generator, a texture painter and a sound generator, all rerunnable. A fix then becomes "edit a constant, rerun, rebuild" instead of re-describing the asset. Keep these in an `asset-pipeline/` folder beside the mod source; they never ship.
+- Build validators into the generators (coplanar overlaps, bone names the Java code references, UV inside the texture, sound events in `sounds.json` match the registry) so a broken asset fails before the game starts.
+- Iterate with evidence in this order: GameTests for behaviour (`guide testing`), a client screenshot run for looks and animation, then a deploy for the user to play. Each loop costs minutes, not a user round trip.
+- Guides: `guide entities` (GeckoLib conventions, head look, actions, secondary motion, custom AI), `guide audio` (sounds.json, synthesis, voice).
+- Deliverable layout that survives a later edit or share: `mod/` (the built JAR), `source/` (the Gradle project), `asset-pipeline/` (generators and raw takes), `media/` (screenshots, `.bbmodel`), plus a `MANIFEST.json` with JAR name, SHA-256, Minecraft/loader/Java versions, required mods with version ranges, test status and untested items. Large generator installs (TTS models, Python venvs with model weights) are tools, not project files: keep them out.
+
 ## Handoff
 
 Keep `STATE.md` current: goal, exact versions, completed changes, next step, commands/results, receipt/log locations and runtime gaps. Record a checksum for the final mod JAR. A useful report says which commands passed, what behavior was observed and which combinations remain untested. Keep development ledgers, receipts, logs, saves and caches out of a mod release. Generated asset provenance is in `mcforge-assets.json`; replace placeholder art before a public art pass.

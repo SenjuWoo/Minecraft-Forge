@@ -30,7 +30,7 @@ Local mod workbench for **NeoForge, Fabric and Forge**. Read `STATE.md` for curr
 | Deploy | `deploy PATH --instance DIR [--apply] [--allow-mismatch] [--unverified]` - `guide launchers` |
 | Everything | `capabilities` (generated JSON of every command and option) |
 
-Guides, one at a time: `guide workflow|neoforge|fabric|forge|content|assets|libraries|launchers|packs|tools|testing`.
+Guides, one at a time: `guide workflow|neoforge|fabric|forge|content|entities|assets|audio|libraries|launchers|packs|tools|testing`.
 
 ## Rules
 

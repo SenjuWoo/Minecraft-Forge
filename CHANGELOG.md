@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 - 2026-11-13
+
+- New `guide entities`: GeckoLib entity work measured on NeoForge 1.21.1 / GeckoLib 4.9.3: the JSON sign conventions for scripted `.geo.json` and animation files (rotation `[-x,-y,z]`, pivot `[-x,y,z]`, additive animation rotation, unchanged face keys), head look from `EntityModelData`, controllers and triggered actions, prop swaps, translucent render type, z-fighting checks, spring-based secondary motion, villager-brain goals, village spawning at meeting points.
+- New `guide audio`: `sounds.json` and `SoundEvent` wiring, mono OGG Vorbis encoding without shell quoting traps, synthesis recipes for original effects, and voice generation practice (non-verbal tags, one reference voice, scored takes).
+- `init --with-tests` / `quickstart` also write an `arena` GameTest structure (15x7x15, smooth-stone floor) so mobs are not boxed in by the 3x3x3 `empty` template; `verify` and `scripts/verify_starter.py` reject it in the mod JAR.
+- `guide testing`: entity/AI GameTest pitfalls (far-from-origin plots break pathing and line of sight; zombies burn in daylight) and a client screenshot automation run. `guide workflow`: larger content mods, asset generators and deliverable layout.
+- `plan` routes animation and sound requests to the new guides.
+
 ## 1.0.2 - 2026-11-13
 
 - `setup-java` installs JDKs into one per-user folder (`%LOCALAPPDATA%\Minecraft-Tools\jdks`, `~/.local/share/minecraft-forge-jdks`, or `MCFORGE_JDK_ROOT`) that every copy of the toolkit reads, so a clone and an installed copy share them. JDKs in an older copy's `local/tools/` are still found by that copy.

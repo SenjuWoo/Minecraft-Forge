@@ -84,8 +84,9 @@ def verify(project: Path) -> dict:
     with zipfile.ZipFile(artifact) as archive:
         names = archive.namelist()
         require(len(names) <= MAX_ARCHIVE_ENTRIES, "Mod JAR has too many entries")
-        forbidden = (package.replace(".", "/") + "/testing/", f"data/{mod_id}/structure/empty.nbt")
-        require(not any(name.startswith(forbidden[0]) or name == forbidden[1] for name in names), "Development test content leaked into the mod JAR")
+        prefix = package.replace(".", "/") + "/testing/"
+        structures = {f"data/{mod_id}/structure/{name}.nbt" for name in ("empty", "arena")}
+        require(not any(name.startswith(prefix) or name in structures for name in names), "Development test content leaked into the mod JAR")
         payload = {}
         for name in ("META-INF/neoforge.mods.toml", recipe_path, advancement_path):
             require(names.count(name) == 1, f"Missing or duplicate packaged entry: {name}")

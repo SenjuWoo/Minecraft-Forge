@@ -397,6 +397,21 @@ class CliTests(Temp):
         self.assertEqual((result["loader"], result["minecraft"]), ("forge", "1.20.1"))
         self.assertEqual({step.get("route") for step in result["steps"]} & {"mob", "armor set"}, {"mob", "armor set"})
 
+    def test_plan_routes_animated_entities_and_sounds_to_their_guides(self):
+        result = json.loads(self.invoke(["plan", "an animated geckolib mob with voice lines and sfx"])[1])
+        routes = {step.get("route"): step for step in result["steps"]}
+        self.assertEqual(routes["animated entity"]["guide"], "entities")
+        self.assertEqual(routes["sounds"]["guide"], "audio")
+        self.assertIn("mob", routes)
+        result = json.loads(self.invoke(["plan", "a bright red ore block"])[1])
+        self.assertNotIn("animated entity", {step.get("route") for step in result["steps"]})
+
+    def test_entity_and_audio_guides_print(self):
+        for topic, marker in (("entities", "[-rx, -ry, rz]"), ("audio", "libvorbis")):
+            code, output, _ = self.invoke(["guide", topic])
+            self.assertEqual(code, 0)
+            self.assertIn(marker, output)
+
     def test_init_loader_flags_reach_the_scaffold(self):
         code, output, error = self.invoke(["init", str(self.root / "f"), "--mod-id", "probe", "--package", "dev.example.probe",
                                            "--name", "Probe", "--loader", "forge", "--minecraft", "26.3"])
