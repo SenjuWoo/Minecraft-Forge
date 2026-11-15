@@ -76,6 +76,13 @@ def create_pack(destination: Path, kind: str, name: str, minecraft: str, *, rete
         raise ValueError("Destination parent must already exist")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _.-]{0,79}", name):
         raise ValueError("name must be 1-80 plain letters, numbers, spaces, underscores, dots or hyphens")
+    # PATH.zip, appended: with_suffix would cut a dotted folder name ("My.Pack" -> "My.zip").
+    output = destination.with_name(destination.name + ".zip")
+    if archive:
+        # Refuse before the folder exists, so a refused run can simply be repeated.
+        guard_output(output)
+        if output.exists():
+            raise ValueError(f"{output} exists; remove it or skip --zip")
     row = facts(minecraft)
     created = []
     namespace = re.sub(r"[^a-z0-9_]", "_", name.lower()).strip("_") or "pack"
@@ -128,10 +135,6 @@ def create_pack(destination: Path, kind: str, name: str, minecraft: str, *, rete
         if not row["exact"]:
             result["warning"] = f"No recorded facts for {minecraft}; format follows {row['borrowed_from']}"
     if archive:
-        output = destination.with_suffix(".zip")
-        guard_output(output)
-        if output.exists():
-            raise ValueError(f"{output} exists; remove it or skip --zip")
         with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as bundle:
             for relative in sorted(created):
                 bundle.write(destination / relative, relative)

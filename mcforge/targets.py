@@ -60,6 +60,20 @@ def verify_template(target: dict) -> dict:
     return target
 
 
+def verify_all_templates() -> list[str]:
+    """Hash-check every bundled template (the package gate); returns the verified target ids."""
+    data = load_targets()
+    for name, target in sorted(data["targets"].items()):
+        verify_template(dict(target, id=name, tier="bundled"))
+    return sorted(data["targets"])
+
+
+def fabric_gradle_java(java_major: int, loom: str) -> int:
+    """JDK that runs Gradle for a Fabric template: the same numeric rule project inspection uses."""
+    from .project import gradle_java_major
+    return gradle_java_major("fabric-loom", {"java_major": java_major, "loom": loom})
+
+
 def list_targets() -> list[dict]:
     data = load_targets()
     rows = []
@@ -187,8 +201,11 @@ def resolve_remote(loader: str, minecraft: str, loader_version: str | None = Non
     if not java:
         raise ValueError("Official template declares no Java version")
     major = int(java[1] or java[2])
+    # The Loom the project will build with: the exact pin chosen above, else the template's own.
+    pinned = re.search(r"(?m)^loom_version\s*=\s*([0-9][0-9.]*)", props)
+    loom = record["overrides"].get("loom_version") or (pinned[1] if pinned else "1.19")
     record.update(sha256=hashlib.sha256(raw).hexdigest(), gradle=gradle[1], java_major=major,
-                  gradle_java_major=max(major, 25 if record["overrides"].get("loom_version", "1.19") >= "1.19" else 21) if loader == "fabric" else major,
+                  gradle_java_major=fabric_gradle_java(major, loom) if loader == "fabric" else major,
                   gradle_distribution_sha256=_fetch(f"https://services.gradle.org/distributions/gradle-{gradle[1]}-{gradle[2]}.zip.sha256", 4096).decode().strip(),
                   gradle_wrapper_sha256=wrapper, archive=f"{loader}-{minecraft}-{hashlib.sha256(raw).hexdigest()[:12]}.zip",
                   id=f"{loader}-{minecraft}")

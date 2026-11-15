@@ -13,11 +13,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from mcforge import __version__
 from mcforge.product import product_files
+from mcforge.targets import verify_all_templates
 from mcforge.workbench import verify_vendor
 
 
 def main():
     verify_vendor()
+    # Every bundled template, not only the default one: a damaged archive must not reach a release.
+    verify_all_templates()
     payload = {path.relative_to(ROOT).as_posix(): path.read_bytes() for path in product_files(ROOT)}
     if "skills/minecraft-forge/SKILL.md" not in payload:
         raise ValueError("Agent skill missing from toolkit source")

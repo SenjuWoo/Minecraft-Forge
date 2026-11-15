@@ -398,6 +398,8 @@ def build_voxel_model(spec: dict) -> dict:
 def write_voxel_model(spec_path: Path, *, project: Path | None = None, out: Path | None = None, force: bool = False) -> dict:
     from .workbench import guard_output
     spec_path = Path(spec_path)
+    if project is not None:
+        guard_output(Path(project).resolve())
     if spec_path.stat().st_size > 4 * 1024 * 1024:
         raise ValueError("Voxel spec exceeds 4 MiB")
     spec = json.loads(spec_path.read_text(encoding="utf-8-sig"))

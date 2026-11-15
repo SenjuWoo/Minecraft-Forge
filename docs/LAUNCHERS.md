@@ -26,6 +26,6 @@ Each instance gets a `suggested_project`: the `init` options that build a mod fo
 
 1. It requires a fresh verification receipt (`verify PROJECT`) whose hashes still match the sources; `--unverified` uses the newest built JAR instead and says so.
 2. It refuses an instance whose loader or Minecraft version differs from the project (`--allow-mismatch` overrides).
-3. It moves any JAR that provides the same mod id into `<game dir>/mcforge-backups/<timestamp>/`, copies the new JAR and checks its hash.
+3. It moves any JAR that provides the same mod id, and any file already at the destination name, into `<game dir>/mcforge-backups/<timestamp>/`, copies the new JAR and checks its hash. Nothing in `mods/` is overwritten.
 
 Close the game first. Deploying is not a runtime test: launch the pack and read `logs/latest.log`. For a pack you care about, deploy into a copy of the instance first. Project folders are refused inside any launcher instance (`init`, `pack` and logs never write there).

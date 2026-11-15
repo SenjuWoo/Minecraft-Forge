@@ -165,7 +165,8 @@ def sample(channel, t: float, name: str = "channel"):
         return None
     if not (isinstance(channel, dict) and not ({"vector", "pre", "post"} & set(channel))):
         return _vector(channel, name)
-    keys = sorted((float(time), value) for time, value in channel.items())
+    # Sort on the time alone: "0" and "0.0" are one instant, and their values (lists, dicts) do not order.
+    keys = sorted(((float(time), value) for time, value in channel.items()), key=lambda key: key[0])
     if t <= keys[0][0]:
         return _pre(keys[0][1], name)
     for (t0, v0), (t1, v1) in zip(keys, keys[1:]):

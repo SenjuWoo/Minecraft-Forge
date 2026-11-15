@@ -1,6 +1,8 @@
 name: CI
 on:
+  # main only: a bare `push` also fires for tags and pull-request branches and builds one commit twice.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:

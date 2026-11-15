@@ -15,7 +15,7 @@ import re
 
 from . import __version__, javagen, pixelart, shapes
 from .resources import facts, version_key
-from .workbench import needs_load_test
+from .workbench import guard_output, needs_load_test
 
 KINDS = ("block", "item", "food", "sword", "pickaxe", "axe", "shovel", "hoe", "toolset", "armor", "mob", "furniture")
 NAME = re.compile(r"[a-z][a-z0-9_]{1,47}")
@@ -126,6 +126,7 @@ def add_content(project: Path, kind: str, name: str, *, style: str = "auto", siz
                 repair: str | None = None, shape: str | None = None, hostile: bool = False, force: bool = False,
                 rig_override: tuple[dict, bytes] | None = None) -> dict:
     project = Path(project).resolve()
+    guard_output(project)
     if kind not in KINDS:
         raise ValueError("kind must be one of: " + ", ".join(KINDS))
     if not NAME.fullmatch(name):
@@ -368,6 +369,7 @@ def _role(name: str) -> str | None:
 def import_bbmodel(project: Path, source: Path, *, block: str | None = None, entity: str | None = None, force: bool = False) -> dict:
     """Bring a Blockbench project into the mod: a block model, or an entity model class with its texture."""
     project = Path(project).resolve()
+    guard_output(project)
     if bool(block) == bool(entity):
         raise ValueError("Pass exactly one of --block ID or --entity ID")
     name = block or entity

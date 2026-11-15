@@ -11,6 +11,7 @@ import logging
 import os
 from pathlib import Path
 import shutil
+import struct
 import subprocess
 import sys
 import urllib.error
@@ -41,6 +42,15 @@ def emit(value, output: Path | None = None):
         print(json.dumps({"report": str(output)}))
     else:
         print(text, end="")
+
+
+def error_text(error: BaseException) -> str:
+    """One readable line for the error JSON; a bare KeyError or IndexError says nothing on its own."""
+    if isinstance(error, KeyError):
+        return f"Missing key {error} in the file being read (--debug shows where)"
+    if isinstance(error, (LookupError, ArithmeticError, struct.error)) or not str(error):
+        return f"{type(error).__name__}: {error} (malformed input; --debug shows where)"
+    return str(error)
 
 
 def parse_asset_specs(values: list[str]) -> list[tuple[str, str]] | None:
@@ -86,9 +96,9 @@ def doctor(java_home: Path | None = None, project: Path | None = None) -> dict:
     return result
 
 
-def search_mods(query: str, minecraft: str) -> dict:
+def search_mods(query: str, minecraft: str, loader: str = "neoforge") -> dict:
     parameters = urllib.parse.urlencode({"query": query, "limit": 10,
-        "facets": json.dumps([["categories:neoforge"], [f"versions:{minecraft}"], ["project_type:mod"]])})
+        "facets": json.dumps([[f"categories:{loader}"], [f"versions:{minecraft}"], ["project_type:mod"]])})
     url = "https://api.modrinth.com/v2/search?" + parameters
     request = urllib.request.Request(url, headers={"User-Agent": f"Minecraft-Forge/{__version__} (local CLI mod-authoring workbench)"})
     try:
@@ -97,7 +107,7 @@ def search_mods(query: str, minecraft: str) -> dict:
         if len(raw) > 2 * 1024 * 1024:
             raise ValueError("API response exceeds 2 MiB")
         data = json.loads(raw)
-        return {"source": url, "hits": [{key: hit.get(key) for key in ("project_id", "slug", "title", "description", "author", "categories")} for hit in data["hits"]],
+        return {"source": url, "loader": loader, "minecraft": minecraft, "hits": [{key: hit.get(key) for key in ("project_id", "slug", "title", "description", "author", "categories")} for hit in data["hits"]],
                 "next": "Inspect the project's exact version, loader, license, dependencies and file hash before adding it; search hits are not compatibility proof."}
     except urllib.error.HTTPError as error:
         if error.code == 429:
@@ -355,9 +365,11 @@ def parser() -> argparse.ArgumentParser:
     gradle.add_argument("--log", type=Path, help="write to a new log file; default is a unique file in PROJECT/build/mcforge/logs")
     guide = commands.add_parser("guide", help="load just one focused agent reference")
     guide.add_argument("topic", choices=GUIDES)
-    search = commands.add_parser("search", help="query Modrinth, filtered to NeoForge and an exact Minecraft version")
+    search = commands.add_parser("search", help="query Modrinth, filtered to one loader and an exact Minecraft version")
     search.add_argument("query")
     search.add_argument("--minecraft", default="1.21.1")
+    search.add_argument("--loader", default="neoforge", choices=("neoforge", "fabric", "forge", "quilt"),
+                        help="loader the hits must support; default neoforge")
     sources = commands.add_parser("sources", help="literal search of local Java source directory or sources JAR")
     sources.add_argument("path", nargs="?", help="source path, or query when --project is used")
     sources.add_argument("query", nargs="?")
@@ -495,7 +507,7 @@ def main(argv=None) -> int:
         elif args.command == "guide":
             print((ROOT / "docs" / GUIDES[args.topic]).read_text(encoding="utf-8"))
         elif args.command == "search":
-            emit(search_mods(args.query, args.minecraft))
+            emit(search_mods(args.query, args.minecraft, args.loader))
         elif args.command == "sources":
             if args.project:
                 from .sources import resolve_sources
@@ -546,10 +558,12 @@ def main(argv=None) -> int:
             from .targets import list_targets
             emit(list_targets())
         return 0
-    except (OSError, ValueError, KeyError, RuntimeError, TypeError, AttributeError, EOFError, zlib.error, zipfile.BadZipFile, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, LookupError, ArithmeticError, RuntimeError, TypeError, AttributeError, EOFError, struct.error,
+            zlib.error, zipfile.BadZipFile, subprocess.SubprocessError) as error:
+        # Exit 1 means "the command ran and found problems"; a command that could not run is always JSON on stderr and exit 2.
         if args.debug:
             logging.exception("Command failed")
-        print(json.dumps({"error": str(error)}, ensure_ascii=False), file=sys.stderr)
+        print(json.dumps({"error": error_text(error)}, ensure_ascii=False), file=sys.stderr)
         return 2
     except KeyboardInterrupt:
         print("Interrupted", file=sys.stderr)

@@ -44,7 +44,7 @@ Gradle accepts task names plus `--stacktrace`, `--offline`, `--info`, `--all` an
 
 ## External APIs
 
-The CLI's `search` uses [Modrinth project search](https://docs.modrinth.com/api/operations/searchprojects/) with game and loader filters. Search results are candidates: read the selected project's license, exact version files, dependency declarations and side requirements before adding it. Modrinth requires an identifying User-Agent; observe response rate limits and avoid repeated broad searches. See its [API overview](https://docs.modrinth.com/api/).
+The CLI's `search QUERY [--loader neoforge|fabric|forge|quilt] [--minecraft V]` uses [Modrinth project search](https://docs.modrinth.com/api/operations/searchprojects/) with game and loader filters (default NeoForge 1.21.1). Search results are candidates: read the selected project's license, exact version files, dependency declarations and side requirements before adding it. Modrinth requires an identifying User-Agent; observe response rate limits and avoid repeated broad searches. See its [API overview](https://docs.modrinth.com/api/).
 
 For a download, record immutable project/version identity, original URL and the platform's published file hash; verify the bytes before use. Keep this in a project dependency manifest, not in a prompt. Do not scrape another project's private release or invent Gradle coordinates from its filename.
 

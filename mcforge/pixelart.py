@@ -100,6 +100,13 @@ def png_bytes(image: Image) -> bytes:
 
 def read_png(data: bytes) -> Image:
     """Decode a non-interlaced 8-bit PNG (grey, RGB, palette, with or without alpha) to RGBA rows."""
+    try:
+        return _read_png(data)
+    except (struct.error, IndexError, zlib.error) as error:
+        raise ValueError(f"PNG data is truncated or corrupt ({type(error).__name__})") from error
+
+
+def _read_png(data: bytes) -> Image:
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         raise ValueError("Not a PNG file")
     position, chunks, palette, transparency = 8, [], None, None
@@ -107,6 +114,8 @@ def read_png(data: bytes) -> Image:
     while position + 8 <= len(data):
         length, tag = struct.unpack(">I4s", data[position:position + 8])
         body = data[position + 8:position + 8 + length]
+        if len(body) < length:
+            raise ValueError("PNG data is truncated or corrupt (a chunk ends early)")
         position += 12 + length
         if tag == b"IHDR":
             header = struct.unpack(">IIBBBBB", body)

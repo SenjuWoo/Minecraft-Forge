@@ -54,7 +54,7 @@ cd Minecraft-Forge
 .\Minecraft-Forge.ps1 deploy "D:\Mods\Ruby" --instance "<instance folder>" --apply
 ```
 
-On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies the toolkit to `%LOCALAPPDATA%\Minecraft-Tools\Minecraft-Forge` (or `~/.local/share/minecraft-forge`) with a launcher; updates keep a backup.
+On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies the toolkit to `%LOCALAPPDATA%\Minecraft-Tools\Minecraft-Forge` (or `~/.local/share/minecraft-forge`) with a launcher (`Minecraft-Forge.cmd` / `Minecraft-Forge`) that runs from any folder; relative paths mean the folder you run it in. Update with `install --force` from a newer copy: the previous install becomes a `Minecraft-Forge.bak-<time>` folder beside it (listed as `backups` in the result; delete the ones you no longer want) and its `local/` cache moves into the new install. To remove it, delete the install folder, its `.bak-*` siblings and, if no other copy uses them, `Minecraft-Tools\jdks`. Nothing else was changed on the machine.
 
 ## What you can make
 
@@ -88,7 +88,7 @@ Project targets are locked (game, loader, Java, Gradle distribution and checksum
 
 ## Commands
 
-`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code. Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
+`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` problems, `jar`/`inventory` errors), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
 
 ## Scope and limits
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.1 - 2026-11-15
+
+Maintenance release from a full audit. No command, option or file format was removed.
+
+- Fixed: the installed launcher (`Minecraft-Forge.cmd` / `Minecraft-Forge`) changed into the install folder, so a relative path such as `pack mypack` wrote inside the toolkit install. It now runs in the caller's folder and finds the package through `PYTHONPATH` (`-P`, so a folder named `mcforge` beside you cannot shadow it). Reinstall with `install --force` to get the new launcher.
+- Fixed: malformed input (a truncated PNG, a lock file without `mod_id`, two keyframes at one time) printed a Python traceback and exited 1, the code for "problems found". Every command that cannot run now prints one JSON error line and exits 2; exit codes are documented in the README.
+- Fixed: `search` always filtered to NeoForge. New `--loader neoforge|fabric|forge|quilt` (default unchanged).
+- Fixed: `pack PATH --zip` named the archive `My.zip` for a folder `My.Pack`, and refused an existing ZIP only after writing the pack folder. It now writes `PATH.zip` and checks first.
+- Fixed: `targets` and `doctor` reported no loader version for the Fabric targets; they now show Fabric Loader 0.20.1, the version the templates pin.
+- Fixed: a fetched Fabric template compared Loom versions as text (`1.5.8` counted as newer than `1.19`).
+- `deploy --apply` also backs up a file that already has the destination name but was not recognised as this mod, instead of overwriting it.
+- `verify` replaces a lock left by a killed run (its recorded process no longer exists) and notes it in the receipt; a live lock names its run, process and path. `verify --check` accepts the project path in any letter case on Windows.
+- `add`, `asset`, `bbmodel` and `voxel --project` refuse a project inside a launcher instance or behind a link, like `init` and `verify` already did.
+- `scripts/package.py` hash-checks all seven bundled templates, not only the default one.
+- `install` lists the backups earlier updates left (`backups`); the README covers update and removal.
+- CI runs once per commit (pushes to main and pull requests), not again for tags and pull-request branches.
+
 ## 1.3.0 - 2026-11-14
 
 Lessons from a large animated GeckoLib companion mob (NeoForge 1.21.1, GeckoLib 4.9.3), turned into commands.

@@ -31,16 +31,18 @@ def launcher_path(root: Path) -> Path:
 
 
 def _write_launcher(stage: Path):
+    # The launcher stays in the caller's folder, so a relative path means what the caller wrote; the
+    # package is found through PYTHONPATH. -P keeps a folder named mcforge beside the caller off the
+    # import path. No parenthesised blocks in the .cmd: a path or argument with ")" would end them early.
     if os.name == "nt":
         (stage / "Minecraft-Forge.cmd").write_text(
             "@echo off\n"
             "setlocal\n"
-            "cd /d \"%~dp0\"\n"
-            "if defined UABS_PYTHON (\n"
-            "  \"%UABS_PYTHON%\" -m mcforge %*\n"
-            ") else (\n"
-            "  python -m mcforge %*\n"
-            ")\n"
+            "if defined PYTHONPATH set \"PYTHONPATH=%~dp0;%PYTHONPATH%\"\n"
+            "if not defined PYTHONPATH set \"PYTHONPATH=%~dp0\"\n"
+            "set \"MCFORGE_PYTHON=python\"\n"
+            "if defined UABS_PYTHON set \"MCFORGE_PYTHON=%UABS_PYTHON%\"\n"
+            "\"%MCFORGE_PYTHON%\" -P -m mcforge %*\n"
             "exit /b %ERRORLEVEL%\n",
             encoding="utf-8",
             newline="\r\n",
@@ -49,8 +51,8 @@ def _write_launcher(stage: Path):
         launcher = stage / "Minecraft-Forge"
         launcher.write_text(
             "#!/bin/sh\n"
-            "cd \"$(dirname \"$0\")\" || exit 1\n"
-            "exec \"${UABS_PYTHON:-python3}\" -m mcforge \"$@\"\n",
+            "root=\"$(cd \"$(dirname \"$0\")\" && pwd)\" || exit 1\n"
+            "PYTHONPATH=\"$root${PYTHONPATH:+:$PYTHONPATH}\" exec \"${UABS_PYTHON:-python3}\" -P -m mcforge \"$@\"\n",
             encoding="utf-8",
             newline="\n",
         )
@@ -95,6 +97,8 @@ def install_toolkit(root: Path | None = None, force: bool = False) -> dict:
         "files": len(files),
         "launcher": str(launcher),
         "backup": str(backup) if backup else None,
+        # Every update leaves one; they are never removed for you. Delete the ones you no longer want.
+        "backups": sorted(str(path) for path in target.parent.glob(target.name + ".bak-*") if path.is_dir()),
         "kept": ["local"] if (target / "local").is_dir() else [],
         "next": f"{launcher} doctor",
     }

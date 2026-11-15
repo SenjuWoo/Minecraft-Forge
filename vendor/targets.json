@@ -67,7 +67,8 @@
         "loom_version": "1.19.4"
       },
       "repository": "https://github.com/FabricMC/fabric-example-mod",
-      "commit": "cbac69685181b0104c2d1c94c4fb69bb51c8e685"
+      "commit": "cbac69685181b0104c2d1c94c4fb69bb51c8e685",
+      "loader_version": "0.20.1"
     },
     "fabric-1.21.1": {
       "loader": "fabric",
@@ -90,7 +91,8 @@
         "loom_version": "1.19.4"
       },
       "repository": "https://github.com/FabricMC/fabric-example-mod",
-      "commit": "4c47210589a9ff72a6075c8dd1d73315dcc3e010"
+      "commit": "4c47210589a9ff72a6075c8dd1d73315dcc3e010",
+      "loader_version": "0.20.1"
     },
     "fabric-26.3": {
       "loader": "fabric",
@@ -113,7 +115,8 @@
         "loom_version": "1.19.4"
       },
       "repository": "https://github.com/FabricMC/fabric-example-mod",
-      "commit": "bb432bac6559cf5f57a2d02f300fa6fa4b870d66"
+      "commit": "bb432bac6559cf5f57a2d02f300fa6fa4b870d66",
+      "loader_version": "0.20.1"
     },
     "forge-1.20.1": {
       "loader": "forge",

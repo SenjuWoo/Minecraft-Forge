@@ -25,6 +25,10 @@
 
 - `voxel` (implicit shapes to z-fighting-free GeckoLib voxel models), `ground` (planted animations), `preview` for `.geo.json` with game lighting and poses, `audio-check`, and a generated client screenshot run recorded by `verify --client`.
 
+## Fixed in 1.3.1
+
+- Installed launcher keeps the caller's folder; one JSON error contract with documented exit codes; `search --loader`; `pack --zip` naming; Fabric loader versions in `targets`; stale verification locks; deploy never overwrites; write guards on every content command; every template hash-checked when packaging.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).

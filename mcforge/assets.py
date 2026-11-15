@@ -181,6 +181,8 @@ def generate_assets(project: Path, specs: list[tuple[str, str]] | None = None, *
     skipped unless ``force`` is set; the language file is always merged.
     """
     project = Path(project).resolve()
+    from .workbench import guard_output
+    guard_output(project)
     if style not in STYLES:
         raise ValueError("style must be one of: " + ", ".join(STYLES))
     if size not in (16, 32):

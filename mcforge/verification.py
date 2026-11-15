@@ -215,6 +215,57 @@ def _summary(project: Path, receipt: dict) -> dict:
         "logs": [step["log"] for step in receipt.get("commands", [])]}
 
 
+def _process_alive(pid: int) -> bool:
+    """Whether a process with this id exists. Unknown counts as alive: only a provably dead owner frees a lock."""
+    if os.name == "nt":
+        # Never os.kill(pid, 0) here: on Windows that terminates the process.
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+        handle = kernel.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not handle:
+            return ctypes.get_last_error() != 87  # ERROR_INVALID_PARAMETER: no such process
+        try:
+            code = wintypes.DWORD()
+            kernel.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+            return not kernel.GetExitCodeProcess(handle, ctypes.byref(code)) or code.value == 259  # STILL_ACTIVE
+        finally:
+            kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
+
+def _acquire(lock_path: Path):
+    """Open the run lock; a lock whose recorded process is gone (a killed run) is replaced and reported."""
+    try:
+        return lock_path.open("x", encoding="utf-8"), None
+    except FileExistsError:
+        pass
+    try:
+        owner = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        owner = None
+    pid = owner.get("pid") if isinstance(owner, dict) else None
+    if isinstance(pid, int) and not isinstance(pid, bool) and pid > 0 and not _process_alive(pid):
+        lock_path.unlink()
+        try:
+            return lock_path.open("x", encoding="utf-8"), (f"Replaced a stale verification lock: run {owner.get('run_id')} "
+                                                            f"(process {pid}) ended without releasing it")
+        except FileExistsError:
+            pass
+    who = f"run {owner.get('run_id')}, process {pid}" if isinstance(owner, dict) else "an unreadable lock file"
+    raise ValueError(f"Verification is already locked ({who}): {lock_path}. Wait for that run; "
+                     "if it is gone, delete the lock file")
+
+
 CLIENT_TIMEOUT = 1800  # seconds; the first client run also downloads the game assets
 
 
@@ -267,10 +318,7 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
     _plain(base, project)
     base.mkdir(parents=True, exist_ok=True)
     lock_path = base / "verification.lock"
-    try:
-        lease = lock_path.open("x", encoding="utf-8")
-    except FileExistsError as error:
-        raise ValueError("Verification is already locked; inspect the owning run before removing its lock") from error
+    lease, stale = _acquire(lock_path)
     run_id = uuid.uuid4().hex
     run_dir = base / "verification" / run_id
     receipt = {"schema": 1, "toolkit_version": __version__, "run_id": run_id, "project": str(project),
@@ -289,7 +337,8 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
         if client and not lock.get("devshots"):
             raise ValueError("verify --client runs the devShots client: scaffold it first with devshots PROJECT")
         home = select_java(java_home, info.get("gradle_java_major") or info["target"]["java_major"])
-        receipt.update(inputs=inputs, target=info["target"], java=check_java(home), warnings=info.get("warnings", []))
+        receipt.update(inputs=inputs, target=info["target"], java=check_java(home),
+                       warnings=list(info.get("warnings", [])) + ([stale] if stale else []))
         tested = bool(lock.get("with_tests") or lock.get("game_tests"))
         receipt["tests"] = {"status": "pending"} if tested else {"status": "not_configured", "count": 0}
         if not tested:
@@ -365,7 +414,9 @@ def check_receipt(project: Path) -> dict:
     if not path.is_file() or path.stat().st_size > 8 * MAX_METADATA_BYTES:
         raise ValueError("Verification receipt missing or exceeds inspection limit; run verify first")
     receipt = read_json(path)
-    if receipt.get("schema") != 1 or receipt.get("status") != "passed" or receipt.get("project") != str(project):
+    # normcase: on Windows z:\Mods\Ruby and Z:\mods\ruby are one folder.
+    if (receipt.get("schema") != 1 or receipt.get("status") != "passed"
+            or os.path.normcase(str(receipt.get("project"))) != os.path.normcase(str(project))):
         raise ValueError("No successful verification receipt for this project")
     if _inputs(project) != receipt["inputs"] or _generated(project) != receipt["generated"]:
         raise ValueError("Verification receipt is stale: project inputs or generated data changed")

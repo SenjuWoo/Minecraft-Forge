@@ -253,7 +253,11 @@ def deploy(project: Path, instance: Path, *, apply: bool = False, allow_mismatch
     replaced = [path for path in sorted(mods.glob("*.jar"))
                 if any(mod["mod_id"] == mod_id for mod in inspect_jar(path)["mods"])]
     destination = mods / artifact.name
-    backup = Path(summary["game_dir"]) / "mcforge-backups" / time.strftime("%Y%m%d-%H%M%S")
+    # A file already at the destination that was not recognised as this mod (unreadable, other metadata) is still
+    # somebody's file: it goes to the backup too instead of being overwritten.
+    if destination.exists() and destination not in replaced:
+        replaced.append(destination)
+    backup =Path(summary["game_dir"]) / "mcforge-backups" / time.strftime("%Y%m%d-%H%M%S")
     plan = {"project": str(project), "instance": summary["name"], "launcher": summary["launcher"], "artifact": str(artifact),
             "evidence": evidence, "destination": str(destination), "replaces": [str(path) for path in replaced],
             "backup": str(backup) if replaced else None, "mismatch": mismatch, "applied": False,
