@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.0 - 2026-11-14
+
+Lessons from a finished GeckoLib horse mob (NeoForge 1.21.1, GeckoLib 4.9.3).
+
+- Fixed: `guide testing` put the arena's centre at `(7, 1, 7)`, which is the floor block. GameTest positions are relative to the structure block and the template sits one block above it, so mobs stand at y = 2; a mob at y = 1 suffocates in the floor. The starter and `tests` now ship `ArenaTests` with `STAND = (7, 2, 7)`, `FLOOR`, and a regression test that keeps a horse there for 100 ticks and requires it alive, unhurt and on the floor (run in CI on Windows and Linux).
+- New `--no-examples` for `init` and `quickstart` on every target: no example block, item, creative tab or their names (NeoForge/Forge main classes keep their empty registers and config; Fabric skips the generated examples). With `--with-tests` the test mod keeps the arena, report writer, load test and arena test, without the example recipe provider and its two tests. CI now builds and server-loads every MDK target this way.
+- New `model-check FILE`: lists z-fighting (same-facing, coplanar, overlapping faces) in a `.bbmodel`, `.geo.json` or block model, skips overlaps another cube covers (containing or touching them from outside), and exits 1 while any remain.
+- `verify` excludes every root `run-*` game directory (for example `run-devshots/`), so a screenshot run between `verify` and `verify --check` no longer invalidates the receipt.
+- Fixed: `Minecraft-Forge.ps1` aborted a successful run under Windows PowerShell 5.1 when the caller merged stderr (`2>&1`): the first progress line became a terminating error. The `gradle` command now prints its log path and exit code on stdout; JSON commands keep progress on stderr, and `MCFORGE_INFO=off` hides it. `sources --project PATH QUERY` prints each `Source:` header on stdout with its matches.
+- `doctor --project` warns when `gradle.properties` starts with a UTF-8 byte-order mark (Windows PowerShell 5.1 `Set-Content -Encoding utf8`) and refuses to read pins when Gradle would lose the first property.
+- `guide testing`: client screenshot driver keeps running unattended (no pause on lost focus, closes the pause screen), entity tags are server-only, deterministic actions through the integrated server, breeding and natural-spawn GameTests. `guide entities`: client-side animation predicates read synced state only, horse flags, GeckoLib baby scaling, layer re-rendering, glowmask per texture variant, cutout per-texel alpha, keyed-plus-procedural bone drift, UV directions per face, spring tuning target, rideable horse values, horse armor on a custom model, inverted-hull outline glow. `guide tools` and `guide workflow`: Windows PowerShell 5.1 pitfalls.
+
 ## 1.1.0 - 2026-11-13
 
 - New `guide entities`: GeckoLib entity work measured on NeoForge 1.21.1 / GeckoLib 4.9.3: the JSON sign conventions for scripted `.geo.json` and animation files (rotation `[-x,-y,z]`, pivot `[-x,y,z]`, additive animation rotation, unchanged face keys), head look from `EntityModelData`, controllers and triggered actions, prop swaps, translucent render type, z-fighting checks, spring-based secondary motion, villager-brain goals, village spawning at meeting points.

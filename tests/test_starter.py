@@ -35,7 +35,7 @@ class StarterTests(unittest.TestCase):
         self.assertTrue(result["lock"]["with_tests"])
         self.assertEqual(json.loads((project / "mcforge-project.json").read_text()), result["lock"])
         sources = project / "src/gameTest/java/dev/example/garden/testing"
-        self.assertEqual({path.name for path in sources.glob("*.java")}, {"TestMod.java", "SmokeTests.java", "ExampleRecipes.java"})
+        self.assertEqual({path.name for path in sources.glob("*.java")}, {"TestMod.java", "SmokeTests.java", "ExampleRecipes.java", "ArenaTests.java"})
         for source in sources.glob("*.java"):
             text = source.read_text(encoding="utf-8")
             self.assertIn("package dev.example.garden.testing;", text)

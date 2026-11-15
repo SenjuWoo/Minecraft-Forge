@@ -133,7 +133,7 @@ class TargetTests(Temp):
         self.assertTrue(lock["with_tests"])
         self.assertFalse(lock["starter"])
         testing = path / "src/gameTest/java/dev/example/probe/testing"
-        self.assertEqual(sorted(p.name for p in testing.iterdir()), ["LoadSmokeTest.java", "TestMod.java"])
+        self.assertEqual(sorted(p.name for p in testing.iterdir()), ["ArenaTests.java", "LoadSmokeTest.java", "TestMod.java"])
         self.assertEqual(add_load_tests(path)["status"], "already_configured")
         with self.assertRaisesRegex(ValueError, "before Minecraft 1.21.5"):
             add_load_tests(self.make("forge-26.3"))

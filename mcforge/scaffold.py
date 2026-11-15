@@ -176,6 +176,109 @@ def stage_template(target: dict, stage: Path, mod_id: str, package: str, name: s
         (stage / "gradlew").chmod(0o755)
 
 
+EXAMPLE_FIELDS = ("EXAMPLE_BLOCK", "EXAMPLE_BLOCK_ITEM", "EXAMPLE_ITEM", "EXAMPLE_TAB")
+
+
+def _skip_code(text: str, index: int, stop) -> int:
+    """Scan Java from index, skipping strings and comments; return the index just past the first char where stop(depth, char)."""
+    depth = 0
+    quote = None
+    while index < len(text):
+        char = text[index]
+        if quote:
+            if char == "\\":
+                index += 2
+                continue
+            if char == quote:
+                quote = None
+        elif char in "\"'":
+            quote = char
+        elif text.startswith("//", index):
+            index = text.find("\n", index)
+            if index < 0:
+                break
+            continue
+        elif text.startswith("/*", index):
+            index = text.find("*/", index) + 2
+            if index < 2:
+                break
+            continue
+        elif char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth -= 1
+            if stop(depth, char):
+                return index + 1
+        elif stop(depth, char):
+            return index + 1
+        index += 1
+    raise ValueError("Unbalanced Java source")
+
+
+def _cut(text: str, start: int, end: int) -> str:
+    """Remove text[start:end] with its whole lines and the line comments directly above it."""
+    start = text.rfind("\n", 0, start) + 1
+    while start:
+        above = text.rfind("\n", 0, start - 1) + 1
+        if not text[above:start].strip().startswith("//"):
+            break
+        start = above
+    newline = text.find("\n", end)
+    return text[:start] + text[(newline + 1) if newline >= 0 else len(text):]
+
+
+def strip_example_java(text: str) -> str:
+    """Drop the MDK's example block, item, creative tab and addCreative listener; unused imports go with them."""
+    for field in EXAMPLE_FIELDS:
+        match = re.search(r"(?m)^[ \t]*public static final [^=;]*\b" + field + r"\s*=", text)
+        if match:
+            text = _cut(text, match.start(), _skip_code(text, match.end(), lambda depth, char: depth == 0 and char == ";") - 1)
+    match = re.search(r"(?m)^[ \t]*(?:(?:private|public|protected|static)\s+)*void\s+addCreative\s*\(", text)
+    if match:
+        body = text.index("{", match.end())
+        text = _cut(text, match.start(), _skip_code(text, body + 1, lambda depth, char: depth == -1 and char == "}") - 1)
+    for line in [line for line in text.splitlines(keepends=True) if "::addCreative" in line]:
+        position = text.index(line)
+        text = _cut(text, position, position + len(line) - 1)
+    if re.search(r"\bEXAMPLE_|addCreative", text):
+        raise ValueError("example content is still referenced")
+    body = "\n".join(line for line in text.splitlines() if not line.startswith("import "))
+    kept = []
+    for line in text.splitlines(keepends=True):
+        imported = re.fullmatch(r"import ([\w.]+)\.(\w+);\s*", line)
+        if imported and not re.search(r"\b" + imported[2] + r"\b", body):
+            continue
+        kept.append(line)
+    return re.sub(r"\n{3,}", "\n\n", "".join(kept))
+
+
+def strip_examples(stage: Path, mod_id: str, package: str) -> list[str]:
+    """Remove the template's example content; returns warnings for anything left in place."""
+    warnings = []
+    source = stage.joinpath("src/main/java", *package.split("."), "ExampleMod.java")
+    if source.is_file():
+        original = source.read_text(encoding="utf-8")
+        try:
+            stripped = strip_example_java(original)
+        except ValueError as error:
+            # Never block the scaffold on an unexpected template: keep the examples and say so.
+            warnings.append(f"Kept the example content in {source.name}: {error}")
+        else:
+            source.write_text(stripped, encoding="utf-8", newline="\n")
+    lang = stage / "src/main/resources/assets" / mod_id / "lang/en_us.json"
+    if lang.is_file():
+        keys = (f'"itemGroup.{mod_id}"', f'"block.{mod_id}.example_block"', f'"item.{mod_id}.example_item"')
+        original = lang.read_text(encoding="utf-8")
+        text = "".join(line for line in original.splitlines(keepends=True) if not line.strip().startswith(keys))
+        try:
+            json.loads(text)
+        except ValueError:
+            warnings.append(f"Kept the example names in {lang.name}: removing them would break the JSON")
+        else:
+            lang.write_text(text, encoding="utf-8", newline="\n")
+    return warnings
+
+
 def loader_version_ok(target: dict, version: str) -> bool:
     if target["family"] == "neoforge-mdg":
         minecraft = target["minecraft"].split(".")
@@ -186,7 +289,7 @@ def loader_version_ok(target: dict, version: str) -> bool:
 
 
 def init_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str | None = None, *,
-                 with_tests: bool = False, loader: str | None = None, minecraft: str | None = None,
+                 with_tests: bool = False, examples: bool = True, loader: str | None = None, minecraft: str | None = None,
                  loader_version: str | None = None, target_id: str | None = None, fetch: bool = False) -> dict:
     destination = Path(os.path.abspath(destination))
     guard_output(destination)
@@ -223,8 +326,10 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
         stage_template(target, stage, mod_id, package, name, version)
         if digest(stage / "gradle/wrapper/gradle-wrapper.jar") != target["gradle_wrapper_sha256"]:
             raise ValueError("Template wrapper differs from its recorded hash")
+        warnings = [] if examples else strip_examples(stage, mod_id, package)
         if with_tests:
-            add_testing_starter(stage, mod_id, package)
+            # Without examples the test mod keeps its arena and reporter, plus a load test instead of the example tests.
+            add_testing_starter(stage, mod_id, package, load_only=not examples)
         from .project import read_target
         actual = read_target(stage)
         lock = {"toolkit_version": __version__, "minecraft": actual["minecraft"]}
@@ -236,6 +341,10 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
                      "loader": target["loader"], "family": family, "target_id": target["id"], "template_tier": target["tier"]})
         if with_tests:
             lock["with_tests"] = True
+        if not examples:
+            lock["examples"] = False
+            if with_tests:
+                lock["starter"] = False
         if family == "fabric-loom":
             lock["game_tests"] = "fabric"
         lock["target"] = actual
@@ -247,9 +356,15 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
         if target["tier"] != "bundled":
             with (stage / "STATE.md").open("a", encoding="utf-8") as stream:
                 stream.write(f"\nTemplate: fetched on demand from {target['url']} (sha256 {target['sha256']}); no toolkit release built this target.\n")
-        if with_tests:
+        if with_tests and not examples:
+            with (stage / "STATE.md").open("a", encoding="utf-8") as stream:
+                stream.write("\nTest mod in src/gameTest: LoadSmokeTest and ArenaTests (arena template; stand at ArenaTests.STAND, y = 2). Not yet run.\nRun: toolkit verify PROJECT. Final JAR excludes the test mod.\n")
+        elif with_tests:
             with (stage / "STATE.md").open("a", encoding="utf-8") as stream:
                 stream.write("\nOpt-in starter: two GameTests and a recipe data provider included in src/gameTest (not yet run).\nRun: toolkit verify PROJECT --starter; verify PROJECT --check rechecks receipt freshness.\nReport: build/reports/gametest/results.xml. Receipt/logs: build/mcforge/. Final JAR excludes the test mod; generated recipe is included.\n")
         publish_project(stage, destination)
-    next_step = "verify PROJECT --starter" if with_tests else "gradle PROJECT tasks; verify PROJECT"
-    return {"project": str(destination), "lock": lock, "next": next_step}
+    next_step = "verify PROJECT --starter" if with_tests and examples else "gradle PROJECT tasks; verify PROJECT"
+    result = {"project": str(destination), "lock": lock, "next": next_step}
+    if warnings:
+        result["warnings"] = warnings
+    return result

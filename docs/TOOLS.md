@@ -35,7 +35,12 @@ Prefer public API/source artifacts from the exact dependency version. Reading a 
 
 `updates "<project>"` is an explicit network operation against official NeoForge, ModDevGradle, Parchment and Gradle metadata. It reports stable candidates, keeps other NeoForge lines separate as ports, and changes no files. Network failures remain errors, not evidence that pins are current. Candidates require a separate validated upgrade.
 
-Gradle accepts task names plus `--stacktrace`, `--offline`, `--info`, `--all` and `--rerun-tasks`. It rejects arbitrary switches that redirect project execution or inject scripts. Full output is saved to a unique `PROJECT/build/mcforge/logs/gradle-<id>.log`; `--log NEW_FILE` selects another new file. Stderr reports the log path, exit code and bounded failure tail. Ctrl+C stops the owned build process group. Use [verification receipts](TESTING.md) for evidence tied to a complete datagen/test/build run.
+Gradle accepts task names plus `--stacktrace`, `--offline`, `--info`, `--all` and `--rerun-tasks`. It rejects arbitrary switches that redirect project execution or inject scripts. Full output is saved to a unique `PROJECT/build/mcforge/logs/gradle-<id>.log`; `--log NEW_FILE` selects another new file. The `gradle` command prints the log path and exit code on stdout; a failure adds the exit code and a bounded tail on stderr. Commands that print JSON (`verify`) keep stdout for the JSON and write progress lines (`Gradle log: ...`) to stderr; `MCFORGE_INFO=off` hides those (the paths are in the receipt). Ctrl+C stops the owned build process group. Use [verification receipts](TESTING.md) for evidence tied to a complete datagen/test/build run.
+
+## Shell pitfalls (Windows PowerShell 5.1)
+
+- When a caller merges streams (`... 2>&1`), Windows PowerShell 5.1 shows every stderr line of a native program as a red `NativeCommandError` record, even on success. The process exit code is the result. `Minecraft-Forge.ps1` no longer stops on those records (it used to abort a successful run at the first progress line); prefer not merging stderr, or set `MCFORGE_INFO=off`.
+- `Set-Content -Encoding utf8` and `Out-File -Encoding utf8` write a UTF-8 byte-order mark. Gradle reads `gradle.properties` as ISO-8859-1, so the BOM becomes part of the first line: a first property silently disappears, a first comment becomes a junk property. `doctor --project` warns about a BOM and refuses to read pins when the first line is a property. Write such files with `[IO.File]::WriteAllText(path, text, (New-Object Text.UTF8Encoding $false))`, PowerShell 7's `-Encoding utf8NoBOM`, or an editor set to UTF-8 without BOM.
 
 ## External APIs
 

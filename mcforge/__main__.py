@@ -257,6 +257,8 @@ def parser() -> argparse.ArgumentParser:
     init.add_argument("--name", required=True)
     target_options(init)
     init.add_argument("--with-tests", action="store_true", help="add isolated GameTests and a working recipe data provider (neoforge-1.21.1)")
+    init.add_argument("--no-examples", action="store_true", help="start without the template's example block, item and tab; "
+                      "with --with-tests keep only the test mod, arena, report and load/arena tests")
     asset = commands.add_parser("asset", help="generate free procedural textures, models, blockstates, lang and loot tables")
     asset.add_argument("path", type=Path)
     asset.add_argument("--id", action="append", dest="ids", default=[], metavar="ID:KIND", help="asset id and kind, e.g. ruby_block:block; repeatable")
@@ -286,6 +288,9 @@ def parser() -> argparse.ArgumentParser:
     bench_kind.add_argument("--block", metavar="ID")
     bench_kind.add_argument("--entity", metavar="ID")
     bench.add_argument("--force", action="store_true", help="replace a model class that was edited by hand")
+    check = commands.add_parser("model-check", help="find z-fighting (same-facing coplanar overlapping faces) in a .bbmodel, .geo.json or block model")
+    check.add_argument("file", type=Path)
+    check.add_argument("--eps", type=float, default=0.01, help="plane tolerance in pixels (default 0.01)")
     quick = commands.add_parser("quickstart", help="create a pinned project and generate starter assets in one command")
     quick.add_argument("path", type=Path)
     quick.add_argument("--mod-id", required=True)
@@ -293,6 +298,8 @@ def parser() -> argparse.ArgumentParser:
     quick.add_argument("--name", required=True)
     target_options(quick)
     quick.add_argument("--no-tests", action="store_true", help="skip the optional GameTest/datagen starter")
+    quick.add_argument("--no-examples", action="store_true", help="no example block/item/tab or example tests (mob-only and other "
+                       "projects that start from scratch); the test mod, arena and load/arena tests stay")
     quick.add_argument("--style", choices=STYLES, default="auto")
     quick.add_argument("--size", type=int, choices=(16, 32), default=16)
     install = commands.add_parser("install", help="install or update this toolkit in a versionless local root")
@@ -388,7 +395,8 @@ def main(argv=None) -> int:
             return 1 if result["errors"] else 0
         elif args.command == "init":
             version, options = target_arguments(args)
-            emit(init_project(args.path, args.mod_id, args.package, args.name, version, with_tests=args.with_tests, **options))
+            emit(init_project(args.path, args.mod_id, args.package, args.name, version, with_tests=args.with_tests,
+                              examples=not args.no_examples, **options))
         elif args.command == "asset":
             from .assets import generate_assets
             emit(generate_assets(args.path, parse_asset_specs(args.ids), style=args.style, size=args.size, force=args.force))
@@ -401,15 +409,22 @@ def main(argv=None) -> int:
         elif args.command == "bbmodel":
             from .content import import_bbmodel
             emit(import_bbmodel(args.path, args.file, block=args.block, entity=args.entity, force=args.force))
+        elif args.command == "model-check":
+            from .modelcheck import check_model
+            result = check_model(args.file, args.eps)
+            emit(result)
+            return 1 if result["z_fighting"] else 0
         elif args.command == "quickstart":
             version, options = target_arguments(args)
             emit(quickstart_project(args.path, args.mod_id, args.package, args.name, version,
-                                    with_tests=not args.no_tests, style=args.style, size=args.size, **options))
+                                    with_tests=not args.no_tests, examples=not args.no_examples, style=args.style,
+                                    size=args.size, **options))
         elif args.command == "install":
             from .install import install_toolkit
             emit(install_toolkit(args.root, args.force))
         elif args.command == "gradle":
-            return run_gradle(args.path, args.tasks, args.java_home, options=args.gradle_options, log_path=args.log)
+            # stdout carries nothing else for this command, so its progress lines go there.
+            return run_gradle(args.path, args.tasks, args.java_home, options=args.gradle_options, log_path=args.log, out=sys.stdout)
         elif args.command == "guide":
             print((ROOT / "docs" / GUIDES[args.topic]).read_text(encoding="utf-8"))
         elif args.command == "search":
@@ -425,7 +440,7 @@ def main(argv=None) -> int:
                     return 0
                 codes = []
                 for archive in source.get("sources", [source["source"]]):
-                    print(f"Source: {archive}", file=sys.stderr)
+                    print(f"Source: {archive}", flush=True)
                     codes.append(search_sources(Path(archive), args.path))
                 return 0 if 0 in codes else max(codes)
             if args.path is None or args.query is None:

@@ -1,6 +1,7 @@
 """End-to-end check of one bundled target, as CI runs it.
 
-Scaffolds the target, adds every content kind, makes server-load evidence
+Scaffolds the target (without the template's example content, so the
+stripped main class is compiled too), adds every content kind, makes server-load evidence
 available the way that target needs, runs `verify` and asserts the receipt:
 compile, package and server load passed, client/gameplay honestly not run, the
 generated classes are in the JAR and test code is not.
@@ -37,7 +38,8 @@ def main() -> int:
     project = work / target
     if project.exists():
         raise SystemExit(f"{project} exists; pick an empty work directory")
-    run("init", str(project), "--target", target, "--mod-id", mod_id, "--package", f"dev.mcforge.{mod_id}", "--name", f"CI {target}")
+    run("init", str(project), "--target", target, "--mod-id", mod_id, "--package", f"dev.mcforge.{mod_id}", "--name", f"CI {target}",
+        "--no-examples")
     kit = None
     for spec in CONTENT:
         result = run("add", str(project), *spec)
@@ -63,6 +65,9 @@ def main() -> int:
             assert f"{package}/{name}" in names, f"{name} missing from the mod JAR"
     assert not any(name.startswith(f"{package}/testing/") for name in names), "test code leaked into the mod JAR"
     assert f"assets/{mod_id}/textures/entity/cave_boar.png" in names
+    if target == "neoforge-1.21.1":
+        # The arena regression test: a horse at ArenaTests.STAND stays on the floor, alive and unhurt.
+        assert any("largemobstandsunhurtonthearenafloor" in name.lower() for name in receipt["tests"]["names"]), receipt["tests"]
     run("verify", str(project), "--check")
     print(json.dumps({"target": target, "kit": kit, "tiers": tiers, "tests": receipt["tests"], "jar": receipt["artifact"]}))
     return 0

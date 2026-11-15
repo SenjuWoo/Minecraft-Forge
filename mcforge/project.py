@@ -35,9 +35,20 @@ def _text(path: Path, limit: int = MAX_TEXT) -> str:
     return data.decode("utf-8-sig")
 
 
+BOM_NOTE = ("starts with a UTF-8 byte-order mark (Windows PowerShell 5.1 Set-Content/Out-File -Encoding utf8 writes one); "
+            "Gradle reads it as part of the first line. Re-save the file as UTF-8 without a BOM")
+
+
 def _properties(path: Path) -> dict[str, str]:
     properties = {}
-    for line in _text(path).splitlines():
+    text = _text(path)
+    with path.open("rb") as stream:
+        if stream.read(3) == b"\xef\xbb\xbf":
+            first = next((line.strip() for line in text.splitlines() if line.strip()), "")
+            if first and not first.startswith(("#", "!")):
+                # Gradle would see a key with the BOM glued on: the real property silently disappears.
+                raise ValueError(f"{path.name} {BOM_NOTE}: Gradle does not see {first.split('=', 1)[0].strip()}")
+    for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith(("#", "!")):
             continue
@@ -272,6 +283,11 @@ def inspect_project(project: Path) -> dict:
     """Compare actual target inputs with the recorded lock, preserving legacy project files."""
     project = Path(project).resolve()
     result = {"project": str(project), "target": {}, "lock_status": "unresolved", "drift": [], "warnings": [], "errors": []}
+    properties_file = project / "gradle.properties"
+    if properties_file.is_file():
+        with properties_file.open("rb") as stream:
+            if stream.read(3) == b"\xef\xbb\xbf":
+                result["warnings"].append(f"gradle.properties {BOM_NOTE}")
     try:
         target = result["target"] = read_target(project)
         family = result["family"] = project_family(project)

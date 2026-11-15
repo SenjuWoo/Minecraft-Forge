@@ -69,7 +69,8 @@ def _inputs(project: Path) -> dict:
                                 if name != "__pycache__"
                                 and not (relative in {Path("."), Path("buildSrc"), Path("build-logic")}
                                          and name in {".git", ".gradle", "build"})
-                                and not (relative == Path(".") and name in {"run", "run-data", "run-gametest"})
+                                # Game directories of runs (run/, run-data/, run-gametest/, run-devshots/ ...).
+                                and not (relative == Path(".") and (name == "run" or name.startswith("run-")))
                                 and not (relative == Path("src") and name == "generated"))
         for name in directories + sorted(entries):
             path = Path(base) / name

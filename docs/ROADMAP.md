@@ -17,11 +17,15 @@
 - `guide audio`: `sounds.json` and registry wiring, OGG encoding, synthesized original effects, voice generation practice.
 - `--with-tests` ships a 15x7x15 `arena` GameTest structure; `guide testing` covers entity/AI GameTests and a client screenshot automation run.
 
+## Added in 1.2.0
+
+- `ArenaTests` with the arena's correct stand height and a regression test; `--no-examples` for projects that start from scratch; `model-check` for z-fighting; `run-*` game directories excluded from receipts; PowerShell 5.1 launcher and BOM fixes; client-run and GeckoLib lessons in `guide testing` and `guide entities`.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).
 - Natural mob spawning, sounds and loot presets; ranged weapons; block entities with GUIs.
-- A generated client screenshot run (`guide testing` documents the pattern) so `client_load` can be recorded automatically.
+- A generated client screenshot run and `verify --client` that records its screenshots and log hashes, so `client_load` can be recorded automatically (`guide testing` documents the driver).
 - More furniture shapes and mob archetypes; animated textures.
 
 Roadmap items have no promised dates. The project does not claim universal modpack compatibility or automatic crash repair.

@@ -4,7 +4,7 @@ import io
 import json
 from pathlib import Path
 import unittest
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 from mcforge import __main__ as cli
 
@@ -87,9 +87,9 @@ class Cli030Tests(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertEqual(json.loads(output), source)
             search.assert_not_called()
-            code, _, error = self.invoke(["sources", "--project", "mod", query])
+            code, output, _ = self.invoke(["sources", "--project", "mod", query])
         self.assertEqual(code, 0)
-        self.assertIn(source["source"], error)
+        self.assertIn("Source: " + source["source"], output)
         resolve.assert_called_with(Path("mod"))
         search.assert_called_once_with(Path(source["source"]), query)
 
@@ -100,7 +100,7 @@ class Cli030Tests(unittest.TestCase):
         self.assertEqual(code, 7)
         run.assert_called_once_with(Path("mod"), ["tasks"], Path("jdk"),
                                     options=["--all", "--offline", "--stacktrace", "--info", "--rerun-tasks"],
-                                    log_path=Path("new.log"))
+                                    log_path=Path("new.log"), out=ANY)
 
 
 if __name__ == "__main__":

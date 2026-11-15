@@ -6,7 +6,7 @@ Local mod workbench for **NeoForge, Fabric and Forge**. Read `STATE.md` for curr
 
 1. `Minecraft-Forge.ps1 doctor` (or `python -m mcforge doctor` here). `targets` lists the seven bundled targets; `instances` shows the user's launcher instances with matching `init` options.
 2. `plan "<request>"` routes the request to commands, one guide and pitfalls. Writes nothing.
-3. `quickstart PATH --mod-id ID --package PACKAGE --name "Name" [--loader neoforge|fabric|forge] [--minecraft V]`.
+3. `quickstart PATH --mod-id ID --package PACKAGE --name "Name" [--loader neoforge|fabric|forge] [--minecraft V] [--no-examples]` (`--no-examples`: no example block/item/tab or example tests; use it for mob-only and from-scratch mods).
 4. `add PATH KIND NAME` for each piece of content: `block item food sword pickaxe axe shovel hoe toolset armor furniture mob`.
 5. `verify PATH` (Fabric: build runs the game-test server; NeoForge before 1.21.5, including 1.21.1: run `tests PATH` once first; NeoForge 26.3 / Forge: `verify PATH --load`).
 6. Only on the user's request: `deploy PATH --instance INSTANCE` (plan), then `--apply`.
@@ -18,10 +18,10 @@ Local mod workbench for **NeoForge, Fabric and Forge**. Read `STATE.md` for curr
 | Installed reality | `instances [--launcher L] [--root DIR]`, `inventory --instance PATH [--hash]`, `jar PATH [--hash]` |
 | New mod | `quickstart` / `init PATH --mod-id ID --package dev.owner.mod --name "Name" [--loader L --minecraft V] [--fetch]` |
 | Content | `add PATH KIND NAME [--style S] [--tier T] [--repair ITEM] [--shape S] [--hostile]` - `guide content` |
-| Blockbench | `bbmodel PATH FILE.bbmodel --block ID \| --entity ID [--force]`; `preview PATH FILE` |
+| Blockbench | `bbmodel PATH FILE.bbmodel --block ID \| --entity ID [--force]`; `preview PATH FILE`; `model-check FILE` (z-fighting in `.bbmodel`/`.geo.json`/block model) |
 | Libraries | `libs [--loader --minecraft --category --query]`, `libs --resolve SLUG --project PATH`, `libs --add SLUG --project PATH` - `guide libraries` |
 | Packs (no Java) | `pack PATH --kind resource\|data\|shader --name N [--minecraft V]` - `guide packs` |
-| Load test (NeoForge before 1.21.5) | `tests PATH` |
+| Load test (NeoForge before 1.21.5) | `tests PATH` (load test + arena test; arena mobs stand at `ArenaTests.STAND`, y = 2) |
 | Build/tasks | `gradle PATH tasks`, `gradle PATH build` (flags: `--stacktrace --offline --info --all --rerun-tasks --log NEW_FILE`) |
 | Evidence | `verify PATH [--load] [--starter]`, `verify PATH --check` - `guide testing` |
 | API evidence | `sources --project PATH ["symbol"]` (prepare: NeoForge `createMinecraftArtifacts`, Fabric `genSources`, Forge `build`), JDK `javap` |

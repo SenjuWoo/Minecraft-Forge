@@ -45,7 +45,7 @@ From the toolkit directory:
 .\Minecraft-Forge.ps1 gradle "<new source directory>" build
 ```
 
-`quickstart` is `init --with-tests` plus the default `asset` pass. `asset` writes only resources/data: new IDs must also be registered in Java. Existing generated files are skipped unless `--force`; `en_us.json` is merged. See [ASSETS.md](ASSETS.md).
+`quickstart` is `init --with-tests` plus the default `asset` pass. Add `--no-examples` when the mod starts from scratch (a mob, a library): no example block, item, tab or example tests; the test mod, arena and load/arena tests stay. `asset` writes only resources/data: new IDs must also be registered in Java. Existing generated files are skipped unless `--force`; `en_us.json` is merged. See [ASSETS.md](ASSETS.md).
 
 Creation uses the bundled, pinned official MDK. Inspect the generated manifest and build files before editing. Keep third-party notices and select an intentional license for your own mod. First dependency resolution requires network access and can be much slower than incremental builds.
 
@@ -61,11 +61,15 @@ Build the smallest player-visible feature, then add the tests its behavior needs
 
 For diagnosis, Gradle accepts `--stacktrace`, `--offline`, `--info`, `--all` and `--rerun-tasks`. It saves full output to a unique log under `build/mcforge/logs/` and prints its path, exit code and a bounded failure tail. `--log NEW_FILE` chooses a new path without overwriting. Read the relevant log section before retrying.
 
+## Gradle property edits
+
+Edit `gradle.properties` with an editor or a writer that produces UTF-8 **without** a byte-order mark. Windows PowerShell 5.1 `Set-Content -Encoding utf8` adds one, and Gradle then loses the first property (`guide tools`, "Shell pitfalls"). `doctor --project PATH` reports it.
+
 ## Larger content mods (custom models, animation, sound)
 
 - Match the pack before writing code: read the instance's loader, Minecraft and library builds (`instances`, `inventory --instance PATH`) and pin exactly those (for example the GeckoLib build the pack ships). The user's pack is the target, not the newest release.
 - Generate art from scripts, not by hand: a model generator (Blender headless or plain Python) that writes `.bbmodel` and `.geo.json`, an animation generator, a texture painter and a sound generator, all rerunnable. A fix then becomes "edit a constant, rerun, rebuild" instead of re-describing the asset. Keep these in an `asset-pipeline/` folder beside the mod source; they never ship.
-- Build validators into the generators (coplanar overlaps, bone names the Java code references, UV inside the texture, sound events in `sounds.json` match the registry) so a broken asset fails before the game starts.
+- Build validators into the generators (coplanar overlaps: `model-check FILE`, bone names the Java code references, UV inside the texture, sound events in `sounds.json` match the registry) so a broken asset fails before the game starts.
 - Iterate with evidence in this order: GameTests for behaviour (`guide testing`), a client screenshot run for looks and animation, then a deploy for the user to play. Each loop costs minutes, not a user round trip.
 - Guides: `guide entities` (GeckoLib conventions, head look, actions, secondary motion, custom AI), `guide audio` (sounds.json, synthesis, voice).
 - Deliverable layout that survives a later edit or share: `mod/` (the built JAR), `source/` (the Gradle project), `asset-pipeline/` (generators and raw takes), `media/` (screenshots, `.bbmodel`), plus a `MANIFEST.json` with JAR name, SHA-256, Minecraft/loader/Java versions, required mods with version ranges, test status and untested items. Large generator installs (TTS models, Python venvs with model weights) are tools, not project files: keep them out.

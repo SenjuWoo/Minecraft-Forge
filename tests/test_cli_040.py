@@ -39,7 +39,7 @@ class Cli040Tests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(output), result)
         quick.assert_called_once_with(Path("mod"), "garden", "dev.example.garden", "Garden", "21.1.265",
-                                      with_tests=False, style="gem", size=32)
+                                      with_tests=False, examples=True, style="gem", size=32)
 
     def test_install_forwards_root_and_force(self):
         with patch("mcforge.install.install_toolkit", return_value={"root": "target"}) as installer:

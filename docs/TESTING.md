@@ -20,7 +20,7 @@ Every receipt carries `tiers`: `compile`, `package`, `server_load`, `client_load
 | Target | How `verify` reaches `server_load` |
 |---|---|
 | fabric-* | Always: the scaffold carries Fabric's official game-test wiring and a `LoadSmokeTest`; `build` runs the game-test server and the receipt records the actual test cases |
-| neoforge-1.21.1 (and fetched NeoForge before 1.21.5) | After `tests PROJECT` (adds the test mod and one load test) or `init --with-tests`; this game version refuses to start a test server with zero tests |
+| neoforge-1.21.1 (and fetched NeoForge before 1.21.5) | After `tests PROJECT` (adds the test mod, a load test and the arena test) or `init --with-tests`; this game version refuses to start a test server with zero tests |
 | neoforge-26.3, forge-1.20.1, forge-26.3 | `verify PROJECT --load` boots the game-test server after the build |
 
 `server_load` passes only when the log shows the server started; Gradle's exit code alone is not accepted (NeoForge 1.21.1 exits 0 after refusing to start).
@@ -43,6 +43,9 @@ Use the same project directory in every command. `verify` runs `runData` in its 
 - `ExampleRecipes`: a server-data recipe provider that generates nine example items from one example block, plus the recipe-book advancement.
 - `registeredBlockCanBePlaced`: asserts the block's registry ID, places it, and checks its presence.
 - `generatedRecipeCraftsOnlyTheExpectedInput`: loads the generated recipe, checks the example-block input and nine-item output, and rejects dirt.
+- `ArenaTests`: the `arena` template's `STAND` (7, 2, 7) and `FLOOR` positions, and `largeMobStandsUnhurtOnTheArenaFloor`, which keeps a horse there for 100 ticks and requires it alive, unhurt and on the floor.
+
+`--no-examples` (on `init` and `quickstart`, any target) starts without the template's example block, item, creative tab and their names; NeoForge and Forge main classes keep their empty registers and config. With `--with-tests` the test mod keeps its arena, report writer, `LoadSmokeTest` and `ArenaTests`, without the recipe provider and the two example tests; verify it with plain `verify PATH`. Mob-only projects start here instead of deleting examples by hand. If a template ever changes shape, the examples stay and the result carries a warning.
 
 The development mod is loaded for data generation and GameTests. Its sources and empty test structure stay out of the production JAR. The recipe at `data/<id>/recipe/example_items_from_block.json` and advancement at `data/<id>/advancement/recipes/misc/example_items_from_block.json` are packaged. These paths and the provider follow the [NeoForge 1.21.1 recipe documentation](https://docs.neoforged.net/docs/1.21.1/resources/server/recipes/); consult exact target sources before changing API calls.
 
@@ -54,7 +57,7 @@ The run writes `build/reports/gametest/results.xml`. Verification moves any old 
 
 `verify PATH --check` is offline and does not build or rerun tests. It requires a passing receipt and rehashes current inputs, generated data, JAR, XML report and logs. Any changed or missing recorded evidence invalidates it. It cannot be combined with `--starter` or `--java-home`; select those when starting a fresh run. The receipt is local evidence, not a signed attestation or a claim about client/pack compatibility.
 
-The supported layout is one toolkit-created Groovy MDK project. Verification hashes local inputs, including libraries, assets and configs; it excludes `.git/`, `.gradle/`, `build/`, Python caches, root `run/`, `run-data/`, `run-gametest/` and workspace progress ledgers. `src/generated/` is recorded separately after datagen. It rejects links, explicit included/applied builds and external literal file paths. Custom tasks computing external paths, external services or mutable dependencies need additional checks; this static inspection is not an attestation of arbitrary build code. Keep logs/receipts out of the shipped mod JAR.
+The supported layout is one toolkit-created Groovy MDK project. Verification hashes local inputs, including libraries, assets and configs; it excludes `.git/`, `.gradle/`, `build/`, Python caches, root `run/` and every root `run-*` game directory (`run-data/`, `run-gametest/`, `run-devshots/` ...), and workspace progress ledgers. Keep a run's game directory under one of those names so worlds, screenshots and logs written between `verify` and `verify --check` never invalidate the receipt. `src/generated/` is recorded separately after datagen. It rejects links, explicit included/applied builds and external literal file paths. Custom tasks computing external paths, external services or mutable dependencies need additional checks; this static inspection is not an attestation of arbitrary build code. Keep logs/receipts out of the shipped mod JAR.
 
 Builds and receipt checks refuse implicit `ORG_GRADLE_PROJECT_*`, `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, project `systemProp.*` and custom properties/init scripts in the toolkit's shared Gradle cache. These can override the inspected pins; remove them from the selected process/build context before verification. The toolkit preserves their files and values.
 
@@ -68,11 +71,14 @@ Bare NeoForge 1.21.1 `init` keeps the stock MDK, which contains **zero GameTests
 
 ## Entity and AI GameTests (NeoForge 1.21.1)
 
-- The starter's `empty` template is 3x3x3: a mob spawned there is boxed in and AI tests fail for the wrong reason. `--with-tests` also ships `arena` (15x7x15, smooth-stone floor, air above): `@GameTest(template = "arena", timeoutTicks = 200)` with `@PrefixGameTestTemplate(false)` on the holder. Positions inside it are relative (`new BlockPos(7, 1, 7)` is the centre, on the floor).
+- The starter's `empty` template is 3x3x3: a mob spawned there is boxed in and AI tests fail for the wrong reason. `--with-tests` and `tests` also ship `arena` (15x7x15, smooth-stone floor, air above): `@GameTest(template = "arena", timeoutTicks = 200)` with `@PrefixGameTestTemplate(false)` on the holder.
+- **Stand at y = 2.** `GameTestHelper` positions are relative to the structure *block*, and the template is placed one block above it (the structure block's default offset is 0, 1, 0; `StructureUtils.getStructureOrigin`). Relative y = 1 is the arena floor itself. Use `ArenaTests.STAND` (`new BlockPos(7, 2, 7)`, the centre on the floor) or offsets from it. A mob spawned at y = 1 sits inside the floor and takes suffocation damage until it dies; tests that pass on their first tick never notice, multi-tick ones (breeding, healing over time) fail. The shipped `largeMobStandsUnhurtOnTheArenaFloor` guards this. To debug a position, log `helper.relativeVec(mob.position())` and the block at the eyes.
 - GameTest plots are placed millions of blocks from the origin. There, float precision breaks pathfinding (paths come back empty) and line-of-sight rays. Test the behaviour at melee or cast range, call `setTarget` directly, and keep pathing out of the assertion; skip line-of-sight checks for point-blank actions in the mod itself.
 - Use husks, not zombies, as attackers: zombies burn in the test's daylight, so "the monster lost health" passes without your mob doing anything. Give dummies `setNoAi(true)` so only the actor under test acts.
 - Assert the outcome with `succeedWhen(() -> assertTrue(...))` and a failure message carrying the value (`"not healed: " + v.getHealth()`). Add the negative case (friendly fire is rejected, health unchanged) next to the positive one.
 - `runAfterDelay(ticks, ...)` stages a provocation after spawn settles.
+- Breeding: `canParent()` needs tame (for horses), adult, full health and in love; two parents within 3 blocks breed after the breed goal's 60-tick timer even where pathfinding is broken.
+- Natural spawns without a world: after an `add_spawns` biome modifier, assert `biome.getMobSettings().getMobs(MobCategory.CREATURE).unwrap()` contains your type with the expected weight and group sizes (the modified settings are visible there), plus one biome that must not have it.
 
 ## Client screenshot automation
 
@@ -90,6 +96,8 @@ neoForge { runs { devShots {
 } } }
 ```
 
+The `run-devshots` game directory is excluded from verification inputs (every root `run-*` folder is); `project.file('build/devshots')` works too and is removed by `clean`.
+
 In the test mod constructor: `if (System.getProperty("<mod>.devshots") != null && FMLEnvironment.dist.isClient()) NeoForge.EVENT_BUS.addListener(DevShots::onClientTick);`. The driver (verified on 1.21.1):
 
 ```java
@@ -105,18 +113,23 @@ public static void onClientTick(ClientTickEvent.Post event) {
         }
         return;
     }
+    if (tick == 0) mc.options.pauseOnLostFocus = false;    // an unattended window loses focus and pauses
+    if (mc.screen instanceof PauseScreen) mc.setScreen(null);
     tick++;   // then run scripted steps by tick: commands, camera moves, screenshots, finally mc.stop()
 }
 static void cmd(String c) { Minecraft.getInstance().player.connection.sendCommand(c); }
 static void shot(String n) { var mc = Minecraft.getInstance(); Screenshot.grab(mc.gameDirectory, n + ".png", mc.getMainRenderTarget(), m -> {}); }
 ```
 
+- Without the two pause lines above, frames capture the pause menu as soon as the window loses focus.
 - First steps: `gamerule doDaylightCycle false`, `time set 6000`, `gamerule doMobSpawning false`, `weather clear`, `gamemode spectator`, `options.hideGui = true`; flat world surface is y = -60.
 - Camera: `tp @s x y z yaw pitch` with `yaw = atan2(-dx, dz)`, `pitch = -atan2(dy, horizontal)` toward the subject (eye height 1.62).
 - Turntable: front, both three-quarters, both sides, back, plus close-ups; `summon ... {NoAI:1b,Rotation:[180f,0f]}` for posed shots. Burst frames (`shot` every 2 ticks) for each action; a hostile dummy with `effect give ... resistance` keeps a fight going.
 - Structures and villages: `place structure minecraft:village_plains x y z` (a non-spectator player must be nearby for chunk ticking).
+- **Entity tags exist only on the server.** `Entity#getTags()` on the client is empty, so selecting subjects by tag in the client tick finds nothing. Select by position or UUID on the client, or act through the integrated server, where tags work: `var srv = mc.getSingleplayerServer(); srv.execute(() -> srv.overworld().getEntitiesOfClass(T.class, box, e -> e.getTags().contains("subject")).forEach(...))`.
+- **Drive state; do not wait for AI.** Through the integrated server: set velocity every tick for walk/run frames (`setDeltaMovement` with a fixed yaw), call state methods directly (`setEating(true)`, `standIfPossible()`), equip by command (`item replace entity @e[tag=x] horse.saddle with saddle`, `... armor.body with leather_horse_armor[dyed_color={rgb:6467752}]`), put the camera player on a mount with `ride @s mount @e[tag=x,limit=1]` plus `options.setCameraType(...)`, and summon babies with `{Age:-24000}`. Every frame is then reproducible.
 - Log numeric state too (spring offsets, health, positions) to `latest.log`; numbers settle tuning questions screenshots cannot.
-- Run it in the background with a timeout; read the PNGs (`run-devshots/screenshots/`) and the log. Report what was looked at; it is still not a pack-integration test.
+- Run it in the background with a timeout; read the PNGs (`run-devshots/screenshots/`) and the log. Report what was looked at; it is still not a pack-integration test. `verify` keeps `client_load` and `gameplay` at `not_run`: a screenshot run is evidence you report next to the receipt, not part of it.
 
 ## Existing crash baseline
 

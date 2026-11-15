@@ -24,6 +24,7 @@ from . import __version__
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTING_FILES = ("build.gradle", "src/gameTest/java/TestMod.java", "src/gameTest/java/SmokeTests.java",
+                 "src/gameTest/java/ArenaTests.java",
                  "src/gameTest/java/ExampleRecipes.java", "src/gameTest/resources/META-INF/neoforge.mods.toml",
                  "src/gameTest/resources/data/@MOD_ID@/structure/empty.nbt",
                  "src/gameTest/resources/data/@MOD_ID@/structure/arena.nbt")
@@ -132,14 +133,17 @@ def init_project(destination: Path, mod_id: str, package: str, name: str, neo_ve
 
 
 def quickstart_project(destination: Path, mod_id: str, package: str, name: str, neo_version: str | None = None,
-                       *, with_tests: bool = True, style: str = "auto", size: int = 16, **options) -> dict:
+                       *, with_tests: bool = True, examples: bool = True, style: str = "auto", size: int = 16,
+                       **options) -> dict:
     """Create the pinned scaffold and dress its example content in one command."""
     from .targets import select_target
     if not options.get("fetch") and select_target(options.get("loader"), options.get("minecraft"), options.get("target_id"))["id"] != "neoforge-1.21.1":
         with_tests = False
-    result = init_project(destination, mod_id, package, name, neo_version, with_tests=with_tests, **options)
+    result = init_project(destination, mod_id, package, name, neo_version, with_tests=with_tests, examples=examples, **options)
     family = result["lock"]["family"]
-    if family == "fabric-loom":
+    if not examples:
+        result["assets"] = []
+    elif family == "fabric-loom":
         # The Fabric template registers no example content: add a real block and item (Java on kit targets).
         from .content import add_content
         result["assets"] = [add_content(destination, "block", "example_block", style=style, size=size),
@@ -148,7 +152,7 @@ def quickstart_project(destination: Path, mod_id: str, package: str, name: str, 
         # The NeoForge and Forge MDKs register example_block and example_item; dress those.
         from .assets import generate_assets
         result["assets"] = generate_assets(destination, style=style, size=size)
-    result["next"] = "verify PROJECT --starter" if with_tests else "verify PROJECT"
+    result["next"] = "verify PROJECT --starter" if with_tests and examples else "verify PROJECT"
     return result
 
 
@@ -203,8 +207,15 @@ def add_load_tests(project: Path) -> dict:
     add_testing_starter(project, lock["mod_id"], lock["package"], load_only=True)
     lock.update(with_tests=True, starter=False)
     lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
-    return {"project": str(project), "status": "added", "tests": ["LoadSmokeTest.modLoads"],
+    return {"project": str(project), "status": "added", "tests": ["LoadSmokeTest.modLoads", "ArenaTests.largeMobStandsUnhurtOnTheArenaFloor"],
             "next": "verify PROJECT (runs datagen, the game-test server and the build)"}
+
+
+def progress(message: str, stream=None):
+    """Progress lines (log paths): stderr by default; MCFORGE_INFO=off hides them (they are also in the JSON result)."""
+    if os.environ.get("MCFORGE_INFO", "").lower() in {"off", "0", "false", "no"}:
+        return
+    print(message, file=stream or sys.stderr, flush=True)
 
 
 def add_testing_starter(stage: Path, mod_id: str, package: str, *, load_only: bool = False):
@@ -275,7 +286,8 @@ def stop_gradle(process):
     process.wait(timeout=10)
 
 
-def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *, options=(), log_path: Path | None = None) -> int:
+def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *, options=(), log_path: Path | None = None,
+               out=None) -> int:
     guard_output(project)
     project = project.resolve()
     lock = read_json(project / "mcforge-project.json")
@@ -308,7 +320,7 @@ def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *
     log_path = Path(log_path) if log_path else project / "build/mcforge/logs" / f"gradle-{uuid.uuid4().hex}.log"
     guard_output(log_path)
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Gradle log: {log_path}", file=sys.stderr)
+    progress(f"Gradle log: {log_path}", out)
     group = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {"start_new_session": True}
     with log_path.open("x", encoding="utf-8") as log:
         process = subprocess.Popen(command, cwd=project, env=env, stdout=log, stderr=subprocess.STDOUT, **group)
@@ -317,8 +329,10 @@ def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *
         except BaseException:
             stop_gradle(process)
             raise
-    print(f"Gradle exit: {result}", file=sys.stderr)
-    if result:
+    if not result:
+        progress(f"Gradle exit: {result}", out)
+    else:
+        print(f"Gradle exit: {result}", file=sys.stderr)
         with log_path.open(encoding="utf-8", errors="replace") as log:
             tail = deque(log, maxlen=20)
         print("".join(line[:500] for line in tail), end="", file=sys.stderr)

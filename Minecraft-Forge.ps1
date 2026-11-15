@@ -24,9 +24,14 @@ foreach ($pythonCandidate in ($pythonCandidates | Where-Object { $_ } | Select-O
     try {
         # -P keeps the current directory off the import path, so a folder named
         # mcforge in the caller's working directory cannot shadow this one.
+        # Windows PowerShell 5.1 turns each stderr line into an error record when the caller merges
+        # streams (2>&1); under 'Stop' the first progress line would abort a successful run. The exit
+        # code below is the result.
+        $ErrorActionPreference = 'Continue'
         & $pythonCandidate -P -m mcforge @args
         $code = $LASTEXITCODE
     } finally {
+        $ErrorActionPreference = 'Stop'
         $env:PYTHONPATH = $previousPath
     }
     exit $code
