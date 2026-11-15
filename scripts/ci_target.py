@@ -48,6 +48,8 @@ def main() -> int:
     verify = ["verify", str(project)]
     if target == "neoforge-1.21.1":
         run("tests", str(project))
+        # The screenshot driver must compile in the test source set and stay inert on the game-test server.
+        run("devshots", str(project))
     elif lock["family"] != "fabric-loom":
         verify.append("--load")
     run(*verify)

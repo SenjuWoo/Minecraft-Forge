@@ -77,12 +77,18 @@ Bare NeoForge 1.21.1 `init` keeps the stock MDK, which contains **zero GameTests
 - Use husks, not zombies, as attackers: zombies burn in the test's daylight, so "the monster lost health" passes without your mob doing anything. Give dummies `setNoAi(true)` so only the actor under test acts.
 - Assert the outcome with `succeedWhen(() -> assertTrue(...))` and a failure message carrying the value (`"not healed: " + v.getHealth()`). Add the negative case (friendly fire is rejected, health unchanged) next to the positive one.
 - `runAfterDelay(ticks, ...)` stages a provocation after spawn settles.
-- Breeding: `canParent()` needs tame (for horses), adult, full health and in love; two parents within 3 blocks breed after the breed goal's 60-tick timer even where pathfinding is broken.
+- Breeding: `canParent()` needs tame (for horses), grown (not a baby), full health and in love; two parents within 3 blocks breed after the breed goal's 60-tick timer even where pathfinding is broken.
+- **Mock players are not in the level.** `GameTestHelper.makeMockPlayer` creates a `Player` that is never added, so `TamableAnimal.getOwner()` (a level lookup by UUID) returns null: `isOwnedBy(player)` is false and owner-only interactions silently refuse. `makeMockServerPlayerInLevel()` works; it is marked deprecated for removal in 1.21.1 and is in creative mode, so `ItemUtils.createFilledResult` keeps the empty container in hand and puts the filled item in the inventory: assert on the inventory. Remove that player from the `PlayerList` when the test ends, or hostile mobs in later tests path toward it.
+- **A movement test that passes in 2 ticks is probably not testing movement.** Assert the start condition (distance) and a minimum elapsed tick count, then `succeedWhen` the end condition.
 - Natural spawns without a world: after an `add_spawns` biome modifier, assert `biome.getMobSettings().getMobs(MobCategory.CREATURE).unwrap()` contains your type with the expected weight and group sizes (the modified settings are visible there), plus one biome that must not have it.
 
 ## Client screenshot automation
 
 `client_load` and looks are only proven in a client. A development-only client run can stage scenes, save screenshots and quit with nobody at the keyboard, which is far cheaper than asking the user to look. Put it in the `gameTest` source set so it never reaches the JAR.
+
+**Generated (NeoForge 1.21.1):** `devshots PROJECT [--subject mymod:cave_boar]` writes `DevShots.java` into the test mod and a `devShots` client run into `build.gradle` (the project needs the test mod: `tests PROJECT` or `init --with-tests`). `verify PROJECT --client` then builds, runs the client, requires the driver's `MCFORGE-DEVSHOTS done N` marker and N fresh screenshots, copies them into the receipt folder and records `client_load: passed`. The driver creates a flat creative world, summons the subject with NoAI, takes ten turntable and close-up shots and quits; extend its `STATIONS` or tick script for actions, night passes or sound sweeps. A display is required, so CI cannot run it; `gameplay` stays `not_run`. The first run downloads the game assets and can take several minutes.
+
+The hand-written pattern below is what the generated driver does, plus the techniques for richer scenes.
 
 `build.gradle`:
 
@@ -122,8 +128,11 @@ static void shot(String n) { var mc = Minecraft.getInstance(); Screenshot.grab(m
 ```
 
 - Without the two pause lines above, frames capture the pause menu as soon as the window loses focus.
+- `time set` reaches the sky and light a few ticks late: shots taken 4 ticks after it were still at night; wait about 20 ticks.
 - First steps: `gamerule doDaylightCycle false`, `time set 6000`, `gamerule doMobSpawning false`, `weather clear`, `gamemode spectator`, `options.hideGui = true`; flat world surface is y = -60.
-- Camera: `tp @s x y z yaw pitch` with `yaw = atan2(-dx, dz)`, `pitch = -atan2(dy, horizontal)` toward the subject (eye height 1.62).
+- Camera: `tp @s x y z yaw pitch` with `yaw = atan2(-dx, dz)`, `pitch = -atan2(dy, horizontal)` toward the subject. `tp` places the feet; the eye is 1.62 higher. For a 2.4-block mob at FOV 70 in a 1600x1000 window, close-ups need about 1.7-2.2 blocks; at 5-6 blocks the subject is small.
+- Richer scenes that worked: animations triggered on the integrated server thread (`triggerAnim`) for deterministic action frames, a UV-ramp texture override for orientation checks, a `/fill` water pool for swimming, a night pass for glow layers, and `/playsound` for every sound event; about 100 screenshots plus a log scan replaced most manual checks.
+- Expected dev-run noise: `Missing sound for event: minecraft:...` warnings can appear in dev clients; filter them and look only for `Unable to play unknown soundEvent` with your namespace.
 - Turntable: front, both three-quarters, both sides, back, plus close-ups; `summon ... {NoAI:1b,Rotation:[180f,0f]}` for posed shots. Burst frames (`shot` every 2 ticks) for each action; a hostile dummy with `effect give ... resistance` keeps a fight going.
 - Structures and villages: `place structure minecraft:village_plains x y z` (a non-spectator player must be nearby for chunk ticking).
 - **Entity tags exist only on the server.** `Entity#getTags()` on the client is empty, so selecting subjects by tag in the client tick finds nothing. Select by position or UUID on the client, or act through the integrated server, where tags work: `var srv = mc.getSingleplayerServer(); srv.execute(() -> srv.overworld().getEntitiesOfClass(T.class, box, e -> e.getTags().contains("subject")).forEach(...))`.

@@ -2,7 +2,9 @@
 
 A small orthographic ray caster in pure Python: enough to check proportions,
 texture mapping and facing before a client run. It is a preview, not the game's
-renderer: no lighting engine, translucency, tinting or animation.
+renderer: no lighting engine, translucency or tinting. GeckoLib geometry can be
+posed from an animation file, and `light="vanilla"` shades faces with the game's
+entity diffuse lighting so previews match in-game screenshots.
 """
 from __future__ import annotations
 
@@ -42,6 +44,23 @@ def _transpose(matrix):
 
 
 IDENTITY = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+# Vanilla entity lighting (com.mojang.blaze3d.platform.Lighting, 1.21.1): two fixed directions,
+# shade = min(1, 0.6 * (max(0, n.L0) + max(0, n.L1)) + 0.4).
+VANILLA_LIGHT_0 = (0.2 / 1.2369317, 1.0 / 1.2369317, -0.7 / 1.2369317)
+VANILLA_LIGHT_1 = (-0.2 / 1.2369317, 1.0 / 1.2369317, 0.7 / 1.2369317)
+
+
+def vanilla_shade(normal) -> float:
+    return min(1.0, 0.6 * (max(0.0, _dot(normal, VANILLA_LIGHT_0)) + max(0.0, _dot(normal, VANILLA_LIGHT_1))) + 0.4)
+
+
+def _inverse(m):
+    det = (m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+           + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]))
+    if abs(det) < 1e-12:
+        raise ValueError("A bone is scaled to zero; it cannot be rendered")
+    return tuple(tuple(((m[(j + 1) % 3][(i + 1) % 3] * m[(j + 2) % 3][(i + 2) % 3]
+                         - m[(j + 1) % 3][(i + 2) % 3] * m[(j + 2) % 3][(i + 1) % 3]) / det) for j in range(3)) for i in range(3))
 
 
 def rotation(axis: str, radians: float):
@@ -145,8 +164,11 @@ def rig_boxes(rig: dict, texture: Image) -> list[dict]:
 
 
 def render(boxes: list[dict], *, size: int = 256, direction: Vector = (-0.62, -0.5, 0.6), up: Vector = (0, 1, 0),
-           background=(34, 36, 44)) -> Image:
-    """Orthographic render. ``direction`` is the way the camera looks; ``up`` is the scene's up axis."""
+           background=(34, 36, 44), light: str = "soft") -> Image:
+    """Orthographic render. ``direction`` is the way the camera looks; ``up`` is the scene's up axis.
+
+    ``light``: "soft" (a key light from the camera side) or "vanilla" (the game's entity lighting, y-up scenes).
+    """
     forward = _unit(direction)
     right = _unit(_cross(forward, up))
     upward = _cross(right, forward)
@@ -167,19 +189,31 @@ def render(boxes: list[dict], *, size: int = 256, direction: Vector = (-0.62, -0
     near = min(depth) - 10.0
     prepared = []
     for box in boxes:
-        inverse = _transpose(box["matrix"])
-        prepared.append((box, inverse, _apply(inverse, forward), box["offset"]))
-    light = _unit((-forward[0] + upward[0] * 0.9 - right[0] * 0.35, -forward[1] + upward[1] * 0.9 - right[1] * 0.35,
-                   -forward[2] + upward[2] * 0.9 - right[2] * 0.35))
+        inverse = box.get("inverse") or _transpose(box["matrix"])
+        points = []
+        for x in (box["min"][0], box["max"][0]):
+            for y in (box["min"][1], box["max"][1]):
+                for z in (box["min"][2], box["max"][2]):
+                    world = _apply(box["matrix"], (x, y, z))
+                    points.append((world[0] + box["offset"][0], world[1] + box["offset"][1], world[2] + box["offset"][2]))
+        # Screen rectangle of the box: each pixel only tests the boxes that can cover it.
+        rect = (min(_dot(p, right) for p in points), max(_dot(p, right) for p in points),
+                min(_dot(p, upward) for p in points), max(_dot(p, upward) for p in points))
+        prepared.append((box, inverse, _apply(inverse, forward), box["offset"], rect))
+    light_direction = _unit((-forward[0] + upward[0] * 0.9 - right[0] * 0.35, -forward[1] + upward[1] * 0.9 - right[1] * 0.35,
+                             -forward[2] + upward[2] * 0.9 - right[2] * 0.35))
     image = blank(size, size)
     for py in range(size):
         sy = centre_y + (0.5 - (py + 0.5) / size) * span
+        row = [entry for entry in prepared if entry[4][2] <= sy <= entry[4][3]]
         for px in range(size):
             sx = centre_x + ((px + 0.5) / size - 0.5) * span
             origin = (right[0] * sx + upward[0] * sy + forward[0] * near, right[1] * sx + upward[1] * sy + forward[1] * near,
                       right[2] * sx + upward[2] * sy + forward[2] * near)
             best, colour = None, None
-            for box, inverse, local_direction, offset in prepared:
+            for box, inverse, local_direction, offset, rect in row:
+                if not rect[0] <= sx <= rect[1]:
+                    continue
                 local_origin = _apply(inverse, (origin[0] - offset[0], origin[1] - offset[1], origin[2] - offset[2]))
                 t_near, t_far, hit_axis, hit_side = -1e30, 1e30, 0, 0
                 for axis in range(3):
@@ -204,7 +238,11 @@ def render(boxes: list[dict], *, size: int = 256, direction: Vector = (-0.62, -0
                     continue
                 normal = [0.0, 0.0, 0.0]
                 normal[hit_axis] = 1.0 if hit_side else -1.0
-                shade = 0.58 + 0.42 * max(0.0, _dot(_apply(box["matrix"], normal), light))
+                world_normal = _unit(_apply(box["matrix"], normal))
+                if light == "vanilla":
+                    shade = vanilla_shade(world_normal)
+                else:
+                    shade = 0.58 + 0.42 * max(0.0, _dot(world_normal, light_direction))
                 best, colour = t_near, (pixel[0] * shade, pixel[1] * shade, pixel[2] * shade)
             put(image, px, py, colour if colour else background)
     return image
@@ -246,6 +284,79 @@ def preview_block_model(project: Path, mod_id: str, model_path: Path, output: Pa
     output.write_bytes(png_bytes(image))
     return {"preview": str(output), "elements": len(model["elements"]), "missing_textures": sorted(missing),
             "note": "Software preview: geometry and UV mapping only; magenta marks a texture the project does not contain."}
+
+
+def _face_fraction(face: str, point, low, high):
+    """(u, v) fractions across a face as seen from outside: u left to right, v top to bottom (Blockbench space)."""
+    x, y, z = point
+    w, h, d = (max(high[i] - low[i], 1e-6) for i in range(3))
+    return {"north": ((high[0] - x) / w, (high[1] - y) / h), "south": ((x - low[0]) / w, (high[1] - y) / h),
+            "west": ((z - low[2]) / d, (high[1] - y) / h), "east": ((high[2] - z) / d, (high[1] - y) / h),
+            "up": ((x - low[0]) / w, (z - low[2]) / d), "down": ((x - low[0]) / w, (high[2] - z) / d)}[face]
+
+
+def geo_boxes(geometry: dict, texture: Image, texture_size, matrices: dict) -> list[dict]:
+    """Ray-cast boxes for GeckoLib geometry (geckopose.load_geometry) posed by bone matrices.
+
+    A face missing from a per-face UV map is skipped, as GeckoLib builds no quad for it.
+    """
+    width, height = len(texture[0]) // 4, len(texture)
+    scale_u, scale_v = width / texture_size[0], height / texture_size[1]
+    boxes = []
+    for name in geometry["order"]:
+        bone_matrix = matrices[name]
+        for cube in geometry["bones"][name]["cubes"]:
+            m = [[sum(bone_matrix[i][k] * cube["matrix"][k][j] for k in range(4)) for j in range(4)] for i in range(4)]
+            matrix = tuple(tuple(m[i][j] for j in range(3)) for i in range(3))
+            low, high = cube["min"], cube["max"]
+            sx, sy, sz = cube["size"]
+
+            def sample(face, point, cube=cube, low=low, high=high, sx=sx, sy=sy, sz=sz):
+                fx, fy = _face_fraction(face, point, low, high)
+                if cube["faces"] is not None:
+                    spec = cube["faces"].get(face)
+                    if spec is None:
+                        return None
+                    u0, v0 = spec["uv"]
+                    du, dv = spec.get("uv_size", [0, 0])
+                else:
+                    u, v = cube["box_uv"] or (0, 0)
+                    du, dv = {"north": (sx, sy), "south": (sx, sy), "east": (sz, sy), "west": (sz, sy), "up": (sx, sz), "down": (sx, sz)}[face]
+                    u0, v0 = {"east": (u, v + sz), "north": (u + sz, v + sz), "west": (u + sz + sx, v + sz),
+                              "south": (u + 2 * sz + sx, v + sz), "up": (u + sz, v), "down": (u + sz + sx, v)}[face]
+                tu = (u0 + du * fx) * scale_u
+                tv = (v0 + dv * fy) * scale_v
+                return _texel(texture, min(max(tu, 0), width - 1e-4), min(max(tv, 0), height - 1e-4))
+
+            boxes.append({"matrix": matrix, "inverse": _inverse(matrix), "offset": (m[0][3], m[1][3], m[2][3]),
+                          "min": low, "max": high, "sample": sample, "names": ("west", "east", "down", "up", "north", "south")})
+    return boxes
+
+
+def preview_geo(geo_path: Path, texture: Image, output: Path, size: int = 256, *, light: str = "vanilla",
+                animation: Path | None = None, clip: str | None = None, time: float = 0.0,
+                direction: Vector = (-0.55, -0.45, 0.7)) -> dict:
+    """Render GeckoLib geometry (rest pose, or one frame of an animation clip)."""
+    from . import geckopose
+    data = json.loads(Path(geo_path).read_text(encoding="utf-8-sig"))
+    description = data["minecraft:geometry"][0].get("description", {})
+    texture_size = (description.get("texture_width") or len(texture[0]) // 4, description.get("texture_height") or len(texture))
+    geometry = geckopose.load_geometry(geo_path)
+    pose, clip_name = None, None
+    if animation is not None:
+        if not clip:
+            raise ValueError("--clip names the animation to pose")
+        clip_name, clip_data = geckopose.find_clip(geckopose.load_animations(animation), clip)
+        pose = geckopose.pose_at(clip_data, time)
+    boxes = geo_boxes(geometry, texture, texture_size, geckopose.bone_matrices(geometry, pose))
+    # Blockbench space: y up, the model faces north (-Z); look at its front from above and to one side.
+    image = render(boxes, size=size, direction=direction, up=(0, 1, 0), light=light)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(png_bytes(image))
+    uv = "box (Blockbench layout, approximate)" if any(c["box_uv"] is not None for b in geometry["bones"].values() for c in b["cubes"]) else "per-face"
+    return {"preview": str(output), "bones": len(geometry["order"]), "cubes": len(boxes), "light": light, "uv": uv,
+            "pose": {"clip": clip_name, "time": time} if clip_name else "rest",
+            "note": "Software preview: no translucency, tint or glow layers; missing faces are skipped as GeckoLib skips them."}
 
 
 def preview_rig(rig: dict, texture: Image, output: Path, size: int = 256) -> dict:

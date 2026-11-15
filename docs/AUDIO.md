@@ -55,6 +55,14 @@ Synthesis in Python (numpy/scipy) gives original, licence-clean effects that fit
 - Keep the raw takes and the reference in the asset pipeline so lines can be added later in the same voice; ship only the encoded OGGs.
 - Lines per event: ambient 4-6, greet 2-3, attack/cast 2-3 each, hurt 3, death 1-2. Rate-limit ambient chatter in code (`getAmbientSoundInterval`).
 
+## Checking the set (`audio-check`)
+
+`audio-check PROJECT` reports in one go: `sounds.json` events against `SoundEvent` ids registered in Java (a source scan of `DeferredHolder<SoundEvent, ...>`, `SOUNDS.register("id", ...)` and `SoundEvent.createVariableRangeEvent(...)` / `SoundEvent.of(...)` patterns), entries whose `.ogg` is missing, files nobody references, missing subtitle keys, and per file: channels (positional sounds must be mono), sample rate, duration (long sounds should set `"stream": true`) and, with FFmpeg on PATH, mean and peak loudness. It exits 1 on problems (a registered event without a `sounds.json` entry plays nothing).
+
+- Generating many takes locally: check that no other job holds the GPU first (`nvidia-smi`). A text-to-sound job slowed from about 17 s to 5 minutes per take while another session's job shared the GPU.
+- Voice consistency: derive variants (hurt, panic, death) from a few base takes by pitch and time processing instead of generating each separately.
+- Loudness-match the set by RMS with a limiter; `audio-check` warns when mean loudness spans more than 9 dB.
+
 ## Proving it
 
 `verify` proves the files are packaged; it does not prove they play. In a client run, trigger each event (`/playsound <mod>:<event> neutral @s`) and check the log for `Unable to play unknown soundEvent` or missing-file warnings. Report audio as unverified by ear unless someone listened.

@@ -287,7 +287,7 @@ def stop_gradle(process):
 
 
 def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *, options=(), log_path: Path | None = None,
-               out=None) -> int:
+               out=None, timeout: float | None = None) -> int:
     guard_output(project)
     project = project.resolve()
     lock = read_json(project / "mcforge-project.json")
@@ -325,7 +325,12 @@ def run_gradle(project: Path, tasks: list[str], java_home: Path | None = None, *
     with log_path.open("x", encoding="utf-8") as log:
         process = subprocess.Popen(command, cwd=project, env=env, stdout=log, stderr=subprocess.STDOUT, **group)
         try:
-            result = process.wait()
+            result = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # A client run that never quits must not hang verification forever.
+            stop_gradle(process)
+            log.write(f"\nmcforge: stopped after the {timeout:.0f} s timeout\n")
+            result = 124
         except BaseException:
             stop_gradle(process)
             raise

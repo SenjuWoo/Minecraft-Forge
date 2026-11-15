@@ -66,11 +66,13 @@ On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies th
 | Armor sets (icons + worn layers) | `add P armor NAME --tier iron --repair ITEM` | `guide content` |
 | Furniture (shaped, facing, collision) | `add P furniture NAME --shape chair\|table\|stool\|bench\|shelf\|cabinet\|lamp\|pedestal` | `guide content` |
 | Mobs (entity, AI, model, renderer, spawn egg) | `add P mob NAME --shape quadruped\|biped\|blob [--hostile]` | `guide content` |
-| Animated GeckoLib entities, secondary motion, custom AI | `libs --add geckolib --project P`, `model-check FILE` | `guide entities` |
+| Animated GeckoLib entities, secondary motion, custom AI | `libs --add geckolib --project P`, `model-check FILE`, `ground ANIM --geo GEO --legs ... --clips ...` | `guide entities` |
+| Organic voxel models from shapes (no z-fighting) | `voxel SPEC.json --project P` | `guide entities` |
+| Screenshots from a real client, recorded as evidence | `devshots P`, `verify P --client` | `guide testing` |
 | Start from scratch (no example block/item) | `quickstart P ... --no-examples` | `guide testing` |
-| Sounds, original SFX and voice lines | `sounds.json`, OGG pipeline | `guide audio` |
+| Sounds, original SFX and voice lines | `audio-check P`, OGG pipeline | `guide audio` |
 | Blockbench models in and out | `bbmodel P FILE --block ID` / `--entity ID`; furniture and mobs ship a `.bbmodel` | `guide content` |
-| See a model without launching | `preview P FILE` (block model, `.bbmodel`, texture) | `guide content` |
+| See a model without launching | `preview P FILE` (block model, `.bbmodel`, `.geo.json` posed and lit like the game, texture) | `guide content` |
 | Popular libraries (GeckoLib, Curios, Architectury, JEI, Cloth Config, ~60) | `libs`, `libs --add SLUG --project P` | `guide libraries` |
 | Resource, data and shader packs | `pack PATH --kind resource\|data\|shader` | `guide packs` |
 | Match and deploy to a launcher instance | `instances`, `inventory`, `deploy` | `guide launchers` |
@@ -80,13 +82,13 @@ Generated art is original and procedural (standard-library PNG writer): no downl
 
 ## Evidence, not claims
 
-`verify` hashes the project's inputs, runs datagen/tests/build, inspects the JAR and writes a receipt (`build/mcforge/verification.json`) with separate tiers: **compile, package, server load, client load, gameplay**. The first three run headlessly; the last two are recorded as `not_run` until someone observes them. `verify --check` rehashes the receipt offline. Fabric projects ship Fabric's official game-test wiring and a load test; NeoForge before 1.21.5 (including 1.21.1) gets one with `tests P`; the other targets use `verify --load`.
+`verify` hashes the project's inputs, runs datagen/tests/build, inspects the JAR and writes a receipt (`build/mcforge/verification.json`) with separate tiers: **compile, package, server load, client load, gameplay**. The first three run headlessly; `client_load` is recorded by `verify --client` (a generated screenshot run, NeoForge 1.21.1) and `gameplay` stays `not_run` until someone plays. `verify --check` rehashes the receipt offline. Fabric projects ship Fabric's official game-test wiring and a load test; NeoForge before 1.21.5 (including 1.21.1) gets one with `tests P`; the other targets use `verify --load`.
 
 Project targets are locked (game, loader, Java, Gradle distribution and checksum, wrapper hash, plugin, mappings). Builds refuse drift; `updates P` reports official candidates without changing anything.
 
 ## Commands
 
-`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code. Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
+`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code. Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
 
 ## Scope and limits
 

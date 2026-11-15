@@ -215,7 +215,50 @@ def _summary(project: Path, receipt: dict) -> dict:
         "logs": [step["log"] for step in receipt.get("commands", [])]}
 
 
-def verify_project(project: Path, java_home: Path | None = None, *, starter: bool = False, load: bool = False) -> dict:
+CLIENT_TIMEOUT = 1800  # seconds; the first client run also downloads the game assets
+
+
+def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs: dict) -> list[str]:
+    """Run the devShots client, require its done marker and fresh screenshots, keep copies as evidence."""
+    import shutil
+    import time
+    log = run_dir / "client.log"
+    step = {"tasks": ["runDevShots"], "started_at": _now(), "log": str(log)}
+    receipt["commands"].append(step)
+    _save(project, run_dir, receipt)
+    started = time.time()
+    code = run_gradle(project, ["runDevShots"], home, log_path=log, timeout=CLIENT_TIMEOUT)
+    step.update(exit_code=code, finished_at=_now())
+    text = log.read_text(encoding="utf-8", errors="replace")
+    failed = re.search(r"MCFORGE-DEVSHOTS failed: ([^\r\n]+)", text)
+    done = re.search(r"MCFORGE-DEVSHOTS done (\d+) subject=(\S+)", text)
+    if failed or not done or code != 0:
+        receipt["tiers"]["client_load"] = "failed"
+        reason = failed.group(1) if failed else ("timeout" if code == 124 else f"exit {code}" if code else "no done marker")
+        raise ValueError(f"Client screenshot run failed ({reason}); see {log}")
+    if _inputs(project) != inputs:
+        raise ValueError("Project inputs changed during the client run")
+    count = int(done.group(1))
+    names = re.findall(r"MCFORGE-DEVSHOTS shot (devshots_[a-z0-9_]+\.png)", text)
+    folder = project / "run-devshots" / "screenshots"
+    shots = []
+    for name in names:
+        path = folder / name
+        if not path.is_file() or path.stat().st_mtime < started - 1:
+            raise ValueError(f"Screenshot {name} was not written by this run")
+        copy = run_dir / "devshots" / name
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, copy)
+        shots.append(copy.relative_to(project).as_posix())
+    if count < 1 or len(shots) != count:
+        raise ValueError(f"The client reported {count} screenshots but {len(shots)} were found")
+    receipt["client"] = {"run": "runDevShots", "subject": done.group(2), "screenshots": shots}
+    receipt["tiers"]["client_load"] = "passed"
+    return shots
+
+
+def verify_project(project: Path, java_home: Path | None = None, *, starter: bool = False, load: bool = False,
+                   client: bool = False) -> dict:
     project = Path(os.path.abspath(project))
     guard_output(project)
     if not project.is_dir():
@@ -243,6 +286,8 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
         lock, version = _identity(project)
         if starter and not (lock.get("with_tests") and lock.get("starter", True)):
             raise ValueError("Starter assertions require a project created with --with-tests")
+        if client and not lock.get("devshots"):
+            raise ValueError("verify --client runs the devShots client: scaffold it first with devshots PROJECT")
         home = select_java(java_home, info.get("gradle_java_major") or info["target"]["java_major"])
         receipt.update(inputs=inputs, target=info["target"], java=check_java(home), warnings=info.get("warnings", []))
         tested = bool(lock.get("with_tests") or lock.get("game_tests"))
@@ -291,12 +336,14 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
         if starter:
             from scripts.verify_starter import verify
             receipt["starter"] = verify(project)
+        client_shots = _client_run(project, run_dir, receipt, home, inputs) if client else []
         if _inputs(project) != inputs or _generated(project) != receipt["generated"]:
             raise ValueError("Project inputs/generated data changed while collecting verification evidence")
         outputs = [artifact.relative_to(project).as_posix()]
         if tested:
             outputs.append("build/reports/gametest/results.xml")
         outputs += [Path(step["log"]).relative_to(project).as_posix() for step in receipt["commands"]]
+        outputs += client_shots
         receipt.update(outputs=_hashes(project, outputs), artifact={"path": str(artifact), "sha256": digest(artifact)}, status="passed", finished_at=_now())
         _save(project, run_dir, receipt)
         return _summary(project, receipt)

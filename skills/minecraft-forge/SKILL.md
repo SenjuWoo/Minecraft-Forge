@@ -12,10 +12,10 @@ Bundled targets (official templates pinned by hash, built in CI): neoforge-1.21.
 1. `doctor`; `instances` (each instance's matching `init` options); `plan "<request>"` for the route.
 2. `quickstart PATH --mod-id ID --package PKG --name "Name" --loader L --minecraft V` (add `--no-examples` for a mob-only or from-scratch mod).
 3. `add PATH KIND NAME`: block, item, food, sword, pickaxe, axe, shovel, hoe, toolset, armor, furniture (`--shape chair|table|stool|bench|shelf|cabinet|lamp|pedestal`), mob (`--shape quadruped|biped|blob`, `--hostile`). Writes version-correct assets, data and, on the four kit targets (neoforge-1.21.1, fabric-1.21.1, fabric-1.20.1, forge-1.20.1), compiling Java.
-4. Blockbench: furniture and mobs ship `blockbench/NAME.bbmodel`; after editing, `bbmodel PATH FILE --entity ID` or `--block ID`. `preview PATH FILE` renders without the game; `model-check FILE` lists z-fighting faces.
+4. Blockbench: furniture and mobs ship `blockbench/NAME.bbmodel`; after editing, `bbmodel PATH FILE --entity ID` or `--block ID`. `preview PATH FILE` renders without the game (`.geo.json` posed and lit like the game); `model-check FILE` lists z-fighting faces; `voxel SPEC.json --project PATH` builds GeckoLib voxel models from shapes; `ground` plants animation clips.
 5. Libraries: `libs --loader L --minecraft V`, `libs --add SLUG --project PATH` (exact Modrinth version id, right Gradle configuration per build system); declare it in mod metadata too.
 6. Packs without Java: `pack PATH --kind resource|data|shader`.
-7. `verify PATH` (NeoForge before 1.21.5, including 1.21.1: `tests PATH` first; NeoForge 26.3/Forge: `--load`). Receipt tiers: compile, package, server_load, client_load, gameplay. `verify PATH --check` rehashes offline.
+7. `verify PATH` (NeoForge before 1.21.5, including 1.21.1: `tests PATH` first; NeoForge 26.3/Forge: `--load`). Client proof on NeoForge 1.21.1: `devshots PATH`, then `verify PATH --client`. Sounds: `audio-check PATH`. Receipt tiers: compile, package, server_load, client_load, gameplay. `verify PATH --check` rehashes offline.
 8. On request only: `deploy PATH --instance DIR`, then `--apply` (backs up replaced JARs).
 
 Guides: `guide workflow|neoforge|fabric|forge|content|entities|assets|audio|libraries|launchers|packs|tools|testing` - load one at a time. `capabilities` lists every command and option as JSON.

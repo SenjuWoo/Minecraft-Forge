@@ -46,7 +46,7 @@ class ArenaTests(Temp):
 
 
 class NoExamplesTests(Temp):
-    def test_stripper_leaves_a_compilable_shape_on_every_mdk(self):
+    def test_example_removal_leaves_a_compilable_shape_on_every_mdk(self):
         for name in MDKS:
             with self.subTest(mdk=name), zipfile.ZipFile(ROOT / "vendor" / name) as archive:
                 entry = next(item for item in archive.namelist() if item.endswith("ExampleMod.java"))

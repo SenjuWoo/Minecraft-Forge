@@ -152,11 +152,11 @@ def search_sources(path: Path, query: str) -> int:
     return 0 if matches else 1
 
 
-def preview_file(project: Path, source: Path, output: Path | None, size: int) -> dict:
+def preview_file(project: Path, source: Path, output: Path | None, size: int, *, light: str | None = None,
+                 texture: Path | None = None, animation: Path | None = None, clip: str | None = None, time: float = 0.0) -> dict:
     from . import preview, shapes
     from .pixelart import png_bytes, read_png, scale
     project = project.resolve()
-    lock = json.loads((project / "mcforge-project.json").read_text(encoding="utf-8-sig"))
     output = output or project / "build/mcforge/previews" / (source.stem + ".png")
     guard_output(output)
     if source.suffix == ".png":
@@ -165,6 +165,17 @@ def preview_file(project: Path, source: Path, output: Path | None, size: int) ->
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_bytes(png_bytes(scale(image, factor)))
         return {"preview": str(output), "texture": [len(image[0]) // 4, len(image)], "zoom": factor}
+    if source.name.endswith(".geo.json"):
+        if texture is None:
+            # Convention: assets/<ns>/geo/entity/NAME.geo.json -> assets/<ns>/textures/entity/NAME.png
+            guess = source.parent.parent.parent / "textures" / source.parent.name / (source.name[:-len(".geo.json")] + ".png")
+            if not guess.is_file():
+                raise ValueError("Pass --texture PNG for this geometry (no matching textures/entity PNG found)")
+            texture = guess
+        return preview.preview_geo(source, read_png(texture.read_bytes()), output, size, light=light or "vanilla",
+                                   animation=animation, clip=clip, time=time) | {"texture": str(texture)}
+    if animation is not None:
+        raise ValueError("--animation poses GeckoLib geometry (.geo.json) only")
     if source.suffix == ".bbmodel":
         parsed = shapes.read_bbmodel(json.loads(source.read_text(encoding="utf-8-sig")))
         if not parsed["textures"]:
@@ -177,6 +188,7 @@ def preview_file(project: Path, source: Path, output: Path | None, size: int) ->
             output.write_bytes(png_bytes(image))
             return {"preview": str(output), "format": parsed["format"], "elements": len(model["elements"])}
         return preview.preview_rig(shapes.bbmodel_to_rig(parsed), texture, output, size) | {"format": parsed["format"]}
+    lock = json.loads((project / "mcforge-project.json").read_text(encoding="utf-8-sig"))
     return preview.preview_block_model(project, lock["mod_id"], source, output, size)
 
 
@@ -233,6 +245,7 @@ def parser() -> argparse.ArgumentParser:
     verify_mode.add_argument("--check", action="store_true", help="rehash prior evidence without rebuilding")
     verify_mode.add_argument("--starter", action="store_true", help="also assert the bundled example recipe and test identities")
     verify.add_argument("--load", action="store_true", help="also boot the headless game-test server: proves the mod and its data load")
+    verify.add_argument("--client", action="store_true", help="also run the devShots client (devshots PROJECT) and record its screenshots: client_load")
     instances = commands.add_parser("instances", help="list launcher instances read-only: ATLauncher, Prism/MultiMC, CurseForge, Modrinth, official")
     instances.add_argument("--atlauncher", type=Path, help="ATLauncher folder; lists only that launcher")
     instances.add_argument("--launcher", default="all", choices=("all", "atlauncher", "prism", "curseforge", "modrinth", "vanilla"))
@@ -281,6 +294,12 @@ def parser() -> argparse.ArgumentParser:
     look.add_argument("file", type=Path, help="block model .json, texture .png or .bbmodel")
     look.add_argument("--output", type=Path, help="PNG to write; default PROJECT/build/mcforge/previews/NAME.png")
     look.add_argument("--size", type=int, default=256, choices=(128, 256, 384, 512))
+    look.add_argument("--vanilla-light", action="store_const", const="vanilla", dest="light",
+                      help="shade with the game's entity lighting (default for .geo.json)")
+    look.add_argument("--texture", type=Path, help=".geo.json: texture PNG (default: the matching textures/entity PNG)")
+    look.add_argument("--animation", type=Path, help=".geo.json: animation file to pose from")
+    look.add_argument("--clip", help="animation name (full or last segment, e.g. walk)")
+    look.add_argument("--time", type=float, default=0.0, help="seconds into the clip")
     bench = commands.add_parser("bbmodel", help="import a Blockbench project as a block model or an entity model class")
     bench.add_argument("path", type=Path, help="project directory")
     bench.add_argument("file", type=Path, help=".bbmodel file")
@@ -288,6 +307,28 @@ def parser() -> argparse.ArgumentParser:
     bench_kind.add_argument("--block", metavar="ID")
     bench_kind.add_argument("--entity", metavar="ID")
     bench.add_argument("--force", action="store_true", help="replace a model class that was edited by hand")
+    vox = commands.add_parser("voxel", help="implicit shapes -> voxel GeckoLib geometry, texture and Blockbench project (z-fighting-free blobs)")
+    vox.add_argument("spec", type=Path, help="voxel spec JSON (example: templates/voxel/example.json)")
+    vox_where = vox.add_mutually_exclusive_group(required=True)
+    vox_where.add_argument("--project", type=Path, help="write geo/texture into the project's assets and the .bbmodel into blockbench/")
+    vox_where.add_argument("--out", type=Path, help="write all files into this directory")
+    vox.add_argument("--force", action="store_true", help="replace files this command generated")
+    ground = commands.add_parser("ground", help="key the root bone so the lowest leg point sits at y = 0 in GeckoLib animation clips")
+    ground.add_argument("animation", type=Path, help=".animation.json")
+    ground.add_argument("--geo", type=Path, required=True, help="the model's .geo.json")
+    ground.add_argument("--legs", required=True, help="comma-separated leg bones (their child bones count too)")
+    ground.add_argument("--clips", required=True, help="comma-separated clip names (full or last segment, e.g. walk,run)")
+    ground.add_argument("--root", default="root", help="bone to key (default root)")
+    ground.add_argument("--fps", type=float, help="also sample at this rate (default: the clip's own keyframe times)")
+    ground.add_argument("--output", type=Path, help="new file to write (default NAME.grounded.animation.json beside the input)")
+    ground.add_argument("--force", action="store_true", help="replace an existing output file")
+    shots = commands.add_parser("devshots", help="scaffold a development-only client screenshot run (NeoForge 1.21.1 test mod)")
+    shots.add_argument("path", type=Path)
+    shots.add_argument("--subject", help="entity id to photograph (default: the project's first mob, else minecraft:pig)")
+    shots.add_argument("--force", action="store_true", help="replace an existing DevShots.java")
+    audio = commands.add_parser("audio-check", help="sounds.json vs registered SoundEvents vs OGG files: format, duration, loudness")
+    audio.add_argument("path", type=Path, help="project directory")
+    audio.add_argument("--no-loudness", action="store_true", help="skip FFmpeg loudness measurement")
     check = commands.add_parser("model-check", help="find z-fighting (same-facing coplanar overlapping faces) in a .bbmodel, .geo.json or block model")
     check.add_argument("file", type=Path)
     check.add_argument("--eps", type=float, default=0.01, help="plane tolerance in pixels (default 0.01)")
@@ -370,12 +411,13 @@ def main(argv=None) -> int:
             from .verification import check_receipt, verify_project
             if args.check and args.java_home:
                 raise ValueError("--java-home selects a new run; it cannot be combined with --check")
-            if args.check and args.load:
-                raise ValueError("--load starts a new run; it cannot be combined with --check")
+            if args.check and (args.load or args.client):
+                raise ValueError("--load and --client start a new run; they cannot be combined with --check")
             if args.check:
                 emit(check_receipt(args.path))
             else:
-                emit(verify_project(args.path, args.java_home, starter=args.starter, **({"load": True} if args.load else {})))
+                extra = {key: True for key in ("load", "client") if getattr(args, key)}
+                emit(verify_project(args.path, args.java_home, starter=args.starter, **extra))
         elif args.command == "instances":
             from .launchers import discover
             if args.atlauncher:
@@ -405,10 +447,35 @@ def main(argv=None) -> int:
             emit(add_content(args.path, args.kind, args.name, style=args.style, size=args.size, tier=args.tier,
                              repair=args.repair, shape=args.shape, hostile=args.hostile, force=args.force))
         elif args.command == "preview":
-            emit(preview_file(args.path, args.file, args.output, args.size))
+            emit(preview_file(args.path, args.file, args.output, args.size, light=args.light, texture=args.texture,
+                              animation=args.animation, clip=args.clip, time=args.time))
         elif args.command == "bbmodel":
             from .content import import_bbmodel
             emit(import_bbmodel(args.path, args.file, block=args.block, entity=args.entity, force=args.force))
+        elif args.command == "voxel":
+            from .voxel import write_voxel_model
+            emit(write_voxel_model(args.spec, project=args.project, out=args.out, force=args.force))
+        elif args.command == "ground":
+            from .geckopose import ground_animations
+            output = args.output or args.animation.with_name(args.animation.name.replace(".animation.json", "") + ".grounded.animation.json")
+            guard_output(output)
+            if output.exists() and not args.force:
+                raise ValueError(f"{output} exists; pass --force to replace it")
+            if output.resolve() == args.animation.resolve():
+                raise ValueError("--output must differ from the input animation file")
+            data, report = ground_animations(args.geo, args.animation, [b for b in args.legs.split(",") if b],
+                                             [c for c in args.clips.split(",") if c], root=args.root, fps=args.fps)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8", newline="\n")
+            emit(report | {"output": str(output)})
+        elif args.command == "devshots":
+            from .devshots import add_devshots
+            emit(add_devshots(args.path, args.subject, force=args.force))
+        elif args.command == "audio-check":
+            from .audiocheck import check_audio
+            result = check_audio(args.path, measure=not args.no_loudness)
+            emit(result)
+            return 1 if result["problems"] else 0
         elif args.command == "model-check":
             from .modelcheck import check_model
             result = check_model(args.file, args.eps)

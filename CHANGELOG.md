@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 - 2026-11-14
+
+Lessons from a large animated GeckoLib companion mob (NeoForge 1.21.1, GeckoLib 4.9.3), turned into commands.
+
+- New `voxel SPEC.json`: implicit shapes (ellipsoids, superellipsoids, tapered capsules, boxes, unions, smooth unions, subtractions) become voxel cubes for GeckoLib: a greedy partition per blob (no self z-fighting by construction), a checked sub-pixel offset per blob against earlier blobs, buried faces left out of the per-face UV map (GeckoLib builds no quad for them), a packed texture, a UV test texture, a Blockbench project and a `model-check` report. Example: `templates/voxel/example.json`.
+- `preview` renders GeckoLib `.geo.json` with the game's entity lighting (`--vanilla-light` for other models), poses it from an animation (`--animation FILE --clip NAME --time T`), skips missing faces like GeckoLib, and is much faster on large models.
+- New `ground`: keys the root bone so the lowest leg point sits at y = 0 on every keyframe of the chosen clips. Its pose evaluator (Blockbench space, GeckoLib's Z-Y-X rotation order) reproduced in-game-proven root offsets of a shipped 941-cube model to within 0.001 px.
+- New `audio-check PROJECT`: `sounds.json` events against registered `SoundEvent` ids and OGG files, plus channels, sample rate, duration, streaming and (with FFmpeg) loudness spread.
+- New `devshots PROJECT` and `verify PROJECT --client` (NeoForge 1.21.1 with the test mod): a generated development-only client run creates a flat world, photographs the subject from ten stations and quits; the receipt records the screenshots and `client_load: passed`. First run here: a generated `add mob` creature rendered in a real client.
+- `guide entities`: voxel modelling, preview lighting, grounding, underwater breathing tag and water movement attribute, attack reach, `TamableAnimal` sitting and guard goals, custom-coloured drip particles. `guide testing`: mock players are not in the level, fast-pass guards, `time set` delay, camera distances, richer scene recipes, dev-run log noise. `guide audio`: `audio-check`, shared-GPU generation, deriving variants, loudness matching. `guide workflow`: `python -I` and sibling imports.
+- Public text: the code of conduct is reworded in neutral terms, and the release hygiene gate now rejects a list of blocked words (stored only as hashes) in every tracked file.
+
 ## 1.2.0 - 2026-11-14
 
 Lessons from a finished GeckoLib horse mob (NeoForge 1.21.1, GeckoLib 4.9.3).
@@ -57,7 +69,7 @@ First stable release: one workbench for NeoForge, Fabric and Forge.
 
 ## 0.3.2 WIP — 2026-10-31
 
-- Replace the generic Contributor Covenant with the project's own code of conduct: any content is allowed except backdoors, sexual content involving minors, malware and hidden destructive behavior.
+- Replace the generic Contributor Covenant with the project's own code of conduct: any content is allowed except backdoors, content that exploits minors, malware and hidden destructive behavior.
 
 ## 0.3.1 WIP — 2026-10-31
 

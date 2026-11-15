@@ -23,6 +23,9 @@ PRODUCT_NAMES = (
     "SECURITY.md",
 )
 
+# Templates the commands copy: the devshots driver and the voxel example spec.
+EXTRA_TEMPLATES = ("templates/devshots/DevShots.java", "templates/voxel/example.json")
+
 PRODUCT_GLOBS = {
     "assets": ("*.svg", "*.png"),
     "mcforge": ("*.py", "*.json"),
@@ -39,6 +42,7 @@ def product_files(root: Path) -> list[Path]:
     files = [root / name for name in PRODUCT_NAMES]
     files.extend(root / "templates/testing" / name for name in TESTING_FILES)
     files.append(root / LOAD_TEST)
+    files.extend(root / name for name in EXTRA_TEMPLATES)
     for directory, patterns in PRODUCT_GLOBS.items():
         for pattern in patterns:
             files.extend((root / directory).rglob(pattern))

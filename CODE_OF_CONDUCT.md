@@ -4,14 +4,14 @@ This is a build project, not a content moderation committee. The tools here do n
 
 ## Build whatever
 
-Gore, horror, porn mods, adult content, dark humor, slurs in fiction, weird fetish mechanics, cursed tech, whatever you want. If it is legal where you ship it, it is in scope. A toolkit is a tool, not a babysitter.
+Horror, gore, dark humor, villains with ugly dialogue, strange mechanics, cursed tech, whatever you want. If it is legal where you ship it, it is in scope. A toolkit is a tool, not a babysitter.
 
 ## The only hard lines
 
 These are not negotiable and they are not subject to "it's just a joke" or "it's fictional":
 
 - **Backdoors.** No hidden remote access, undisclosed command channels, or code that lets someone else control a user's game or machine.
-- **Sexual content involving minors.** No characters, no "aged up" workaround, no ambiguous edge case. If it sexualizes a child, it does not ship.
+- **Content that exploits minors.** No characters, no "aged up" workaround, no ambiguous edge case. If it exploits a child, it does not ship.
 - **Malware.** No viruses, worms, ransomware, stealers, droppers, or self-propagating payloads.
 - **Hidden destructive behavior.** No deleting files, wiping saves, corrupting worlds, exfiltrating data, or doing anything destructive the user did not ask for. Destructive features must be explicit, documented, and opt-in.
 - **Disguised payloads.** None of the above hidden inside a mod, dependency, installer, or "performance patch."
@@ -20,7 +20,7 @@ If you have to hide it, it does not belong here.
 
 ## Reporting
 
-Backdoors, malware, hidden destructive behavior, or sexual content involving minors: use the private advisory form at <https://github.com/SenjuWoo/Minecraft-Forge/security/advisories/new>.
+Backdoors, malware, hidden destructive behavior, or content that exploits minors: use the private advisory form at <https://github.com/SenjuWoo/Minecraft-Forge/security/advisories/new>.
 
 Everything else: open an issue.
 

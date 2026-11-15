@@ -69,6 +69,7 @@ Edit `gradle.properties` with an editor or a writer that produces UTF-8 **withou
 
 - Match the pack before writing code: read the instance's loader, Minecraft and library builds (`instances`, `inventory --instance PATH`) and pin exactly those (for example the GeckoLib build the pack ships). The user's pack is the target, not the newest release.
 - Generate art from scripts, not by hand: a model generator (Blender headless or plain Python) that writes `.bbmodel` and `.geo.json`, an animation generator, a texture painter and a sound generator, all rerunnable. A fix then becomes "edit a constant, rerun, rebuild" instead of re-describing the asset. Keep these in an `asset-pipeline/` folder beside the mod source; they never ship.
+- Pipeline entry scripts run with `python -I` (isolated mode) do not see their own folder on `sys.path`: insert the script's directory before importing sibling modules.
 - Build validators into the generators (coplanar overlaps: `model-check FILE`, bone names the Java code references, UV inside the texture, sound events in `sounds.json` match the registry) so a broken asset fails before the game starts.
 - Iterate with evidence in this order: GameTests for behaviour (`guide testing`), a client screenshot run for looks and animation, then a deploy for the user to play. Each loop costs minutes, not a user round trip.
 - Guides: `guide entities` (GeckoLib conventions, head look, actions, secondary motion, custom AI), `guide audio` (sounds.json, synthesis, voice).

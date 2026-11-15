@@ -104,6 +104,36 @@ v += (-k * x - c * v + force) * h;  x += v * h;
 
 **Outline glow (inverted hull).** A second geo with the same bone names and slightly inflated cubes. Each frame copy rotation, position, scale and hidden state from the main bones, then render it with a custom type: `new RenderType(name, DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 1536, false, true, setup, clear) {}` (the constructor is public in 1.21.1), where `setup` calls `RenderType.entityTranslucentEmissive(texture, false).setupRenderState()`, then `RenderSystem.enableCull(); GL11.glCullFace(GL11.GL_FRONT)`, and `clear` restores `GL_BACK`. Keep it subtle: shells about 0.1-0.45 px and alpha at most about 60/255 (0.2-0.7 px at alpha 112 was too strong); use a few boxes that follow round silhouettes, not one bounding box; fade alpha with the light at the entity (`LightTexture.block/sky(packedLight)` times `ClientLevel#getSkyDarken`), because emissive shells glare at night.
 
+## Voxel models from implicit shapes (`voxel`)
+
+For organic parts with many cubes, describe shapes instead of placing boxes: `voxel SPEC.json --project PATH` (or `--out DIR`). Start from `templates/voxel/example.json`.
+
+- Shapes: `ellipsoid`, `superellipsoid` (exponent > 2 gives squarer, chunkier forms), tapered `capsule` (limbs, tails, horns), `box`, `union`, `smooth_union` (k about 0.3-0.8 blends parts softly), `subtract`. Coordinates are Blockbench model pixels, y up, front north (-Z). Each blob belongs to a bone and has a colour.
+- Each blob is voxelized on a grid and greedy-merged into a **partition** of boxes. A partition never has two same-facing coplanar faces that overlap, so a blob cannot z-fight with itself. Each blob then tries sub-pixel grid offsets (multiples of 0.03 px) until none of its visible faces lies on a visible face of an earlier blob. The result includes a `model-check` report; a 941-cube model built this way reported zero visible overlaps without manual nudging.
+- Faces covered by the blob's own voxels are left out of the per-face UV map. GeckoLib 4.9.3 builds no quad for a missing face (`BakedModelFactory.buildQuad` returns null when the face has no UV; `GeoRenderer.renderCube` skips it), so hidden faces cost neither draw time nor atlas space: about a quarter of all faces on a large model.
+- Cell size: 0.6-1.0 px reads as clean Minecraft steps; 0.5 px or finer looks noisy under vanilla face lighting and doubles the cube count. `texels_per_pixel` (default 2) sets texture density; `cell` can differ per blob (eyes, claws).
+- Output: `geo/entity/NAME.geo.json`, `textures/entity/NAME.png` (flat blob colours with light noise, a base to paint over), and `blockbench/NAME.bbmodel` plus `NAME_uvtest.png` (dark-to-bright left to right per face, one hue per direction) for orientation checks.
+- Painting a large atlas: shade every texel from its rest-pose position and the analytic normal of its shape, vectorized per cube face (numpy). A per-texel Python loop is an order of magnitude slower at about 1,000 cubes.
+
+## Previews that match the game
+
+`preview PROJECT FILE.geo.json` renders GeckoLib geometry with the game's entity lighting: per face, `shade = min(1, 0.6 * (max(0, n.L0) + max(0, n.L1)) + 0.4)` with `L0 = normalize(0.2, 1, -0.7)` and `L1 = normalize(-0.2, 1, 0.7)` (`com.mojang.blaze3d.platform.Lighting`). `--animation FILE --clip walk --time 0.4` poses it. Physically based lights in Blender make backs black and voxel steps look like noise, which misleads tuning; in Blender, apply the same formula as an emission multiplier on the cutout texture (a vertex colour per quad) and in-game screenshots match the previews.
+
+## Grounded animations (`ground`)
+
+`ground ANIM.animation.json --geo MODEL.geo.json --legs leg_l,leg_r --clips walk,run,sit,death` keys the root bone's position so the lowest point of the leg geometry (the listed bones and their children) sits at y = 0 on every keyframe time (`--fps N` samples more). Wide stances, squats, kneeling deaths and lunges stay planted without hand-tuned root offsets. It writes a new file (`NAME.grounded.animation.json` by default).
+
+- Ground locomotion and full-body clips. Leave upper-body actions (attacks, reactions) ungrounded and key only upper-body bones in them, so the base controller keeps driving the legs.
+- The evaluator works in Blockbench space, as GeckoLib does after loading: geometry x mirrored back, rotations `[-rx, -ry, rz]` added to rest, positions `[-px, py, pz]`, bone transform `T(position) * T(pivot) * Rz * Ry * Rx * S * T(-pivot)` (GeckoLib's `RenderUtil` rotates Z, then Y, then X). On a shipped 941-cube model it reproduced in-game-proven root offsets to within 0.001 px. Molang expressions cannot be evaluated offline and are refused.
+
+## Water, reach, taming and particles (NeoForge 1.21.1)
+
+- Breathing underwater is an entity type tag: `LivingEntity.canBreatheUnderwater()` is final and reads `#minecraft:can_breathe_under_water`; add your type to `data/minecraft/tags/entity_type/can_breathe_under_water.json`. Full speed in water is the `WATER_MOVEMENT_EFFICIENCY` attribute (1.0).
+- Longer melee reach without a bigger hitbox: override `Mob.getAttackBoundingBox()`.
+- `TamableAnimal` sitting: the vanilla owner target goals refuse while the animal is ordered to sit (`OwnerHurtByTargetGoal` checks `isOrderedToSit()`), and `FollowOwnerGoal` stops. A "guard this spot" behaviour needs its own target goal that runs while sitting, plus a goal that manages the sitting pose and walks back to the post.
+- Vanilla drip particles are tinted in code: `DripParticle` colours water (0.2, 0.3, 1.0), so `dripping_water` always reads as blue. For another liquid, register a `SimpleParticleType`, add `assets/<mod>/particles/<name>.json` listing `minecraft:drip_hang`, `minecraft:drip_fall` and `minecraft:drip_land`, and a sprite-set provider (`RegisterParticleProvidersEvent.registerSpriteSet`) whose particle picks `sprites.get(phase, 2)` and sets its own colour, alpha and `ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT`.
+- Particle spawn points on an animated mob should follow the pose: precompute per-pose positions from the rig with the same evaluator the animations use (the toolkit's `mcforge.geckopose` module).
+
 ## Custom AI that fits vanilla
 
 - A support/healer mob: one goal that picks the most-wounded ally in range, walks to cast range, faces it, plays the cast, applies the effect at the contact tick, then cools down. A melee goal that only runs when the healer has a target and switches weapon first (draw animation, then attack).
@@ -114,6 +144,6 @@ v += (-k * x - c * v + force) * h;  x += v * h;
 
 ## Proving it
 
-Before the client: `model-check` for z-fighting, and an offline pose evaluator plus a headless Blender render (alpha-clipped, nearest-neighbour filtering) catch most look and animation problems in seconds. The client run stays the proof.
+Before the client: `model-check` for z-fighting, `preview FILE.geo.json --animation ... --clip ... --time ...` for poses under game lighting, and optionally a headless Blender render (alpha-clipped, nearest-neighbour filtering). They catch most look and animation problems in seconds. The client run stays the proof: `devshots PROJECT` then `verify PROJECT --client`.
 
 Server-side behaviour: GameTests (`guide testing`: arena template and its stand height, far-from-origin pitfalls, husks, breeding and spawn-settings tests). Looks and animation: a client screenshot automation run (`guide testing`, "Client screenshot automation") with a turntable, a UV test, and burst frames of each action. Both are cheaper than asking the user to look.

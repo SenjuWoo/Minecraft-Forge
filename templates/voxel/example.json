@@ -1,0 +1,34 @@
+{
+  "name": "bog_toad",
+  "cell": 0.8,
+  "texels_per_pixel": 2,
+  "bones": [
+    {"name": "root", "pivot": [0, 0, 0]},
+    {"name": "body", "parent": "root", "pivot": [0, 5, 0]},
+    {"name": "head", "parent": "body", "pivot": [0, 8, -5]},
+    {"name": "leg_fl", "parent": "root", "pivot": [4, 4, -4]},
+    {"name": "leg_fr", "parent": "root", "pivot": [-4, 4, -4]},
+    {"name": "leg_bl", "parent": "root", "pivot": [5, 4, 4]},
+    {"name": "leg_br", "parent": "root", "pivot": [-5, 4, 4]}
+  ],
+  "blobs": [
+    {"name": "belly", "bone": "body", "color": "#6f8f3a",
+     "shape": {"smooth_union": {"k": 0.4, "of": [
+       {"ellipsoid": {"center": [0, 6, 1], "radii": [6, 4, 6.5]}},
+       {"ellipsoid": {"center": [0, 5, 4], "radii": [5, 3.5, 4]}}]}}},
+    {"name": "head", "bone": "head", "color": "#7a9a42",
+     "shape": {"superellipsoid": {"center": [0, 9, -6], "radii": [4.5, 3, 3.5], "exponent": 2.6}}},
+    {"name": "eye_l", "bone": "head", "color": "#e8d36a", "cell": 0.6,
+     "shape": {"ellipsoid": {"center": [2.6, 11.4, -6.5], "radii": [1.4, 1.4, 1.4]}}},
+    {"name": "eye_r", "bone": "head", "color": "#e8d36a", "cell": 0.6,
+     "shape": {"ellipsoid": {"center": [-2.6, 11.4, -6.5], "radii": [1.4, 1.4, 1.4]}}},
+    {"name": "leg_fl", "bone": "leg_fl", "color": "#5d7a30",
+     "shape": {"capsule": {"a": [4, 4, -4], "b": [5, 0.8, -5], "ra": 1.6, "rb": 1.2}}},
+    {"name": "leg_fr", "bone": "leg_fr", "color": "#5d7a30",
+     "shape": {"capsule": {"a": [-4, 4, -4], "b": [-5, 0.8, -5], "ra": 1.6, "rb": 1.2}}},
+    {"name": "leg_bl", "bone": "leg_bl", "color": "#5d7a30",
+     "shape": {"capsule": {"a": [5, 4, 4], "b": [6.5, 0.9, 6], "ra": 2.2, "rb": 1.4}}},
+    {"name": "leg_br", "bone": "leg_br", "color": "#5d7a30",
+     "shape": {"capsule": {"a": [-5, 4, 4], "b": [-6.5, 0.9, 6], "ra": 2.2, "rb": 1.4}}}
+  ]
+}

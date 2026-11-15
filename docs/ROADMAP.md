@@ -21,11 +21,15 @@
 
 - `ArenaTests` with the arena's correct stand height and a regression test; `--no-examples` for projects that start from scratch; `model-check` for z-fighting; `run-*` game directories excluded from receipts; PowerShell 5.1 launcher and BOM fixes; client-run and GeckoLib lessons in `guide testing` and `guide entities`.
 
+## Added in 1.3.0
+
+- `voxel` (implicit shapes to z-fighting-free GeckoLib voxel models), `ground` (planted animations), `preview` for `.geo.json` with game lighting and poses, `audio-check`, and a generated client screenshot run recorded by `verify --client`.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).
 - Natural mob spawning, sounds and loot presets; ranged weapons; block entities with GUIs.
-- A generated client screenshot run and `verify --client` that records its screenshots and log hashes, so `client_load` can be recorded automatically (`guide testing` documents the driver).
+- `devshots` for Fabric and Forge targets, and a headless client run for CI.
 - More furniture shapes and mob archetypes; animated textures.
 
 Roadmap items have no promised dates. The project does not claim universal modpack compatibility or automatic crash repair.
