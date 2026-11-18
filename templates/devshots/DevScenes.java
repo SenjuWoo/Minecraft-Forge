@@ -33,6 +33,7 @@ final class DevScenes {
                 .waitTicks(50);
 
         if (DevShots.wanted("turntable")) {
+            s.tag("turntable");
             String[] names = {"front", "front_left", "left", "back_left", "back", "back_right", "right", "front_right"};
             for (int i = 0; i < names.length; i++) {
                 s.shotFramed("turntable_" + names[i], i * 45f, i % 2 == 0 ? 10f : 15f, 1.0);
@@ -44,7 +45,7 @@ final class DevScenes {
             // Orientation proof, once per model: the kit's model swaps in <name>_uvtest.png while mcforge.uvtest is
             // set (a hue per face direction, dark to bright along u, a white band where v starts). Seen from outside,
             // every side face must read dark-left to bright-right with the band on top; guide entities has the rest.
-            s.then(4, mc -> System.setProperty("mcforge.uvtest", "true"));
+            s.tag("uv").then(4, mc -> System.setProperty("mcforge.uvtest", "true"));
             s.shotFramed("uv_front", 0f, 8f, 0.8).shotFramed("uv_left", 90f, 8f, 0.8)
                     .shotFramed("uv_back", 180f, 8f, 0.8).shotFramed("uv_right", 270f, 8f, 0.8);
             // Top and bottom faces: lift the subject and look from straight above and below (both from behind it).
@@ -57,11 +58,12 @@ final class DevScenes {
         }
         if (DevShots.wanted("night")) {
             // Emissive layers, glow masks and translucent parts read differently at night.
-            s.cmd("time set 18000").waitTicks(40);
+            s.tag("night").cmd("time set 18000").waitTicks(40);
             s.shotFramed("night_front", 20f, 10f, 1.0);
             s.shotFramed("night_back", 200f, 10f, 1.0);
             s.cmd("time set 6000").waitTicks(40);
         }
+        s.tag("none");
         return s.steps;
     }
 }

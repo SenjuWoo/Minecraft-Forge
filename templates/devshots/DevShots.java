@@ -347,6 +347,14 @@ public final class DevShots {
             return then(1, mc -> DevShots.cmd(mc, command));
         }
 
+        /**
+         * Label the trace lines that follow ({@code MCFORGE-TRACE ... id=<name>}) so devlog rules and spring tuning
+         * can pick one scene; "none" ends the label.
+         */
+        Script tag(String name) {
+            return then(1, mc -> System.setProperty("mcforge.trace.tag", name));
+        }
+
         Script waitTicks(int ticks) {
             return then(ticks, mc -> {});
         }

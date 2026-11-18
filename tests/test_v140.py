@@ -135,8 +135,22 @@ class DevShotsV2(Temp):
         build = (project / "build.gradle").read_text(encoding="utf-8")
         self.assertIn("'mcforge.trace', 'true'", build)
         engine = Path(first["driver"]).read_text(encoding="utf-8")
-        for needle in ("DevScenes.build()", "scenes.txt", "MCFORGE-TRACE", "static void onServer", "Script burst("):
+        for needle in ("DevScenes.build()", "scenes.txt", "MCFORGE-TRACE", "static void onServer", "Script burst(",
+                       'Script tag(String name)', '"mcforge.trace.tag"'):
             self.assertIn(needle, engine)
+        self.assertIn('s.tag("turntable")', scenes.read_text(encoding="utf-8"))
+
+    def test_springs_ignore_a_lerped_teleport_and_read_the_scene_tag(self):
+        # A scene that teleports the subject a few blocks reaches the client as three ticks of fast travel, under
+        # the speed threshold: a client run traced spring output at 27 times its clamp until the velocity step
+        # was treated as a jump. The scene tag travels through a system property the script sets.
+        root = Path(__file__).resolve().parents[1] / "templates"
+        springs = (root / "kit/common/SpringBones.java").read_text(encoding="utf-8")
+        self.assertIn("private static final double JUMP = 30.0;", springs)
+        self.assertIn("if (jumped || ", springs)
+        self.assertIn("DevTrace.tag()", springs)
+        trace = (root / "kit/common/DevTrace.java").read_text(encoding="utf-8")
+        self.assertIn('TAG_PROPERTY = "mcforge.trace.tag"', trace)
 
     def test_scene_filter_file(self):
         project = self.project()

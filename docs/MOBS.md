@@ -43,6 +43,8 @@ Risk first, art last. Each line is a stage with its own proof.
 - Proportion is decided in the blockout. Measure it from the rig (head height against total height, limb lengths) and gate it, instead of judging a painted model.
 - Overlap parts at joints so bends do not open gaps; give swap variants their own bones and a small stagger; keep a cuff, strap or sole on its own cube so it never fights the limb it sits on.
 - Soft layers (clothing, shells, fluid, glass) are separate geometries that share the main bone names (`Part(geo="shell")`), drawn by a layer that copies bone state (`kit PROJECT layer`). Build a shell as the same shapes inflated by 0.35-0.9 px; omit shell faces buried in the body or in another shell. Draw translucent shells with back-face culling so overlapping shells do not double up.
+- Faces are flat plates at a higher texel density (6-8 per pixel) just proud of the voxel surface: at body density the eyes come out a few texels wide and unreadable, and a flat plate does not fight the voxel steps. Expressions are swap variants of those plates plus a procedural blink.
+- Light that defines the character (an underglow, a rim) is baked into the glow mask and scaled by a synced value; world light cannot guarantee it. labPBR `_n` and `_s` maps cost nothing without shaders and make wet and metal surfaces read with them.
 - A feature that is two texels wide is a painted detail, not geometry: a one-texel highlight over a one-texel shadow reads as a ridge and costs no cubes.
 
 ## Texture
@@ -66,7 +68,7 @@ Risk first, art last. Each line is a stage with its own proof.
 
 ## Secondary motion
 
-`kit PROJECT springs` is the solver; `mob/rig.py` SPRINGS is the data. Read the class comment for the rules. In short: sprung parts hang from `_phys` bones no clip keys; the drive is measured acceleration (animated parent motion per frame, entity translation per tick, turning), integrated in 4 ms steps with the filter inside the steps; long frames and teleports restart the estimators; outputs are soft-clamped; gains come from a traced, scripted client scene so ordinary motion peaks at 65-85 % of each clamp.
+`kit PROJECT springs` is the solver; `mob/rig.py` SPRINGS is the data. Read the class comment for the rules. In short: sprung parts hang from `_phys` bones no clip keys; the drive is measured acceleration (animated parent motion per frame, entity translation per tick, turning), integrated in 4 ms steps with the filter inside the steps; long frames and teleports restart the estimators; outputs are soft-clamped; gains come from a traced, scripted client scene so ordinary motion peaks at 65-85 % of each clamp. A scene labels its trace lines with `s.tag("name")`; the client shows a short teleport as three ticks of fast travel, so the solver treats a large velocity step as a jump (a scene that teleports the subject once traced 27 times the clamp before it did).
 
 Chains that must reach somewhere (hoses, ropes, tethers) are a different tool: a verlet chain pinned at one or both ends, simulated in world space on the client, written to sibling segment bones with `BoneMath.writeSegment`. Lessons: a driven chain never carries slack (derive segment length from the arc you want), sub-step with the anchor travel (at most 0.5 px per step) so a snapping hand cannot stretch it, re-seed on a stall frame as on a teleport, trace stretch and gate it (0.9-1.15), and keep an analytic catenary as the fallback.
 
@@ -101,4 +103,6 @@ Performance budget that held: about 1 ms of CPU per instance, and eight instance
 - A plan is a task table (`| ID | Task | Status | Depends on | Verify | Evidence |`) where every row has a command or file that proves it. `build_assets.py plan status` updates a row; `plan reprove` reruns every proof at the release commit.
 - Keep the plan and state ledgers out of the commits whose hashes they record.
 - Evidence tiers are separate claims: compile, package, server load, client load, gameplay. Report the ones that ran.
+- GUI: check every screen at GUI scale 2 and 3 in screenshots; long text belongs in a side panel, not inside a 176 px frame.
+- Dependencies: every extra library is failure surface in a large pack. First-person seat staging replaced a player-animation library; one data component plus an attribute-modifier event replaced rewriting items.
 - A client screenshot run proves rendering, not feel. Say what nobody has checked: sound by ear, the real pack, shaders, multiplayer.

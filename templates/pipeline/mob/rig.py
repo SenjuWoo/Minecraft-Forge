@@ -43,8 +43,8 @@ LEGS = ["thigh_l", "thigh_r"]
 # (left-side value, mirrored for _r), default gain. Paired parts get slightly different k so they never move in
 # lockstep. Tune gains from the client trace (build_assets.py springs), not here: spring_gains.json overrides.
 SPRINGS = [
-    ("ear_l_phys", 190.0, 12.0, (16, 0.0, 0.0), (0.0, 3.0, 0.0), 4.0),
-    ("ear_r_phys", 180.0, 12.0, (16, 0.0, 0.0), (0.0, 3.0, 0.0), 4.0),
+    ("ear_l_phys", 190.0, 12.0, (16, 0.0, 0.0), (0.0, 3.0, 0.0), 3.0),
+    ("ear_r_phys", 180.0, 12.0, (16, 0.0, 0.0), (0.0, 3.0, 0.0), 3.0),
     ("tail_phys", 110.0, 8.0, (22, 0.0, 0.06), (0.0, -1.0, 3.5), 3.0),
     ("tail_tip_phys", 90.0, 6.5, (26, 0.0, 0.0), (0.0, -0.5, 3.0), 3.0),
 ]

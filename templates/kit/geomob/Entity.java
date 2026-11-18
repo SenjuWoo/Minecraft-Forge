@@ -57,6 +57,10 @@ public class @PASCAL@Entity extends PathfinderMob implements GeoEntity {
                 .add(Attributes.ATTACK_DAMAGE, 3.0).add(Attributes.FOLLOW_RANGE, 24.0);
     }
 
+    /**
+     * Called from Mob's constructor, before this class's own fields are assigned: use nothing but {@code this} here.
+     * Goals that need a field of this mob are added after {@code super(...)} in the constructor instead.
+     */
     @Override
     protected void registerGoals() {
         goalSelector.addGoal(0, new FloatGoal(this));

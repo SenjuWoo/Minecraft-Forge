@@ -62,6 +62,10 @@ Synthesis in Python (numpy/scipy) gives original, licence-clean effects that fit
 - Generating many takes locally: check that no other job holds the GPU first (`nvidia-smi`). A text-to-sound job slowed from about 17 s to 5 minutes per take while another session's job shared the GPU.
 - Voice consistency: derive variants (hurt, panic, death) from a few base takes by pitch and time processing instead of generating each separately.
 - Loudness-match the set by RMS with a limiter; `audio-check` warns when mean loudness spans more than 9 dB. Loudness normalisation (`loudnorm`) needs about three seconds of signal: on sub-second effects it gave a 24 dB spread and overshot voice by 4 LU. Trim padding silence, cap each take at its event's length, apply one static gain per file from measured RMS, then limit peaks (about -1.5 dBTP).
+- High-pass effects at about 35 Hz before levelling: generated takes can carry sub-20 Hz rumble that eats the level (one read -19 LUFS but -5 dB RMS). Loudness meters cannot measure files under about 0.4 s; pad to 0.5 s for the measurement only.
+- A dialogue model conditioned on a reference voice does not hold its pitch for non-verbal sounds (takes landed 200-350 Hz against a 168 Hz voice): shift each take to a per-kind target with a formant-preserving pitch shifter instead of regenerating until one matches.
+- Music generators return less than asked: a 10 s request gave 6-7 s. Request about twice the length, trim, and write the real length into the jukebox data.
+- Keep one source for events, subtitles and generated ids. An exporter that writes its own `sounds.json` beside yours gives two sources that drift.
 - Targets measured from vanilla 1.21.1 sounds: voice about -24 dB mean, foley -26, soft ambience -27, hits -20.
 - Cut reaction sounds to their animation (a hurt grunt under a second); a sound longer than its clip trails into the next action.
 - Pick takes by measurement: score real voicing (a dialogue model sometimes renders a whistle or drone instead of a voice and its own ranking does not notice), pitch against the reference and a speech-to-text match of the words; non-verbal takes fail the word check by design.

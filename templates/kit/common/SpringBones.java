@@ -27,7 +27,8 @@ import software.bernie.geckolib.cache.object.GeoBone;
  * <ul>
  * <li>Integrate in fixed 4 ms steps; filter inside those steps, not once per frame, or peaks depend on the frame rate.
  * <li>Restart the acceleration estimators after a long frame (screenshot, chunk load, GC) and after a teleport; keep
- *     integrating the springs. A jump in position is not motion.
+ *     integrating the springs. A jump in position is not motion, and the client shows a short teleport as three
+ *     ticks of fast travel: detect it by the velocity step, not by the speed.
  * <li>Write bones absolutely from their rest snapshot. Adding to the current value accumulates frame after frame.
  * <li>Give paired parts slightly different stiffness so they never move in lockstep.
  * <li>Tune gains from the trace ({@link #trace}), not from screenshots: ordinary motion should peak at 65-85 % of
@@ -45,6 +46,11 @@ public final class SpringBones {
     private static final double CLIP_TAU = 0.03, ENTITY_TAU = 0.15, YAW_TAU = 0.25;
     /** Faster than this (blocks per second) is a teleport, not motion. */
     private static final double TELEPORT = 80.0;
+    /**
+     * A velocity change larger than this in one tick (blocks per second) is a jump, not motion: the client spreads a
+     * teleport of a few blocks over three ticks, which stays under TELEPORT but starts and stops instantly.
+     */
+    private static final double JUMP = 30.0;
     /** Largest acceleration fed to a spring (px/s^2): knockback and explosions saturate instead of exploding. */
     private static final float MAX_ACCEL = 900f;
     /** Largest turn rate fed to the springs (rad/s). */
@@ -239,20 +245,21 @@ public final class SpringBones {
         state.lastTick = entity.tickCount;
         double toPx = 16.0 / Math.max(renderScale, 1e-3f);
         double mx = (entity.getX() - entity.xo) * 20.0, my = (entity.getY() - entity.yo) * 20.0, mz = (entity.getZ() - entity.zo) * 20.0;
-        if (Math.abs(mx) + Math.abs(my) + Math.abs(mz) > TELEPORT) {
-            state.hasVelocity = false;
+        // landing: the fall stops abruptly (the synced onGround flag arrives a few ticks late)
+        if (state.hasVelocity && state.vy < -4.0 && my > state.vy * 0.3) {
+            float hard = (float) Math.min(1.6, Math.max(0.3, -state.vy / 8.0));
+            kick(state, "", 0f, -28f * hard, 0f);
+            state.quietUntil = Math.max(state.quietUntil, state.clock + LAND_WINDOW);
+        }
+        boolean jumped = state.hasVelocity
+                && Math.abs(mx - state.vx) + Math.abs(my - state.vy) + Math.abs(mz - state.vz) > JUMP;
+        if (jumped || Math.abs(mx) + Math.abs(my) + Math.abs(mz) > TELEPORT) {
             state.ax = state.ay = state.az = 0;
         } else if (state.hasVelocity) {
             double blend = 0.05 / ENTITY_TAU;
             state.ax += ((mx - state.vx) * 20.0 * toPx - state.ax) * blend;
             state.ay += ((my - state.vy) * 20.0 * toPx - state.ay) * blend;
             state.az += ((mz - state.vz) * 20.0 * toPx - state.az) * blend;
-            // landing: the fall stops abruptly (the synced onGround flag arrives a few ticks late)
-            if (state.vy < -4.0 && my > state.vy * 0.3) {
-                float hard = (float) Math.min(1.6, Math.max(0.3, -state.vy / 8.0));
-                kick(state, "", 0f, -28f * hard, 0f);
-                state.quietUntil = Math.max(state.quietUntil, state.clock + LAND_WINDOW);
-            }
         }
         state.vx = mx;
         state.vy = my;
@@ -339,13 +346,14 @@ public final class SpringBones {
     }
 
     /**
-     * Once a second: {@code MCFORGE-TRACE spring id=<DevTrace.tag> name=<bone> peak=<p90> max=<max> clamp=1.000}.
+     * Once a second: {@code MCFORGE-TRACE spring id=<DevTrace.tag()> name=<bone> peak=<p90> max=<max> clamp=1.000}.
      * The gate statistic is the 90th percentile of the per-second maxima, so one stray frame cannot decide it; peaks
      * reset when the tag changes (a new scene). Gate it with devlog: 0.65 <= peak <= 0.85 per spring.
      */
     private static void trace(State state) {
-        if (!DevTrace.tag.equals(state.traceTag)) {
-            state.traceTag = DevTrace.tag;
+        String tag = DevTrace.tag();
+        if (!tag.equals(state.traceTag)) {
+            state.traceTag = tag;
             for (Spring s : state.springs) {
                 s.peak = 0f;
                 s.window = 0f;

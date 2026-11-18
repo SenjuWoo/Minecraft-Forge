@@ -13,10 +13,15 @@ import org.slf4j.Logger;
 public final class DevTrace {
     public static final boolean ENABLED = Boolean.getBoolean("mcforge.trace");
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** Label of the scene or phase being measured; DevScenes sets it so traces can be filtered per scene. */
-    public static volatile String tag = "none";
+    /** System property holding the label of the scene being measured; the devShots script sets it ({@code s.tag}). */
+    public static final String TAG_PROPERTY = "mcforge.trace.tag";
 
     private DevTrace() {}
+
+    /** Label of the scene or phase being measured ("none" outside a tagged scene): traces are filtered by it. */
+    public static String tag() {
+        return ENABLED ? System.getProperty(TAG_PROPERTY, "none") : "none";
+    }
 
     public static void log(String kind, String fields) {
         if (ENABLED) {

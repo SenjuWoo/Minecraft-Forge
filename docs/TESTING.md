@@ -82,6 +82,11 @@ Bare NeoForge 1.21.1 `init` keeps the stock MDK, which contains **zero GameTests
 - **A movement test that passes in 2 ticks is probably not testing movement.** Assert the start condition (distance) and a minimum elapsed tick count, then `succeedWhen` the end condition.
 - Natural spawns without a world: after an `add_spawns` biome modifier, assert `biome.getMobSettings().getMobs(MobCategory.CREATURE).unwrap()` contains your type with the expected weight and group sizes (the modified settings are visible there), plus one biome that must not have it.
 
+- An attack test that cannot pass early: assert the starting distance, a minimum number of elapsed ticks, the health drop and the displacement, against a NoAI husk at a known range. Add the negative next to it (a villager, a golem, a second mob of the kind and a tamed wolf inside the area stay unharmed).
+- Comparing a server event with what the client drew: compare against the frame at the server's tick, not the newest frame. A spawn packet lands a tick after the shot while the arm is still moving, which read as a random 0.15-0.3 block error until the trace used the pose at fire time (then 0.004-0.013).
+- Receipts follow the inputs: regenerate assets before `verify`, never between `verify` and `verify --check`, and never let a background generator write into the mod while `verify` runs.
+- A screenshot nobody opened proves nothing. Looks are verified by opening the PNGs, comparing them with the brief's checklist and writing down what was seen.
+
 ## Client screenshot automation
 
 `client_load` and looks are only proven in a client. A development-only client run can stage scenes, save screenshots and quit with nobody at the keyboard, which is far cheaper than asking the user to look. Put it in the `gameTest` source set so it never reaches the JAR.
