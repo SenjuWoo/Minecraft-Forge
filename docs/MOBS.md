@@ -2,7 +2,7 @@
 
 The path seven finished mob projects converged on, with the commands that now carry the parts each of them built by hand. Use it for a character mob with a custom model, keyframed animation, secondary motion, sounds and real behaviour. For a simple vanilla-rig mob, `add PROJECT mob NAME` is enough.
 
-Related guides: `entities` (conventions and rendering), `api` (verified signatures), `testing` (GameTests, client run), `audio`.
+Related guides: `entities` (conventions and rendering), `api` (verified signatures), `worldgen` (homes, structures, natural spawns), `testing` (GameTests, client run), `audio`.
 
 ## The path
 
@@ -76,7 +76,7 @@ Chains that must reach somewhere (hoses, ropes, tethers) are a different tool: a
 - Start from the vanilla base that gives the most for free (`TamableAnimal` for owner, sit and follow; `NeutralMob` for anger; `AbstractHorse` for riding) and note what its side effects cost (`guide api`, `guide entities`).
 - Goals that script an action take the movement flags and hold the mob still; random idle actions run only when nothing else does.
 - Per-instance client state (springs, chain nodes, blink timers) lives in a client-only field of the entity typed `Object`, never in a static.
-- Natural spawns, loot and structures are data (biome modifiers, tags, loot tables, structure sets) so a pack can retune them.
+- Natural spawns, loot and structures are data (biome modifiers, tags, loot tables, structure sets) so a pack can retune them. A mob that belongs to a place gets a home block inside a structure (`kit PROJECT home`, `build_assets.py world`, `guide worldgen`), never an entity stored in the template.
 - Config values read in GameTests need safe getters (defaults before the config loads).
 - One-of-a-kind companions: `updateInterval(1)` on the entity type makes client-side motion reading smooth.
 
@@ -90,6 +90,7 @@ Chains that must reach somewhere (hoses, ropes, tethers) are a different tool: a
 | Animation reads | `anim sheet`, then client burst frames per action |
 | Behaviour | GameTests, one per rule; negative tests for the things that must not happen |
 | Numbers | `devlog` rules over `MCFORGE-TRACE` lines: spring peaks, chain stretch, spawn offsets, frame rate with one and with eight instances |
+| It exists in the world | `kit home` GameTests (the home forms one resident), then `verify --client --world normal` with a `locate` scene: structures only generate in a world created with them on |
 | Nothing is missing | `devlog` built-ins: script finished, no exception naming the mod, no unknown sound, no missing model or texture |
 | Sounds | `audio-check`; say "not listened to" until someone has |
 

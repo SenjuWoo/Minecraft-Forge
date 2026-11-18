@@ -30,7 +30,7 @@ from .workbench import ROOT, check_java, default_launcher, guard_output, init_pr
 GUIDES = {"workflow": "WORKFLOW.md", "neoforge": "NEOFORGE.md", "fabric": "FABRIC.md", "forge": "FORGE.md", "content": "CONTENT.md",
           "assets": "ASSETS.md", "libraries": "LIBRARIES.md", "launchers": "LAUNCHERS.md", "packs": "PACKS.md",
           "tools": "TOOLS.md", "testing": "TESTING.md", "entities": "ENTITIES.md", "audio": "AUDIO.md", "api": "API.md",
-          "mobs": "MOBS.md"}
+          "mobs": "MOBS.md", "worldgen": "WORLDGEN.md"}
 LOCAL_GUIDE = __import__("re").compile(r"[a-z0-9][a-z0-9_-]{0,40}")
 
 
@@ -294,6 +294,8 @@ def parser() -> argparse.ArgumentParser:
     verify.add_argument("--load", action="store_true", help="also boot the headless game-test server: proves the mod and its data load")
     verify.add_argument("--client", action="store_true", help="also run the devShots client (devshots PROJECT) and record its screenshots: client_load")
     verify.add_argument("--scenes", help="with --client: run only these DevScenes scenes (comma-separated), e.g. turntable,night")
+    verify.add_argument("--world", choices=("flat", "normal"), help="with --client: flat test world (default, structures off) or "
+                        "normal terrain with structure generation on (proves worldgen: structures, locate)")
     instances = commands.add_parser("instances", help="list launcher instances read-only: ATLauncher, Prism/MultiMC, CurseForge, Modrinth, official")
     instances.add_argument("--atlauncher", type=Path, help="ATLauncher folder; lists only that launcher")
     instances.add_argument("--launcher", default="all", choices=("all", "atlauncher", "prism", "curseforge", "modrinth", "vanilla"))
@@ -379,10 +381,10 @@ def parser() -> argparse.ArgumentParser:
     devlog.add_argument("--log", type=Path, help="log file (default: run-devshots/logs/latest.log or the newest receipt's client.log)")
     devlog.add_argument("--rules", type=Path, help="rules JSON (default: PROJECT/devlog-rules.json when present)")
     devlog.add_argument("--gate", help="run only this gate of the rules (default: all)")
-    kit = commands.add_parser("kit", help="copy a Java kit for GeckoLib mobs: bonemath, trace, springs, layer, geomob")
+    kit = commands.add_parser("kit", help="copy a Java kit for GeckoLib mobs: bonemath, trace, springs, layer, geomob, home")
     kit.add_argument("path", type=Path, help="project directory")
-    kit.add_argument("kit", choices=("bonemath", "trace", "springs", "layer", "geomob"))
-    kit.add_argument("--mob", help="geomob: the mob's id, e.g. cave_stalker")
+    kit.add_argument("kit", choices=("bonemath", "trace", "springs", "layer", "geomob", "home"))
+    kit.add_argument("--mob", help="geomob, home: the mob's id, e.g. cave_stalker")
     kit.add_argument("--hitbox", help="geomob: WIDTHxHEIGHT in blocks (default 0.7x1.9)")
     kit.add_argument("--force", action="store_true", help="replace kit classes that already exist (generated gen/ placeholders are kept)")
     pipe = commands.add_parser("pipeline", help="scaffold a code-driven asset pipeline (model, texture, animation, sounds) for a GeckoLib mob")
@@ -485,8 +487,12 @@ def main(argv=None) -> int:
                 extra = {key: True for key in ("load", "client") if getattr(args, key)}
                 if args.scenes and not args.client:
                     raise ValueError("--scenes filters the client run; use it with --client")
+                if args.world and not args.client:
+                    raise ValueError("--world chooses the client run's world; use it with --client")
                 if args.scenes:
                     extra["scenes"] = args.scenes
+                if args.world:
+                    extra["world"] = args.world
                 emit(verify_project(args.path, args.java_home, starter=args.starter, **extra))
         elif args.command == "instances":
             from .launchers import discover

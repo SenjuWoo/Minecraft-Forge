@@ -2,7 +2,7 @@
 
 Usage: python -I asset-pipeline/build_assets.py <command> [--validate] [args]
 
-Commands: check rig model texture anim sheets sounds springs release plan all
+Commands: check rig model texture anim sheets sprites sounds world springs release plan all
 
 Every generated file under the mod's resources and gen/ package comes from here: a fix is "change the
 generator, rerun, rebuild", never a hand edit of the output. The script provisions its own virtual

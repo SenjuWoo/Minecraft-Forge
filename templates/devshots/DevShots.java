@@ -7,15 +7,23 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.GameRules;
@@ -24,6 +32,7 @@ import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -42,6 +51,12 @@ import org.slf4j.Logger;
  * which the toolkit never overwrites. Limit a run to named scenes with {@code verify PROJECT --client --scenes a,b}
  * (it writes run-devshots/scenes.txt) or -Dmcforge.devshots.scenes=a,b.
  *
+ * <p>The world: flat, creative, structures off by default (fast, and nothing wanders into the shots). Real worldgen
+ * needs {@code verify PROJECT --client --world normal} (it writes run-devshots/world.txt; -Dmcforge.devshots.world
+ * does the same): a normal-terrain world with structure generation ON. With structures off, a structure's
+ * placement check still passes but no start is ever generated, and a locate search runs for minutes and finds
+ * nothing. In a normal world the flat-world coordinates of the starter scenes do not apply: see NORMAL_WORLD.
+ *
  * <p>Do not click or focus the game window during a run: the client then stops following the camera teleports and
  * every later frame is the same picture (the receipt warns about identical consecutive frames).
  */
@@ -51,6 +66,11 @@ public final class DevShots {
     private static final boolean ENABLED = Boolean.getBoolean("mcforge.devshots");
     static final String SUBJECT = System.getProperty("mcforge.devshots.subject", "minecraft:pig");
     private static final int TIMEOUT_TICKS = Integer.getInteger("mcforge.devshots.timeout", 20 * 60 * 20);
+    private static final String WORLD = worldSetting();
+    /** True in a normal-terrain world with structures (world setting "normal"); false in the flat test world. */
+    static final boolean NORMAL_WORLD = WORLD.startsWith("normal");
+    private static final long SEED = Long.getLong("mcforge.devshots.seed", 1L);
+    private static final Map<String, BlockPos> LOCATED = new ConcurrentHashMap<>();
 
     /** One scripted step: an action, then {@code delay} client ticks of waiting (0 = the next step runs next tick). */
     record Step(int delay, Consumer<Minecraft> action) {}
@@ -62,6 +82,7 @@ public final class DevShots {
     private static int stepIndex;
     private static int waitLeft;
     private static int quitIn = -1;
+    private static boolean finished;
     private static List<Step> script;
     private static String scenes;
     static Entity subject;
@@ -70,7 +91,7 @@ public final class DevShots {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
-        if (!ENABLED) {
+        if (!ENABLED || finished) {
             return;
         }
         Minecraft mc = Minecraft.getInstance();
@@ -91,8 +112,10 @@ public final class DevShots {
                 String name = "devshots_" + System.currentTimeMillis();
                 LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.PEACEFUL, true, new GameRules(),
                         WorldDataConfiguration.DEFAULT);
-                mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(1L, false, false),
-                        access -> access.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value().createWorldDimensions(),
+                // second argument: generate structures. Off in the flat world; it must be on to prove worldgen.
+                mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(SEED, NORMAL_WORLD, false),
+                        access -> access.registryOrThrow(Registries.WORLD_PRESET)
+                                .getHolderOrThrow(NORMAL_WORLD ? WorldPresets.NORMAL : WorldPresets.FLAT).value().createWorldDimensions(),
                         title);
             }
             return;
@@ -109,6 +132,7 @@ public final class DevShots {
         if (quitIn >= 0) {
             // Screenshots are written on a worker thread; the wait lets them land before quitting.
             if (quitIn-- == 0) {
+                finished = true;
                 LOGGER.info("MCFORGE-DEVSHOTS done {} subject={} scenes={}", shots, SUBJECT, scenesFilter().isBlank() ? "all" : scenesFilter());
                 mc.stop();
             }
@@ -169,6 +193,52 @@ public final class DevShots {
             }
         }
         return scenes;
+    }
+
+    private static String worldSetting() {
+        String value = System.getProperty("mcforge.devshots.world", "");
+        Path file = Path.of("world.txt");   // the game directory is the working directory of the run
+        if (value.isBlank() && Files.exists(file)) {
+            try {
+                value = Files.readString(file).trim();
+            } catch (IOException ignored) {
+                value = "";
+            }
+        }
+        return value.isBlank() ? "flat" : value.toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Search for the nearest start of a structure on the server, bounded to {@code radiusChunks} placement cells
+     * around the origin, and log {@code MCFORGE-TRACE locate structure=ID found=0|1 x= y= z= ms=} for devlog. An
+     * unbounded search stalls a server where no structure is near; so does any item or command built on one.
+     */
+    static void locate(Minecraft mc, String dimension, String structureId, int radiusChunks) {
+        MinecraftServer server = mc.getSingleplayerServer();
+        if (server == null) {
+            return;
+        }
+        server.execute(() -> {
+            ServerLevel level = server.getLevel(ResourceKey.create(Registries.DIMENSION, ResourceLocation.parse(dimension)));
+            Holder<Structure> holder = level.registryAccess().registryOrThrow(Registries.STRUCTURE)
+                    .getHolderOrThrow(ResourceKey.create(Registries.STRUCTURE, ResourceLocation.parse(structureId)));
+            long start = System.nanoTime();
+            var found = level.getChunkSource().getGenerator().findNearestMapStructure(level, HolderSet.direct(holder), BlockPos.ZERO,
+                    radiusChunks, false);
+            long ms = (System.nanoTime() - start) / 1_000_000;
+            if (found == null) {
+                trace("locate", "structure=" + structureId + " found=0 ms=" + ms);
+            } else {
+                BlockPos pos = found.getFirst();
+                LOCATED.put(structureId, pos);
+                trace("locate", String.format(Locale.ROOT, "structure=%s found=1 x=%d y=%d z=%d ms=%d", structureId, pos.getX(), pos.getY(), pos.getZ(), ms));
+            }
+        });
+    }
+
+    /** Where {@link #locate} found the structure (the start position; y is not the floor), or null. */
+    static BlockPos located(String structureId) {
+        return LOCATED.get(structureId);
     }
 
     /** A machine-readable line for {@code devlog PROJECT}: {@code MCFORGE-TRACE kind key=value key=value}. */
@@ -259,8 +329,7 @@ public final class DevShots {
 
     static void fail(Minecraft mc, String reason) {
         LOGGER.error("MCFORGE-DEVSHOTS failed: {}", reason);
-        script = List.of();
-        quitIn = Integer.MAX_VALUE;
+        finished = true;
         mc.stop();
     }
 
@@ -292,6 +361,23 @@ public final class DevShots {
         Script shotFramed(String name, float yaw, float pitch, double factor) {
             then(5, mc -> frame(mc, yaw, pitch, factor));
             return then(3, mc -> shot(mc, name));
+        }
+
+        /** Locate a structure (bounded), then fly the spectator camera above it: 200 ticks let the chunks generate. */
+        Script locate(String dimension, String structureId, int radiusChunks, int heightAbove) {
+            then(20, mc -> DevShots.locate(mc, dimension, structureId, radiusChunks));
+            return then(200, mc -> {
+                BlockPos pos = located(structureId);
+                if (pos == null) {
+                    throw new IllegalStateException(structureId + " was not found within " + radiusChunks + " placement cells");
+                }
+                DevShots.cmd(mc, String.format(Locale.ROOT, "execute in %s run tp @s %d %d %d 0 60", dimension, pos.getX(), pos.getY() + heightAbove, pos.getZ()));
+            });
+        }
+
+        /** Take a screenshot from where the camera is. */
+        Script snap(String name) {
+            return then(3, mc -> DevShots.shot(mc, name));
         }
 
         /** Run a server-side action on the subject, then wait. */

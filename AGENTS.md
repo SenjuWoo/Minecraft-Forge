@@ -18,13 +18,13 @@ Local mod workbench for **NeoForge, Fabric and Forge**. Read `STATE.md` for curr
 | Installed reality | `instances [--launcher L] [--root DIR]`, `inventory --instance PATH [--hash]`, `jar PATH [--hash]` |
 | New mod | `quickstart` / `init PATH --mod-id ID --package dev.owner.mod --name "Name" [--loader L --minecraft V] [--fetch]` |
 | Content | `add PATH KIND NAME [--style S] [--tier T] [--repair ITEM] [--shape S] [--hostile]` - `guide content` |
-| Character mob (GeckoLib, NeoForge 1.21.1) | `pipeline PATH --mob NAME` (asset generators: rig, model, texture, animation, sheets, sounds, springs, release), `kit PATH geomob\|springs\|layer\|bonemath\|trace [--mob NAME]`, `devlog PATH [--rules FILE] [--gate G]` - `guide mobs`, `guide api` |
+| Character mob (GeckoLib, NeoForge 1.21.1) | `pipeline PATH --mob NAME` (asset generators: rig, model, texture, animation, sheets, sounds, springs, release), `kit PATH geomob\|home\|springs\|layer\|bonemath\|trace [--mob NAME]` (`home`: a block that forms the mob, a fluid-anchored structure type, GameTests - `guide worldgen`), `devlog PATH [--rules FILE] [--gate G]` - `guide mobs`, `guide api` |
 | Blockbench / GeckoLib models | `bbmodel PATH FILE.bbmodel --block ID \| --entity ID [--force]`; `preview PATH FILE [--animation A --clip C --time T] [--vanilla-light]`; `model-check FILE`; `voxel SPEC.json --project PATH`; `ground ANIM --geo GEO --legs L --clips C` - `guide entities` |
 | Libraries | `libs [--loader --minecraft --category --query]`, `libs --resolve SLUG --project PATH`, `libs --add SLUG --project PATH` - `guide libraries` |
 | Packs (no Java) | `pack PATH --kind resource\|data\|shader --name N [--minecraft V]` - `guide packs` |
 | Load test (NeoForge before 1.21.5) | `tests PATH` (load test + arena test; arena mobs stand at `ArenaTests.STAND`, y = 2) |
 | Build/tasks | `gradle PATH tasks`, `gradle PATH build` (flags: `--stacktrace --offline --info --all --rerun-tasks --log NEW_FILE`) |
-| Evidence | `verify PATH [--load] [--starter] [--client [--scenes a,b]]`, `verify PATH --check`; `devshots PATH` scaffolds the scripted client screenshot run (engine + your `DevScenes.java`); `devlog PATH` gates its log - `guide testing` |
+| Evidence | `verify PATH [--load] [--starter] [--client [--scenes a,b] [--world normal]]`, `verify PATH --check`; `devshots PATH` scaffolds the scripted client screenshot run (engine + your `DevScenes.java`); `devlog PATH` gates its log - `guide testing` |
 | Sounds | `audio-check PATH` - `guide audio` |
 | API evidence | `sources --project PATH ["symbol"]` (prepare: NeoForge `createMinecraftArtifacts`, Fabric `genSources`, Forge `build`), JDK `javap` |
 | Pins / currency | `doctor --project PATH` (offline), `updates PATH` (official candidates, changes nothing) |
@@ -32,7 +32,7 @@ Local mod workbench for **NeoForge, Fabric and Forge**. Read `STATE.md` for curr
 | Deploy | `deploy PATH --instance DIR [--apply] [--allow-mismatch] [--unverified]` - `guide launchers` |
 | Everything | `capabilities` (generated JSON of every command and option) |
 
-Guides, one at a time: `guide workflow|neoforge|fabric|forge|content|entities|mobs|api|assets|audio|libraries|launchers|packs|tools|testing`. `guide list` also names private guides kept on this machine (`local/guides/*.md` beside the toolkit or folders in `MCFORGE_GUIDES`; never packaged): read the ones that match the task.
+Guides, one at a time: `guide workflow|neoforge|fabric|forge|content|entities|mobs|worldgen|api|assets|audio|libraries|launchers|packs|tools|testing`. `guide list` also names private guides kept on this machine (`local/guides/*.md` beside the toolkit or folders in `MCFORGE_GUIDES`; never packaged): read the ones that match the task.
 
 ## Rules
 

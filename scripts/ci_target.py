@@ -57,11 +57,18 @@ def main() -> int:
         assert resolved["loader"] == "neoforge" and resolved["version"] == "4.9.3", resolved
         pipe = run("pipeline", str(project), "--mob", "ci_sentinel", "--dir", str((work / f"{target}-pipeline").resolve()))
         run("kit", str(project), "geomob", "--mob", "ci_sentinel")
+        # A home for it: the home block, the anchored structure type and their GameTests (the test mod exists by now).
+        run("kit", str(project), "home", "--mob", "ci_sentinel")
         built = subprocess.run([sys.executable, str(Path(pipe["pipeline"]) / "build_assets.py"), "all", "--validate"], cwd=ROOT,
                                env=dict(os.environ, PIPELINE_NO_VENV="1", PYTHONPATH=str(ROOT),
                                         MCFORGE_COMMAND=json.dumps([sys.executable, "-m", "mcforge"])))
         if built.returncode:
             raise SystemExit(f"the scaffolded asset pipeline exited {built.returncode}")
+        # Structure templates and worldgen data: the game-test server must load them (a bad structure JSON stops it).
+        world = subprocess.run([sys.executable, str(Path(pipe["pipeline"]) / "build_assets.py"), "world", "--validate"], cwd=ROOT,
+                               env=dict(os.environ, PIPELINE_NO_VENV="1", PYTHONPATH=str(ROOT)))
+        if world.returncode:
+            raise SystemExit(f"the pipeline's world step exited {world.returncode}")
         # The screenshot driver must compile in the test source set and stay inert on the game-test server.
         run("devshots", str(project), "--subject", f"{mod_id}:ci_sentinel")
     elif lock["family"] != "fabric-loom":
@@ -87,6 +94,9 @@ def main() -> int:
             assert f"{package}/{name}" in names, f"{name} missing from the mod JAR"
         for name in ("geo/entity/ci_sentinel.geo.json", "animations/entity/ci_sentinel.animation.json", "textures/entity/ci_sentinel.png"):
             assert f"assets/{mod_id}/{name}" in names, f"{name} missing from the mod JAR"
+        assert f"{package}/ci_sentinel/home/CiSentinelHomeStructure.class" in names
+        assert f"data/{mod_id}/structure/sentinel_den.nbt" in names and f"data/{mod_id}/worldgen/structure_set/sentinel_dens.json" in names
+        assert any("homeformsoneresident" in name.lower() for name in receipt["tests"]["names"]), receipt["tests"]
         # The arena regression test: a horse at ArenaTests.STAND stays on the floor, alive and unhurt.
         assert any("largemobstandsunhurtonthearenafloor" in name.lower() for name in receipt["tests"]["names"]), receipt["tests"]
     run("verify", str(project), "--check")

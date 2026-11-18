@@ -94,6 +94,21 @@ def add_devshots(project: Path, subject: str | None = None, *, force: bool = Fal
                     "a display is required, so this does not run on headless CI"}
 
 
+WORLDS = ("flat", "normal")
+
+
+def set_world(project: Path, world: str | None) -> str:
+    """Write run-devshots/world.txt: "flat" (default; structures off) or "normal" (normal terrain, structures on)."""
+    value = world or "flat"
+    if value not in WORLDS:
+        raise ValueError("--world is flat or normal")
+    folder = Path(project) / "run-devshots"
+    guard_output(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "world.txt").write_text(value + "\n", encoding="utf-8", newline="\n")
+    return value
+
+
 def set_scenes(project: Path, scenes: str | None) -> str:
     """Write (or clear) run-devshots/scenes.txt, the filter the driver reads; returns the normalised filter."""
     value = (scenes or "").replace(" ", "")

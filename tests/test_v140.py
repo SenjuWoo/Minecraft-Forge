@@ -150,6 +150,23 @@ class DevShotsV2(Temp):
         self.assertEqual(code, 2)
         self.assertIn("--client", error)
 
+    def test_world_setting_and_locate_support(self):
+        project = self.project()
+        self.assertEqual(devshots.set_world(project, None), "flat")
+        self.assertEqual(devshots.set_world(project, "normal"), "normal")
+        self.assertEqual((project / "run-devshots/world.txt").read_text(encoding="utf-8").strip(), "normal")
+        with self.assertRaisesRegex(ValueError, "flat or normal"):
+            devshots.set_world(project, "amplified")
+        code, _, error = self.invoke(["verify", str(project), "--world", "normal"])
+        self.assertEqual(code, 2)
+        self.assertIn("--client", error)
+        engine = (ROOT / devshots.TEMPLATE).read_text(encoding="utf-8")
+        # structures are generated only in the normal world, and every search is bounded
+        self.assertIn("new WorldOptions(SEED, NORMAL_WORLD, false)", engine)
+        self.assertIn("findNearestMapStructure(level, HolderSet.direct(holder), BlockPos.ZERO,", engine)
+        self.assertIn("MCFORGE-TRACE", engine)
+        self.assertIn("NORMAL_WORLD", (ROOT / devshots.SCENES_TEMPLATE).read_text(encoding="utf-8"))
+
     def test_identical_consecutive_screenshots_are_reported(self):
         files = []
         for index, content in enumerate([b"a", b"b", b"b", b"b", b"c", b"c", b"d", b"d", b"d", b"d"]):
@@ -287,6 +304,30 @@ class Kits(Temp):
         for name in kit.template_files() + pipeline.template_files() + ["templates/devshots/DevScenes.java", "docs/API.md", "docs/MOBS.md"]:
             self.assertIn(name, shipped)
 
+    def test_home_kit_builds_on_the_mob_and_ships_its_gametests(self):
+        project = self.root / "homed"
+        init_project(project, "homed", "dev.example.homed", "Homed", with_tests=True, examples=False)
+        with self.assertRaisesRegex(ValueError, "geomob --mob den_keeper first"):
+            kit.add_kit(project, "home", "den_keeper")
+        kit.add_kit(project, "geomob", "den_keeper")
+        result = kit.add_kit(project, "home", "den_keeper")
+        base = project / "src/main/java/dev/example/homed/den_keeper/home"
+        for name in ("DenKeeperHomeBlock", "DenKeeperHomeBlockEntity", "DenKeeperHomeStructure", "DenKeeperHomePiece", "DenKeeperHomeContent"):
+            text = (base / f"{name}.java").read_text(encoding="utf-8")
+            self.assertNotRegex(text, r"@[A-Z_]+@", name)
+        tests = (project / "src/gameTest/java/dev/example/homed/testing/DenKeeperHomeTests.java").read_text(encoding="utf-8")
+        self.assertIn('@GameTestHolder("homed")', tests)
+        self.assertIn("homeFormsOneResident", tests)
+        entity = (base / "DenKeeperHomeBlockEntity.java").read_text(encoding="utf-8")
+        self.assertIn('HOME_KEY = "homed:den_keeper_home"', entity)
+        self.assertIn("isPositionEntityTicking", entity)                # an unloaded resident is not a missing one
+        assets = project / "src/main/resources/assets/homed"
+        self.assertTrue((assets / "blockstates/den_keeper_home.json").is_file())
+        self.assertEqual(json.loads((assets / "lang/en_us.json").read_text(encoding="utf-8"))["block.homed.den_keeper_home"], "Den Keeper Home")
+        self.assertTrue(any("structures on" in note for note in result["notes"]))
+        with self.assertRaisesRegex(ValueError, "--mob"):
+            kit.add_kit(project, "home")
+
 
 class Pipeline(Temp):
     def scaffold(self):
@@ -347,6 +388,18 @@ class Pipeline(Temp):
         # the offline preview of the toolkit renders the generated geometry with its texture
         code, out, _ = self.invoke(["preview", str(project), str(geo)])
         self.assertEqual(code, 0, out)
+        # the opt-in world step: a template that holds the home block, and the complete set of worldgen files
+        world = subprocess.run([sys.executable, script, "world", "--validate"], capture_output=True, text=True, env=env, timeout=120)
+        self.assertEqual(world.returncode, 0, world.stdout + world.stderr)
+        data = project / "src/main/resources/data/probe"
+        for relative in ("structure/sentinel_den.nbt", "worldgen/structure/sentinel_den.json", "worldgen/structure_set/sentinel_dens.json",
+                         "worldgen/template_pool/sentinel_den.json", "tags/worldgen/biome/has_structure/sentinel_den.json"):
+            self.assertTrue((data / relative).is_file(), relative)
+        import gzip
+        self.assertIn(b"probe:cave_stalker_home", gzip.decompress((data / "structure/sentinel_den.nbt").read_bytes()))
+        (data / "worldgen/structure_set/sentinel_dens.json").unlink()
+        broken = subprocess.run([sys.executable, script, "world", "--validate"], capture_output=True, text=True, env=env, timeout=120)
+        self.assertEqual(broken.returncode, 0)                           # run() rewrites the set, so validation passes again
         # spring tuning: a traced peak of 0.30 on a gain of 3.0 becomes 7.5 (target 0.75)
         log = project / "run-devshots/logs"
         log.mkdir(parents=True)
@@ -369,13 +422,23 @@ class Guides(Temp):
         self.assertEqual(route["guide"], "mobs")
         self.assertTrue(any(command.startswith("pipeline ") for command in route["commands"]))
 
+    def test_worldgen_requests_route_to_the_home_kit(self):
+        routed = plan.plan("a forge keeper mob that lives in a structure next to lava in the nether")
+        route = next(step for step in routed["steps"] if step.get("route") == "homes, structures and spawns")
+        self.assertEqual(route["guide"], "worldgen")
+        self.assertTrue(any("structures on" in pitfall or "structures off" in pitfall for pitfall in route["pitfalls"]))
+        code, out, _ = self.invoke(["guide", "worldgen"])
+        self.assertEqual(code, 0)
+        self.assertIn("structure generation on", out)
+
     def test_local_guides_load_by_name_and_never_shadow_bundled_ones(self):
         folder = self.root / "private"
         folder.mkdir()
         (folder / "house-style.md").write_text("# House style\nPrivate notes.\n", encoding="utf-8")
         (folder / "entities.md").write_text("shadow attempt\n", encoding="utf-8")
         (folder / "Bad Name!.md").write_text("ignored\n", encoding="utf-8")
-        with patch.dict(os.environ, {"MCFORGE_GUIDES": str(folder)}):
+        # a machine may hold real private guides beside the toolkit: the test looks only at its own folder
+        with patch.dict(os.environ, {"MCFORGE_GUIDES": str(folder)}), patch.object(cli, "local_guide_dirs", lambda: [folder]):
             self.assertEqual(list(cli.local_guides()), ["house-style"])
             code, out, _ = self.invoke(["guide", "house-style"])
             self.assertEqual((code, out.strip().splitlines()[0]), (0, "# House style"))

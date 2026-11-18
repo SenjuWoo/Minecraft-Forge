@@ -31,7 +31,7 @@
 
 ## Added in 1.4.0
 
-- `pipeline` (a code-driven asset pipeline scaffold for GeckoLib mobs), `kit` (Java kits: bone math, spring solver, shared-bone layer, trace, a GeckoLib mob skeleton), a scripted `devshots` engine with scene filters, `devlog` (a rules gate over the client log), `guide mobs` and `guide api`, private local guides, more voxel shapes; the top and bottom face UV direction corrected.
+- `pipeline` (a code-driven asset pipeline scaffold for GeckoLib mobs), `kit` (Java kits: bone math, spring solver, shared-bone layer, trace, a GeckoLib mob skeleton), a scripted `devshots` engine with scene filters, `devlog` (a rules gate over the client log), `guide mobs` and `guide api`, `kit home` and the pipeline's `world` step (home block, structures from code, lava and Nether anchoring), `verify --client --world normal`, `guide worldgen`, private local guides, more voxel shapes; the top and bottom face UV direction corrected.
 
 ## Next
 

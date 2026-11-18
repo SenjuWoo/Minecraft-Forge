@@ -17,12 +17,14 @@ COMMANDS = {
     "texture": "lib.painter",
     "anim": "lib.animtools",
     "sheets": "lib.sheets",
+    "sprites": "lib.pixel",
     "sounds": "lib.soundtools",
+    "world": "lib.worldgen",
     "springs": "lib.springtune",
     "release": "lib.release",
     "plan": "lib.plantools",
 }
-ALL_ORDER = ["rig", "model", "texture", "anim", "sheets", "sounds"]
+ALL_ORDER = ["rig", "model", "texture", "anim", "sheets", "sprites", "sounds"]
 
 
 def main(argv: list[str]) -> int:

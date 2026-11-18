@@ -69,7 +69,8 @@ On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies th
 | A character mob: generated model, textures, animation, springs, sounds wiring (GeckoLib, NeoForge 1.21.1) | `pipeline P --mob NAME`, `kit P geomob --mob NAME`, `devshots P`, `devlog P` | `guide mobs`, `guide api` |
 | Animated GeckoLib entities, secondary motion, custom AI | `libs --add geckolib --project P`, `kit P springs\|layer\|bonemath`, `model-check FILE`, `ground ANIM --geo GEO --legs ... --clips ...` | `guide entities` |
 | Organic voxel models from shapes (no z-fighting) | `voxel SPEC.json --project P` | `guide entities` |
-| Scripted screenshots from a real client, recorded as evidence, and a gate over its log | `devshots P`, `verify P --client [--scenes a,b]`, `devlog P [--rules FILE]` | `guide testing` |
+| A home in the world: home block that forms the mob, structures from code, lava and Nether anchoring, natural spawns | `kit P home --mob NAME`, pipeline `world`, `verify P --client --world normal` | `guide worldgen` |
+| Scripted screenshots from a real client, recorded as evidence, and a gate over its log | `devshots P`, `verify P --client [--scenes a,b] [--world normal]`, `devlog P [--rules FILE]` | `guide testing` |
 | Start from scratch (no example block/item) | `quickstart P ... --no-examples` | `guide testing` |
 | Sounds, original SFX and voice lines | `audio-check P`, OGG pipeline | `guide audio` |
 | Blockbench models in and out | `bbmodel P FILE --block ID` / `--entity ID`; furniture and mobs ship a `.bbmodel` | `guide content` |

@@ -15,6 +15,16 @@ final class DevScenes {
 
     static List<DevShots.Step> build() {
         DevShots.Script s = new DevShots.Script();
+        if (DevShots.NORMAL_WORLD) {
+            // Real worldgen (verify PROJECT --client --world normal): a normal-terrain world with structures ON.
+            // Prove each structure generates, is found quickly, and holds what it should:
+            //   s.cmd("gamemode spectator").cmd("time set 6000");
+            //   s.locate("minecraft:overworld", "mymod:my_den", 50, 12).snap("locate_den_above");
+            //   s.locate("minecraft:the_nether", "mymod:my_shore", 50, 6).snap("locate_shore");
+            // Gate it with devlog: {"kind": "locate", "equals": {"found": "1"}, "field": "ms", "max": 5000}.
+            // The flat-world scenes below use flat-world coordinates and are skipped here.
+            return s.steps;
+        }
         s.cmd("gamerule doDaylightCycle false").cmd("gamerule doWeatherCycle false").cmd("gamerule doMobSpawning false")
                 .cmd("weather clear").cmd("time set 6000")
                 .cmd("summon " + DevShots.SUBJECT + " 0.5 -60 0.5 {NoAI:1b,PersistenceRequired:1b,Silent:1b,Rotation:[180f,0f]}")

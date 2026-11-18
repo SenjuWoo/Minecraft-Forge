@@ -7,6 +7,8 @@ Kits are source the project owns afterwards; nothing is rewritten unless --force
     springs   kit/SpringBones.java       data-driven secondary motion (adds bonemath and trace)
     layer     kit/SharedBoneLayer.java   a second geometry that follows the main bones
     geomob    a GeckoLib mob skeleton: entity, model, renderer, registration, spawn egg (adds all of the above)
+    home      a home for a geomob: a block whose block entity forms the mob and re-forms it, plus a structure
+              type that anchors a template to a natural fluid surface (cave lava, the Nether lava sea, water)
 
 `kit PROJECT geomob --mob NAME` names the mob. The generated classes read `gen/<Name>Rig.java` and
 `gen/<Name>Clips.java`; placeholders are written when they do not exist and the asset pipeline
@@ -22,7 +24,8 @@ from .workbench import ROOT, guard_output, read_json
 
 COMMON = {"bonemath": ["BoneMath.java"], "trace": ["DevTrace.java"],
           "springs": ["BoneMath.java", "DevTrace.java", "SpringBones.java"], "layer": ["SharedBoneLayer.java"],
-          "geomob": ["BoneMath.java", "DevTrace.java", "SpringBones.java", "SharedBoneLayer.java"]}
+          "geomob": ["BoneMath.java", "DevTrace.java", "SpringBones.java", "SharedBoneLayer.java"], "home": []}
+HOME = ("HomeBlock", "HomeBlockEntity", "HomeStructure", "HomePiece", "HomeContent")
 KITS = tuple(COMMON)
 NAME = re.compile(r"[a-z][a-z0-9_]{0,40}")
 GECKOLIB_DEPENDENCY = '''
@@ -43,7 +46,8 @@ def template_files() -> list[str]:
     """Every template the kits copy (relative to the toolkit root); packaging ships exactly these."""
     names = sorted({name for files in COMMON.values() for name in files})
     return [f"templates/kit/common/{name}" for name in names] + [
-        f"templates/kit/geomob/{name}.java" for name in ("Entity", "Model", "Renderer", "Content", "Client", "Rig", "Clips")]
+        f"templates/kit/geomob/{name}.java" for name in ("Entity", "Model", "Renderer", "Content", "Client", "Rig", "Clips")] + [
+        f"templates/kit/home/{name}.java" for name in HOME + ("HomeTests",)]
 
 
 def _fill(text: str, values: dict[str, str]) -> str:
@@ -81,6 +85,23 @@ def add_kit(project: Path, kit: str, mob: str | None = None, *, force: bool = Fa
             plan.append((java / folder / f"{cls}{name}.java", _fill((source / f"{name}.java").read_text(encoding="utf-8"), values), False))
         for name in ("Rig", "Clips"):
             plan.append((java / "gen" / f"{cls}{name}.java", _fill((source / f"{name}.java").read_text(encoding="utf-8"), values), True))
+    if kit == "home":
+        if not mob or not NAME.fullmatch(mob):
+            raise ValueError("kit home needs --mob NAME (the geomob that lives there)")
+        cls = pascal(mob)
+        if not (java / mob / f"{cls}Content.java").is_file():
+            raise ValueError(f"kit home builds on the mob's registration class: run kit PROJECT geomob --mob {mob} first")
+        values |= {"NAME": mob, "PASCAL": cls}
+        for name in HOME:
+            plan.append((java / mob / "home" / f"{cls}{name}.java",
+                         _fill((ROOT / "templates/kit/home" / f"{name}.java").read_text(encoding="utf-8"), values), False))
+        # The server-side proof goes into the test mod when the project has one (tests PROJECT / init --with-tests).
+        tests = project.joinpath("src/gameTest/java", *package.split("."), "testing")
+        if (tests / "ArenaTests.java").is_file():
+            plan.append((tests / f"{cls}HomeTests.java",
+                         _fill((ROOT / "templates/kit/home/HomeTests.java").read_text(encoding="utf-8"), values), False))
+        else:
+            notes.append("no test mod with ArenaTests: run tests PROJECT, then kit PROJECT home again for the GameTests")
     created, kept = [], []
     for target, text, placeholder in plan:
         guard_output(target)
@@ -125,9 +146,36 @@ def add_kit(project: Path, kit: str, mob: str | None = None, *, force: bool = Fa
             notes.append(f"no geometry yet: pipeline PROJECT --mob {mob}, then run its build_assets.py all "
                          "(writes the geo, texture, animations and the real gen/ classes)")
         lock.setdefault("kits", {})[f"geomob:{mob}"] = {"hitbox": [width, height]}
+    elif kit == "home":
+        assets = project / "src/main/resources/assets" / mod_id
+        block = f"{mob}_home"
+        files = {assets / "blockstates" / f"{block}.json": {"variants": {"": {"model": f"{mod_id}:block/{block}"}}},
+                 # A vanilla texture until the project paints its own (asset-pipeline sprites: block/<name>.png).
+                 assets / "models/block" / f"{block}.json": {"parent": "minecraft:block/cube_all", "textures": {"all": "minecraft:block/chiseled_deepslate"}},
+                 assets / "models/item" / f"{block}.json": {"parent": f"{mod_id}:block/{block}"},
+                 project / "src/main/resources/data" / mod_id / "loot_table/blocks" / f"{block}.json": {
+                     "type": "minecraft:block", "pools": [{"rolls": 1, "entries": [{"type": "minecraft:item", "name": f"{mod_id}:{block}"}],
+                                                           "conditions": [{"condition": "minecraft:survives_explosion"}]}]}}
+        for path, value in files.items():
+            if not path.exists():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8", newline="\n")
+                created.append(path.relative_to(project).as_posix())
+        lang_path = assets / "lang/en_us.json"
+        lang = json.loads(lang_path.read_text(encoding="utf-8-sig")) if lang_path.is_file() else {}
+        title = " ".join(part.capitalize() for part in mob.split("_"))
+        if f"block.{mod_id}.{block}" not in lang:
+            lang[f"block.{mod_id}.{block}"] = f"{title} Home"
+            lang_path.parent.mkdir(parents=True, exist_ok=True)
+            lang_path.write_text(json.dumps(lang, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+        notes.append(f"structure type {mod_id}:{mob}_home and block {mod_id}:{block} are registered; write the template, structure, "
+                     "structure set and biome tag with the pipeline (build_assets.py world --validate), then prove generation in a "
+                     "world with structures on: verify PROJECT --client --world normal (guide worldgen)")
+        lock.setdefault("kits", {})[f"home:{mob}"] = {}
     else:
         lock.setdefault("kits", {})[kit] = {}
     (project / "mcforge-project.json").write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
     return {"project": str(project), "kit": kit, "mob": mob, "created": created, "kept": kept, "notes": notes,
             "next": "devshots PROJECT --subject %s:%s, then verify PROJECT --client" % (mod_id, mob) if kit == "geomob"
+                    else "guide worldgen" if kit == "home"
                     else "call the kit from GeoModel.setCustomAnimations (guide entities); verify PROJECT"}

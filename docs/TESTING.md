@@ -116,6 +116,12 @@ Script steps: `cmd`, `waitTicks`, `shotAt(name, yaw, pitch, distance, aimY)`, `s
 
 Numbers worth tracing: spring peaks against their clamps, chain stretch, the distance between where the server spawned something and where the client drew its source at that tick, rendered levels against synced values, hit targets reached, frames per second with one and with eight instances. Its output also summarises every trace kind (count, min, max, last per field), which is enough to pick thresholds.
 
+The world of the run is flat, creative and has structure generation off: fast, and nothing wanders into the shots. `verify PROJECT --client --world normal` creates normal terrain with structures on, for worldgen proof (`guide worldgen`): the engine's `locate(dimension, structure, radius, heightAbove)` step searches a bounded radius, logs a `locate` trace and flies the camera there; `DevShots.NORMAL_WORLD` tells scenes which world they are in (flat-world coordinates such as y = -60 do not apply).
+
+Harness habits that removed flaky runs: build the script once (a driver that built it twice spawned every subject twice in the same spot and looked like a rendering bug); remove test entities with `discard()`, not `kill()` (no death clip, drops or sounds leaking into the next step); pin wandering helpers (NoAI, or a fixed position every tick) and keep test fixtures away from the arena edge, where chunks may not tick; use husks instead of zombies for daylight fights and set the difficulty the test assumes; give long suites their own batch.
+
+A second run block can load copies of the target pack's mods beside yours (a `runPackShots` with its own game directory and a `mods` folder of copied JARs): it shows conflicts with animation, model and physics mods before the user does. Other mods' first-join screens pause the world; switch them off in that run folder's config.
+
 Making scenes repeatable: a NoAI subject, one server action per step, a fresh patch of ground away from earlier scenes, other entities removed, hold the subject's yaw (an idle mob's body drifts toward its head). Do not run two clients, or a client beside another GPU job, when you measure frame rate or timing.
 
 The hand-written pattern below is what the generated engine does, plus the techniques for richer scenes.

@@ -285,12 +285,14 @@ def frozen_frames(paths: list[Path], run: int = 3) -> list[str]:
     return found
 
 
-def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs: dict, scenes: str | None = None) -> list[str]:
+def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs: dict, scenes: str | None = None,
+                world: str | None = None) -> list[str]:
     """Run the devShots client, require its done marker and fresh screenshots, keep copies as evidence."""
     import shutil
     import time
-    from .devshots import set_scenes
+    from .devshots import set_scenes, set_world
     scenes = set_scenes(project, scenes)
+    world = set_world(project, world)
     log = run_dir / "client.log"
     step = {"tasks": ["runDevShots"], "started_at": _now(), "log": str(log)}
     receipt["commands"].append(step)
@@ -321,7 +323,7 @@ def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs:
         shots.append(copy.relative_to(project).as_posix())
     if count < 1 or len(shots) != count:
         raise ValueError(f"The client reported {count} screenshots but {len(shots)} were found")
-    receipt["client"] = {"run": "runDevShots", "subject": done.group(2), "scenes": scenes or "all", "screenshots": shots}
+    receipt["client"] = {"run": "runDevShots", "subject": done.group(2), "scenes": scenes or "all", "world": world, "screenshots": shots}
     frozen = frozen_frames([project / shot for shot in shots])
     if frozen:
         receipt["client"]["identical_frames"] = frozen
@@ -332,7 +334,7 @@ def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs:
 
 
 def verify_project(project: Path, java_home: Path | None = None, *, starter: bool = False, load: bool = False,
-                   client: bool = False, scenes: str | None = None) -> dict:
+                   client: bool = False, scenes: str | None = None, world: str | None = None) -> dict:
     project = Path(os.path.abspath(project))
     guard_output(project)
     if not project.is_dir():
@@ -408,7 +410,7 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
         if starter:
             from scripts.verify_starter import verify
             receipt["starter"] = verify(project)
-        client_shots = _client_run(project, run_dir, receipt, home, inputs, scenes) if client else []
+        client_shots = _client_run(project, run_dir, receipt, home, inputs, scenes, world) if client else []
         if _inputs(project) != inputs or _generated(project) != receipt["generated"]:
             raise ValueError("Project inputs/generated data changed while collecting verification evidence")
         outputs = [artifact.relative_to(project).as_posix()]

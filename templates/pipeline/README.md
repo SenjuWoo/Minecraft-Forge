@@ -7,7 +7,7 @@ and rerun. Nothing in this folder ships in the mod JAR.
 ```
 python -I asset-pipeline/build_assets.py check
 python -I asset-pipeline/build_assets.py all --validate
-python -I asset-pipeline/build_assets.py <rig|model|texture|anim|sheets|sounds> [--validate]
+python -I asset-pipeline/build_assets.py <rig|model|texture|anim|sheets|sprites|sounds> [--validate]
 ```
 
 The first run creates `asset-pipeline/.venv` (numpy, pillow) with uv, or with venv + pip, and re-executes inside it.
@@ -19,12 +19,14 @@ The first run creates `asset-pipeline/.venv` (numpy, pillow) with uv, or with ve
 | `mob/paint.py` one function per material, `palette.json` | `texture` | `textures/entity/<mob>.png`, `_glowmask.png`, `_uvtest.png`, `media/<mob>.bbmodel` |
 | `mob/clips.py` one function per clip | `anim` (`anim sheet` for contact sheets) | `animations/entity/<mob>.animation.json`, `gen/<Mob>Clips.java` |
 | `mob/look.py` views and the look checklist | `sheets` | `media/look/*.png`, `media/look/CHECKLIST.md` |
+| `mob/sprites.py` item, particle, block and GUI art drawn with `lib/pixel.py` | `sprites` | `textures/<path>.png`, item models |
 | `mob/sounds.py` events; OGG files in `assets/<mod>/sounds/<mob>/` | `sounds` | `sounds.json`, subtitles, `gen/<Mob>Sounds.java` |
+| `mob/world.py` structure templates, worldgen data, natural spawns (not part of `all`: opt in) | `world` | `data/<mod>/structure/*.nbt`, `worldgen/structure*`, biome and structure tags, biome modifier |
 | - | `springs [scene]` | `spring_gains.json` from the client trace (then `rig`) |
 | `../docs/VALIDATION.md` | `release` | `../mod/<jar>`, `../mod/MANIFEST.json` from the verified receipt |
 | `../PLAN.md` | `plan status ID STATE "evidence"`, `plan reprove [check]` | the plan's Status and Evidence cells |
 
-`lib/` is the machinery (voxeliser, painter, renderer, animation toolkit, IK, NBT writer); `mob/` is this mob.
+`lib/` is the machinery (voxeliser, painter, renderer, animation toolkit, IK, pixel-art helpers, NBT writer); `mob/` is this mob.
 For a second mob, copy `mob/` into another pipeline folder (`minecraft-forge pipeline PROJECT --mob NAME --dir DIR`).
 
 ## Order that avoids rework
