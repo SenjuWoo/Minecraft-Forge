@@ -290,7 +290,8 @@ def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs:
     """Run the devShots client, require its done marker and fresh screenshots, keep copies as evidence."""
     import shutil
     import time
-    from .devshots import set_scenes, set_world
+    from .devshots import set_early_window, set_scenes, set_world
+    set_early_window(project)
     scenes = set_scenes(project, scenes)
     world = set_world(project, world)
     log = run_dir / "client.log"

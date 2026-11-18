@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1 - 2026-11-17
+
+- `verify PROJECT --client` turns NeoForge's early loading window off in the screenshot run's game directory (`run-devshots/config/fml.toml`, `earlyWindowControl = false`). With the GPU busy, the early window could fail to hand over to the game window and show an error dialog; the unattended run then hung until it was killed. Only that line of the file is changed.
+
 ## 1.4.0 - 2026-11-17
 
 The reusable parts of seven finished GeckoLib mob projects (NeoForge 1.21.1, GeckoLib 4.9.3), turned into commands. Each of those projects rebuilt the same asset scripts, physics classes, screenshot driver and log checker; they now ship with the toolkit.

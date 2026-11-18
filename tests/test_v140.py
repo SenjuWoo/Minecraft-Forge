@@ -152,6 +152,18 @@ class DevShotsV2(Temp):
         trace = (root / "kit/common/DevTrace.java").read_text(encoding="utf-8")
         self.assertIn('TAG_PROPERTY = "mcforge.trace.tag"', trace)
 
+    def test_client_run_turns_the_early_window_off(self):
+        # A client run under GPU load died in the early window's hand-over dialog before the game started.
+        project = self.project()
+        self.assertTrue(devshots.set_early_window(project))
+        path = project / "run-devshots/config/fml.toml"
+        self.assertEqual(path.read_text(encoding="utf-8"), "earlyWindowControl = false\n")
+        self.assertFalse(devshots.set_early_window(project))
+        path.write_text("maxThreads = -1\nearlyWindowControl = true\nversionCheck = true\n", encoding="utf-8")
+        self.assertTrue(devshots.set_early_window(project))
+        self.assertEqual(path.read_text(encoding="utf-8"),
+                         "maxThreads = -1\nearlyWindowControl = false\nversionCheck = true\n")
+
     def test_scene_filter_file(self):
         project = self.project()
         self.assertEqual(devshots.set_scenes(project, "turntable, night"), "turntable,night")

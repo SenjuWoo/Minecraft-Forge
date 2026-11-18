@@ -109,6 +109,32 @@ def set_world(project: Path, world: str | None) -> str:
     return value
 
 
+def set_early_window(project: Path) -> bool:
+    """Turn NeoForge's early loading window off for the devShots game directory (run-devshots/config/fml.toml).
+
+    Under GPU load the early window can fail to hand over to the game window ("trouble handing off the window"); it
+    then shows an error dialog nobody answers and the run hangs until it is killed. An unattended run has no use for
+    the loading window. Only the `earlyWindowControl` line is changed; a missing file gets that one line and the
+    loader fills in the rest. Returns True when the file was changed.
+    """
+    folder = Path(project) / "run-devshots" / "config"
+    guard_output(folder)
+    path = folder / "fml.toml"
+    line = "earlyWindowControl = false"
+    if path.is_file():
+        text = path.read_text(encoding="utf-8")
+        new, count = re.subn(r"(?m)^[ \t]*earlyWindowControl[ \t]*=.*$", line, text)
+        if not count:
+            new = text + ("" if text.endswith("\n") or not text else "\n") + line + "\n"
+        if new == text:
+            return False
+    else:
+        folder.mkdir(parents=True, exist_ok=True)
+        new = line + "\n"
+    path.write_text(new, encoding="utf-8", newline="\n")
+    return True
+
+
 def set_scenes(project: Path, scenes: str | None) -> str:
     """Write (or clear) run-devshots/scenes.txt, the filter the driver reads; returns the normalised filter."""
     value = (scenes or "").replace(" ", "")
