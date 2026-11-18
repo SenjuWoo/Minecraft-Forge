@@ -1,0 +1,103 @@
+# Building a high-quality mob (GeckoLib, NeoForge 1.21.1)
+
+The path seven finished mob projects converged on, with the commands that now carry the parts each of them built by hand. Use it for a character mob with a custom model, keyframed animation, secondary motion, sounds and real behaviour. For a simple vanilla-rig mob, `add PROJECT mob NAME` is enough.
+
+Related guides: `entities` (conventions and rendering), `api` (verified signatures), `testing` (GameTests, client run), `audio`.
+
+## The path
+
+```text
+minecraft-forge instances                                         # match the pack: Minecraft, loader, GeckoLib build
+minecraft-forge quickstart <Mod>/source --mod-id ID --package PKG --name "Name" --no-examples
+minecraft-forge libs --add geckolib --project <Mod>/source --version <the pack's version>
+minecraft-forge pipeline <Mod>/source --mob NAME                  # <Mod>/asset-pipeline: generators for every asset
+python -I <Mod>/asset-pipeline/build_assets.py all --validate     # geo, textures, animations, gen/ Java constants
+minecraft-forge kit <Mod>/source geomob --mob NAME                # entity, model, renderer, registration, springs
+minecraft-forge devshots <Mod>/source --subject ID:NAME           # scripted client screenshot run
+minecraft-forge verify <Mod>/source --client                      # compile, package, server load, client run
+minecraft-forge devlog <Mod>/source                               # gate the client log (errors, sounds, traces)
+```
+
+That is a rendering, animated, sprung example mob in a real client within minutes. The work is then replacing the example in `asset-pipeline/mob/` with the design and growing the entity class.
+
+Project layout that every finished project used: `source/` (the Gradle project), `asset-pipeline/` (generators; nothing in it ships), `media/` (review images), `mod/` (staged release JAR and manifest), `docs/` (design, validation), `reference/` (supplied material, read-only).
+
+## Order of work
+
+Risk first, art last. Each line is a stage with its own proof.
+
+1. **Brief to checklist.** Write `mob/look.py` CHECKLIST from the brief in the owner's words: one row per requested feature, mapped to the view that shows it. Write the behaviour list the same way as planned GameTests. A feature without a row gets forgotten.
+2. **Facts.** Read `guide api`; spot-check the rows the design depends on against the pinned sources. Record surprises in the project, not in memory.
+3. **Rig and blockout.** Bones, pivots, procedural bones and swap groups in `mob/rig.py`; flat-material shapes in `mob/model.py`. `all --validate`, then the client `turntable` and `uv` scenes: orientation, scale against the hitbox, and the per-face UV proof, once.
+4. **The riskiest mechanic.** Whatever the mob is defined by (a chain, a transformation, a ranged attack, a carried prop, a two-entity interaction): one working slice in a real client, measured with traces, before final art. If it fails twice, switch to the planned fallback.
+5. **Final geometry**, then **paint**, then **clips**: `sheets` and `anim sheet` after every change (seconds), the client run per stage (minutes).
+6. **Behaviour** as server-side state machines timed by ticks, each with GameTests: goals, targeting, taming or trading, spawn rules, drops.
+7. **Secondary motion**: springs traced and tuned (`build_assets.py springs`).
+8. **Sounds** last, when the events they belong to exist.
+9. **Release**: full scene run, `devlog` gate, `VALIDATION.md` with an honest untested list, `build_assets.py release`, then `deploy` only on the owner's request.
+
+## Modelling
+
+- Describe organic forms as implicit shapes per bone (`lib/sdf.py`): superellipsoids for chunky masses, tapered capsules for limbs, smooth unions for soft joins, intersections and half-spaces for cut lines. The voxeliser partitions each blob into boxes that cannot z-fight with themselves, shifts blobs by sub-pixel offsets until none of their visible faces share a plane, and drops buried faces. `model --validate` runs the independent `model-check`; the count must be zero before texturing.
+- Cell size 0.8-1.0 px on large forms, 0.5 px where the detail lives; 2 texels per pixel, 4 on faces and other focal detail; raw boxes at a higher density for pixel-art plates. About 1,500 cubes is comfortable with several instances on screen.
+- Proportion is decided in the blockout. Measure it from the rig (head height against total height, limb lengths) and gate it, instead of judging a painted model.
+- Overlap parts at joints so bends do not open gaps; give swap variants their own bones and a small stagger; keep a cuff, strap or sole on its own cube so it never fights the limb it sits on.
+- Soft layers (clothing, shells, fluid, glass) are separate geometries that share the main bone names (`Part(geo="shell")`), drawn by a layer that copies bone state (`kit PROJECT layer`). Build a shell as the same shapes inflated by 0.35-0.9 px; omit shell faces buried in the body or in another shell. Draw translucent shells with back-face culling so overlapping shells do not double up.
+- A feature that is two texels wide is a painted detail, not geometry: a one-texel highlight over a one-texel shadow reads as a ridge and costs no cubes.
+
+## Texture
+
+- Lock the palette first (`palette.json`, 3-5 hard steps per ramp, shadows shifted in hue). `lib/palette.py` measures ramps from a reference picture.
+- Paint in 3D: every texel knows its rest position and the smooth normal of its shape (`mob/paint.py`). Markings are conditions on position, so they land correctly on every face of every cube and survive remodelling.
+- Hard light bands, no gradients, no anti-aliasing, no dithering; one-texel specular chips on glossy materials; ambient occlusion from the body union darkens folds and undersides.
+- Parts that bend at runtime (chain segments, anything a solver poses) must be shaded from normals around their own axis only: a baked top light bands at every joint when the part rotates.
+- Glow: return a glow layer from the material; the painter writes `<name>_glowmask.png` only when something glows. Night screenshots are the proof.
+- Many colour variants: bake a texture per variant (or tint one layer) rather than re-rendering the whole model per frame with a tint. A whole-model extra pass costs as much as another instance.
+
+## Animation
+
+- Clips are functions of time returning offsets from rest (`mob/clips.py`): sums of easing curves and oscillators, not tables of keys. Sampling, key reduction, grounding and export are the toolkit's job.
+- Ground locomotion and full-body clips on the legs; leave upper-body actions ungrounded and key only upper-body bones in them so the base controller keeps the legs. A hop that must stay planted is a heel-rise, not a root lift.
+- Contact is solved, not eyeballed: `lib/ik.py` puts a hand, paw or foot on a point of another bone for the body pose of that frame; when the target is out of reach, add a lean and a shoulder first. Props that change hands use two prop bones (one per owner) swapped at one key; check the swap error in pixels offline.
+- A clip built around a fixed contact (a seat, a mount, a held partner or prop) is grounded once by its rest pose so the contact cannot drift; export the anchor points the entity code needs as constants alongside the clip ticks.
+- Events carry timing: `events={"contact": [0.3]}` becomes a tick constant for the server and a timeline instruction for the client.
+- State changes that swap visible geometry (garments, forms, held items) are best driven procedurally from a synced value over a fixed number of ticks, with the server refusing a new change while one runs; a keyframed controller cannot swap geometry sets cleanly.
+- Pose changes through a server choreographer: fire the exit one-shot while the synced state already holds the destination, so the base loop is already correct when the one-shot ends (no snap back).
+
+## Secondary motion
+
+`kit PROJECT springs` is the solver; `mob/rig.py` SPRINGS is the data. Read the class comment for the rules. In short: sprung parts hang from `_phys` bones no clip keys; the drive is measured acceleration (animated parent motion per frame, entity translation per tick, turning), integrated in 4 ms steps with the filter inside the steps; long frames and teleports restart the estimators; outputs are soft-clamped; gains come from a traced, scripted client scene so ordinary motion peaks at 65-85 % of each clamp.
+
+Chains that must reach somewhere (hoses, ropes, tethers) are a different tool: a verlet chain pinned at one or both ends, simulated in world space on the client, written to sibling segment bones with `BoneMath.writeSegment`. Lessons: a driven chain never carries slack (derive segment length from the arc you want), sub-step with the anchor travel (at most 0.5 px per step) so a snapping hand cannot stretch it, re-seed on a stall frame as on a teleport, trace stretch and gate it (0.9-1.15), and keep an analytic catenary as the fallback.
+
+## Behaviour
+
+- The server decides everything from tick counts; the client draws. Hits land at the clip's contact tick, items spawn at theirs, and a `MCFORGE-TRACE` line can compare where the server spawned something with where the client drew the source.
+- Start from the vanilla base that gives the most for free (`TamableAnimal` for owner, sit and follow; `NeutralMob` for anger; `AbstractHorse` for riding) and note what its side effects cost (`guide api`, `guide entities`).
+- Goals that script an action take the movement flags and hold the mob still; random idle actions run only when nothing else does.
+- Per-instance client state (springs, chain nodes, blink timers) lives in a client-only field of the entity typed `Object`, never in a static.
+- Natural spawns, loot and structures are data (biome modifiers, tags, loot tables, structure sets) so a pack can retune them.
+- Config values read in GameTests need safe getters (defaults before the config loads).
+- One-of-a-kind companions: `updateInterval(1)` on the entity type makes client-side motion reading smooth.
+
+## Proving it
+
+| Claim | Proof |
+|---|---|
+| Geometry is clean | `model --validate` (budget, UVs, `model-check` zero) |
+| It looks as asked | `sheets --validate` (every checklist row has a current view) and a person or agent actually looking at the sheets |
+| Orientation and UV | client `uv` scene, once per model |
+| Animation reads | `anim sheet`, then client burst frames per action |
+| Behaviour | GameTests, one per rule; negative tests for the things that must not happen |
+| Numbers | `devlog` rules over `MCFORGE-TRACE` lines: spring peaks, chain stretch, spawn offsets, frame rate with one and with eight instances |
+| Nothing is missing | `devlog` built-ins: script finished, no exception naming the mod, no unknown sound, no missing model or texture |
+| Sounds | `audio-check`; say "not listened to" until someone has |
+
+Performance budget that held: about 1 ms of CPU per instance, and eight instances keeping at least 60 % of the empty-scene frame rate. The usual wins: draw glow only for cubes that have glow texels, bake colour variants instead of tint passes, cull back faces on the CPU for closed shells.
+
+## Planning and evidence
+
+- A plan is a task table (`| ID | Task | Status | Depends on | Verify | Evidence |`) where every row has a command or file that proves it. `build_assets.py plan status` updates a row; `plan reprove` reruns every proof at the release commit.
+- Keep the plan and state ledgers out of the commits whose hashes they record.
+- Evidence tiers are separate claims: compile, package, server load, client load, gameplay. Report the ones that ran.
+- A client screenshot run proves rendering, not feel. Say what nobody has checked: sound by ear, the real pack, shaders, multiplayer.

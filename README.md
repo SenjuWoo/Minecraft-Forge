@@ -66,9 +66,10 @@ On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies th
 | Armor sets (icons + worn layers) | `add P armor NAME --tier iron --repair ITEM` | `guide content` |
 | Furniture (shaped, facing, collision) | `add P furniture NAME --shape chair\|table\|stool\|bench\|shelf\|cabinet\|lamp\|pedestal` | `guide content` |
 | Mobs (entity, AI, model, renderer, spawn egg) | `add P mob NAME --shape quadruped\|biped\|blob [--hostile]` | `guide content` |
-| Animated GeckoLib entities, secondary motion, custom AI | `libs --add geckolib --project P`, `model-check FILE`, `ground ANIM --geo GEO --legs ... --clips ...` | `guide entities` |
+| A character mob: generated model, textures, animation, springs, sounds wiring (GeckoLib, NeoForge 1.21.1) | `pipeline P --mob NAME`, `kit P geomob --mob NAME`, `devshots P`, `devlog P` | `guide mobs`, `guide api` |
+| Animated GeckoLib entities, secondary motion, custom AI | `libs --add geckolib --project P`, `kit P springs\|layer\|bonemath`, `model-check FILE`, `ground ANIM --geo GEO --legs ... --clips ...` | `guide entities` |
 | Organic voxel models from shapes (no z-fighting) | `voxel SPEC.json --project P` | `guide entities` |
-| Screenshots from a real client, recorded as evidence | `devshots P`, `verify P --client` | `guide testing` |
+| Scripted screenshots from a real client, recorded as evidence, and a gate over its log | `devshots P`, `verify P --client [--scenes a,b]`, `devlog P [--rules FILE]` | `guide testing` |
 | Start from scratch (no example block/item) | `quickstart P ... --no-examples` | `guide testing` |
 | Sounds, original SFX and voice lines | `audio-check P`, OGG pipeline | `guide audio` |
 | Blockbench models in and out | `bbmodel P FILE --block ID` / `--entity ID`; furniture and mobs ship a `.bbmodel` | `guide content` |
@@ -88,7 +89,7 @@ Project targets are locked (game, loader, Java, Gradle distribution and checksum
 
 ## Commands
 
-`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` problems, `jar`/`inventory` errors), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
+`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `devlog` `kit` `pipeline` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` or `devlog` problems, `jar`/`inventory` errors), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
 
 ## Scope and limits
 

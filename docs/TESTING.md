@@ -86,9 +86,39 @@ Bare NeoForge 1.21.1 `init` keeps the stock MDK, which contains **zero GameTests
 
 `client_load` and looks are only proven in a client. A development-only client run can stage scenes, save screenshots and quit with nobody at the keyboard, which is far cheaper than asking the user to look. Put it in the `gameTest` source set so it never reaches the JAR.
 
-**Generated (NeoForge 1.21.1):** `devshots PROJECT [--subject mymod:cave_boar]` writes `DevShots.java` into the test mod and a `devShots` client run into `build.gradle` (the project needs the test mod: `tests PROJECT` or `init --with-tests`). `verify PROJECT --client` then builds, runs the client, requires the driver's `MCFORGE-DEVSHOTS done N` marker and N fresh screenshots, copies them into the receipt folder and records `client_load: passed`. The driver creates a flat creative world, summons the subject with NoAI, takes ten turntable and close-up shots and quits; extend its `STATIONS` or tick script for actions, night passes or sound sweeps. A display is required, so CI cannot run it; `gameplay` stays `not_run`. The first run downloads the game assets and can take several minutes.
+**Generated (NeoForge 1.21.1):** `devshots PROJECT [--subject mymod:cave_boar]` writes two files into the test mod and a `devShots` client run into `build.gradle` (the project needs the test mod: `tests PROJECT` or `init --with-tests`):
 
-The hand-written pattern below is what the generated driver does, plus the techniques for richer scenes.
+- `DevShots.java`, the engine: creates a flat creative world (it also dismisses the first-launch accessibility screen of a new game directory), then plays a script one step at a time and quits. `devshots --force` replaces it.
+- `DevScenes.java`, the script, yours and never overwritten: scenes built from steps. Starter scenes: `turntable` (ten shots), `uv` (orientation proof with the UV test texture, including straight above and below) and `night`.
+
+```java
+if (DevShots.wanted("attack")) {
+    s.shotFramed("attack_before", 30f, 10f, 1.0);
+    s.burst("attack", e -> ((MyMob) e).triggerAnim("action", "attack"), 2, 6, 10, 14);   // server-side start, frames by tick
+    s.server(20, e -> ((MyMob) e).setTarget(null));
+    s.then(1, mc -> DevShots.trace("reach", "tick=6 dist=1.82"));                          // a number for devlog
+}
+```
+
+Script steps: `cmd`, `waitTicks`, `shotAt(name, yaw, pitch, distance, aimY)`, `shotFramed(name, yaw, pitch, factor)`, `server(wait, action)` (runs on the integrated server for the subject), `burst(name, start, ticks...)`, `then(wait, action)`. A step runs its action and then waits `wait` ticks, so a wait of n puts the next step n + 1 ticks later; a wait of 0 gives one step per tick (moving a subject a fixed distance every tick).
+
+`verify PROJECT --client [--scenes turntable,attack]` builds, runs the client, requires the driver's `MCFORGE-DEVSHOTS done N` marker and N fresh screenshots, copies them into the receipt folder and records `client_load: passed`. `--scenes` limits the run to named scenes (it writes `run-devshots/scenes.txt`); a full run before release, single scenes while iterating. The receipt warns when three or more consecutive screenshots are byte-identical: clicking or focusing the game window during a run freezes the camera while the script keeps going. A display is required, so CI cannot run it; `gameplay` stays `not_run`. The first run downloads the game assets and can take several minutes.
+
+**Gate the log, not only the pictures:** `devlog PROJECT [--rules FILE] [--gate NAME]` reads the run's log. Without rules it fails on an unfinished script, exceptions that name the mod or its libraries, sound events without a sound and missing models or textures of the mod. With rules (default `PROJECT/devlog-rules.json`) it also checks `MCFORGE-TRACE kind key=value ...` lines that the scenes (`DevShots.trace`) and dev-flagged mod code (`kit PROJECT trace`, enabled by `-Dmcforge.trace=true`, which the devShots run sets) print:
+
+```json
+{"gates": {"final": [
+  {"kind": "spring", "where": {"id": "physics"}, "group_by": "name", "pick": "last", "field": "peak", "min": 0.65, "max": 0.85},
+  {"kind": "chain", "skip": {"id": "teleport*"}, "field": "stretch", "min": 0.9, "max": 1.15},
+  {"kind": "spawn", "field": "dist", "max": 0.25},
+  {"kind": "fps", "compare": {"field": "fps", "a": {"scene": "eight"}, "b": {"scene": "one"}, "min_ratio": 0.6}, "severity": "warn"}]}}
+```
+
+Numbers worth tracing: spring peaks against their clamps, chain stretch, the distance between where the server spawned something and where the client drew its source at that tick, rendered levels against synced values, hit targets reached, frames per second with one and with eight instances. Its output also summarises every trace kind (count, min, max, last per field), which is enough to pick thresholds.
+
+Making scenes repeatable: a NoAI subject, one server action per step, a fresh patch of ground away from earlier scenes, other entities removed, hold the subject's yaw (an idle mob's body drifts toward its head). Do not run two clients, or a client beside another GPU job, when you measure frame rate or timing.
+
+The hand-written pattern below is what the generated engine does, plus the techniques for richer scenes.
 
 `build.gradle`:
 

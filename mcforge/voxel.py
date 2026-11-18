@@ -21,9 +21,11 @@ Spec (JSON):
                     {"capsule": {"a": [0, 8, -5], "b": [0, 10, -8], "ra": 3, "rb": 2.2}}]}}}]}
 
 Shapes: ellipsoid {center, radii}, superellipsoid {center, radii, exponent},
-capsule {a, b, ra, rb}, box {min, max}, union [shapes], smooth_union {k, of},
-subtract {from, remove}. A blob may set its own "cell" and "order" (greedy axis
-order, default "yxz").
+capsule {a, b, ra, rb}, box {min, max}, torus {center, axis, major, minor},
+halfspace {point, normal} (inside where (p - point) . normal < 0; only inside
+intersect or subtract), union [shapes], smooth_union {k, of}, intersect [shapes],
+subtract {from, remove}. A blob may set its own "cell", "texels_per_pixel" and
+"order" (greedy axis order, default "yxz").
 """
 from __future__ import annotations
 
@@ -40,6 +42,10 @@ from .shapes import _texture_entry, _uuid
 FACES = ("north", "south", "east", "west", "up", "down")
 MAX_CELLS = 2_000_000
 MAX_ATLAS = 4096
+# model-check flags same-facing planes closer than 0.01 px; blobs keep a slightly wider window between visible faces.
+PLANE_WINDOW = 0.012
+PLANE_BUCKET = 0.005
+UNBOUNDED = 1.0e6
 NAME = re.compile(r"[a-z][a-z0-9_]{0,63}")
 
 
@@ -122,7 +128,44 @@ def build_shape(spec) -> tuple:
     if kind == "subtract":
         keep, cut = build_shape(body.get("from")), build_shape(body.get("remove"))
         return (lambda x, y, z: max(keep[0](x, y, z), -cut[0](x, y, z))), keep[1]
-    raise ValueError(f"Unknown shape {kind!r}: use ellipsoid, superellipsoid, capsule, box, union, smooth_union or subtract")
+    if kind == "intersect":
+        if not isinstance(body, list) or len(body) < 2:
+            raise ValueError("intersect needs a list of at least two shapes")
+        parts = [build_shape(item) for item in body]
+        functions = [part[0] for part in parts]
+        low = tuple(max(part[1][0][i] for part in parts) for i in range(3))
+        high = tuple(min(part[1][1][i] for part in parts) for i in range(3))
+        if any(high[i] <= low[i] for i in range(3)):
+            raise ValueError("intersect: the shapes' bounds do not overlap")
+        if any(abs(v) >= UNBOUNDED for v in low + high):
+            raise ValueError("intersect needs at least one bounded shape on every axis")
+        return (lambda x, y, z: max(g(x, y, z) for g in functions)), (low, high)
+    if kind == "halfspace":
+        point, normal = _vec(body.get("point"), "halfspace.point"), _vec(body.get("normal"), "halfspace.normal")
+        length = math.sqrt(sum(v * v for v in normal))
+        if length < 1e-9:
+            raise ValueError("halfspace.normal must not be zero")
+        unit = tuple(v / length for v in normal)
+        return ((lambda x, y, z: (x - point[0]) * unit[0] + (y - point[1]) * unit[1] + (z - point[2]) * unit[2]),
+                ((-UNBOUNDED,) * 3, (UNBOUNDED,) * 3))
+    if kind == "torus":
+        c = _vec(body.get("center"), "torus.center")
+        axis = body.get("axis", "y")
+        if axis not in ("x", "y", "z"):
+            raise ValueError("torus.axis must be x, y or z")
+        major, minor = _positive(body.get("major"), "torus.major"), _positive(body.get("minor"), "torus.minor")
+        a = "xyz".index(axis)
+        b1, b2 = [i for i in range(3) if i != a]
+
+        def f(x, y, z):
+            p = (x - c[0], y - c[1], z - c[2])
+            ring = math.sqrt(p[b1] * p[b1] + p[b2] * p[b2]) - major
+            return (ring * ring + p[a] * p[a]) / (minor * minor) - 1
+        reach = [major + minor] * 3
+        reach[a] = minor
+        return f, (tuple(c[i] - reach[i] for i in range(3)), tuple(c[i] + reach[i] for i in range(3)))
+    raise ValueError(f"Unknown shape {kind!r}: use ellipsoid, superellipsoid, capsule, box, torus, halfspace, union, "
+                     "smooth_union, intersect or subtract")
 
 
 # ------------------------------------------------------------------ voxels and partition
@@ -269,10 +312,11 @@ def build_voxel_model(spec: dict) -> dict:
         count = 0
         for low, high, kept in candidate:
             for axis, sign, plane, rect in faces_of(low, high, kept):
-                bucket = round(plane / 0.005)
-                for key in ((axis, sign, bucket - 1), (axis, sign, bucket), (axis, sign, bucket + 1)):
+                bucket = round(plane / PLANE_BUCKET)
+                span = math.ceil(PLANE_WINDOW / PLANE_BUCKET) + 1
+                for key in ((axis, sign, bucket + d) for d in range(-span, span + 1)):
                     for other_plane, other in placed.get(key, ()):
-                        if abs(other_plane - plane) <= 0.005 and all(
+                        if abs(other_plane - plane) <= PLANE_WINDOW and all(
                                 min(a[1], b[1]) - max(a[0], b[0]) > 1e-3 for a, b in zip(rect, other)):
                             count += 1
         return count
@@ -286,6 +330,9 @@ def build_voxel_model(spec: dict) -> dict:
             raise ValueError(f"blob {blob_name!r}: unknown bone {blob.get('bone')!r}")
         blob_cell = _positive(blob.get("cell", cell), f"blob {blob_name}.cell")
         f, bounds = build_shape(blob.get("shape"))
+        if any(abs(v) >= UNBOUNDED for v in bounds[0] + bounds[1]):
+            raise ValueError(f"blob {blob_name!r}: a halfspace alone is unbounded; put it inside intersect or subtract")
+        blob_density = _positive(blob.get("texels_per_pixel", density), f"blob {blob_name}.texels_per_pixel")
         colour = _colour(blob.get("color", "#9a9a9a"))
         best = None
         # Try sub-pixel grid offsets until no visible face lies on a visible face of an earlier blob.
@@ -311,16 +358,17 @@ def build_voxel_model(spec: dict) -> dict:
         for number, (low, high, kept) in enumerate(candidate):
             faces_total += 6
             cubes.append({"name": f"{blob_name}_{number}", "blob": blob_name, "bone": blob["bone"], "min": low, "max": high,
-                          "faces": kept, "colour": colour, "offset": offset})
+                          "faces": kept, "colour": colour, "offset": offset,
+                          "density": blob_density})
             for axis, sign, plane, rect in faces_of(low, high, kept):
-                placed.setdefault((axis, sign, round(plane / 0.005)), []).append((plane, rect))
+                placed.setdefault((axis, sign, round(plane / PLANE_BUCKET)), []).append((plane, rect))
     # Texture rectangles: one per kept face, sized to the face at the chosen texel density.
     rects, owners = [], []
     for cube in cubes:
         size = tuple(cube["max"][a] - cube["min"][a] for a in range(3))
         for face in cube["faces"]:
             fw, fh = _face_dims(face, size)
-            rects.append((max(1, round(fw * density)), max(1, round(fh * density))))
+            rects.append((max(1, round(fw * cube["density"])), max(1, round(fh * cube["density"]))))
             owners.append((cube, face))
     positions, width, height = pack(rects)
     texture, uv_test = blank(width, height), blank(width, height)
@@ -333,9 +381,11 @@ def build_voxel_model(spec: dict) -> dict:
             for tx in range(w):
                 jitter = 1.0 + (rng.random() - 0.5) * 0.12
                 put(texture, x + tx, y + ty, tuple(min(255, int(c * jitter)) for c in cube["colour"]))
-                # UV test: dark to bright left to right (as seen from outside), a hue per face direction.
+                # UV test: dark to bright along u, a hue per face direction, and a white band on the first rows of v,
+                # so a flipped u or v shows from any side (see guide entities for where each face's u and v run).
                 ramp = 0.25 + 0.75 * (tx + 0.5) / w
-                put(uv_test, x + tx, y + ty, tuple(int(c * ramp) for c in hues[face]))
+                top = ty < max(1, round(h * 0.18)) and h > 1
+                put(uv_test, x + tx, y + ty, (255, 255, 255) if top else tuple(int(c * ramp) for c in hues[face]))
     # GeckoLib geometry (Bedrock layout: x mirrored).
     bounds_low = tuple(min(c["min"][a] for c in cubes) for a in range(3))
     bounds_high = tuple(max(c["max"][a] for c in cubes) for a in range(3))

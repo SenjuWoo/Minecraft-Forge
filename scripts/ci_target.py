@@ -4,13 +4,16 @@ Scaffolds the target (without the template's example content, so the
 stripped main class is compiled too), adds every content kind, makes server-load evidence
 available the way that target needs, runs `verify` and asserts the receipt:
 compile, package and server load passed, client/gameplay honestly not run, the
-generated classes are in the JAR and test code is not.
+generated classes are in the JAR and test code is not. On neoforge-1.21.1 it also
+builds a GeckoLib mob the 1.4 way (library by version, asset pipeline, mob kit), so
+the kit classes compile and load on a clean machine.
 
     python scripts/ci_target.py TARGET_ID [WORK_DIR]
 """
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -48,8 +51,19 @@ def main() -> int:
     verify = ["verify", str(project)]
     if target == "neoforge-1.21.1":
         run("tests", str(project))
+        # A GeckoLib mob: the library by version number (resolved to the NeoForge file's id), the generated assets
+        # and constants of the pipeline example, and the kit classes that read them.
+        resolved = run("libs", "--add", "geckolib", "--project", str(project), "--version", "4.9.3")
+        assert resolved["loader"] == "neoforge" and resolved["version"] == "4.9.3", resolved
+        pipe = run("pipeline", str(project), "--mob", "ci_sentinel", "--dir", str((work / f"{target}-pipeline").resolve()))
+        run("kit", str(project), "geomob", "--mob", "ci_sentinel")
+        built = subprocess.run([sys.executable, str(Path(pipe["pipeline"]) / "build_assets.py"), "all", "--validate"], cwd=ROOT,
+                               env=dict(os.environ, PIPELINE_NO_VENV="1", PYTHONPATH=str(ROOT),
+                                        MCFORGE_COMMAND=json.dumps([sys.executable, "-m", "mcforge"])))
+        if built.returncode:
+            raise SystemExit(f"the scaffolded asset pipeline exited {built.returncode}")
         # The screenshot driver must compile in the test source set and stay inert on the game-test server.
-        run("devshots", str(project))
+        run("devshots", str(project), "--subject", f"{mod_id}:ci_sentinel")
     elif lock["family"] != "fabric-loom":
         verify.append("--load")
     run(*verify)
@@ -68,6 +82,11 @@ def main() -> int:
     assert not any(name.startswith(f"{package}/testing/") for name in names), "test code leaked into the mod JAR"
     assert f"assets/{mod_id}/textures/entity/cave_boar.png" in names
     if target == "neoforge-1.21.1":
+        for name in ("ci_sentinel/CiSentinelEntity.class", "ci_sentinel/client/CiSentinelModel.class", "kit/SpringBones.class",
+                     "kit/SharedBoneLayer.class", "gen/CiSentinelRig.class", "gen/CiSentinelClips.class"):
+            assert f"{package}/{name}" in names, f"{name} missing from the mod JAR"
+        for name in ("geo/entity/ci_sentinel.geo.json", "animations/entity/ci_sentinel.animation.json", "textures/entity/ci_sentinel.png"):
+            assert f"assets/{mod_id}/{name}" in names, f"{name} missing from the mod JAR"
         # The arena regression test: a horse at ArenaTests.STAND stays on the floor, alive and unhurt.
         assert any("largemobstandsunhurtonthearenafloor" in name.lower() for name in receipt["tests"]["names"]), receipt["tests"]
     run("verify", str(project), "--check")

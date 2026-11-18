@@ -269,10 +269,28 @@ def _acquire(lock_path: Path):
 CLIENT_TIMEOUT = 1800  # seconds; the first client run also downloads the game assets
 
 
-def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs: dict) -> list[str]:
+def frozen_frames(paths: list[Path], run: int = 3) -> list[str]:
+    """First name of every run of at least `run` byte-identical consecutive screenshots.
+
+    A clicked or focused game window stops following the driver's camera teleports: every later frame is the same
+    picture. Identical neighbours are the cheap, reliable sign of it.
+    """
+    found, streak, previous = [], 1, None
+    for path in paths:
+        current = digest(path)
+        streak = streak + 1 if current == previous else 1
+        if streak == run:
+            found.append(path.name)
+        previous = current
+    return found
+
+
+def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs: dict, scenes: str | None = None) -> list[str]:
     """Run the devShots client, require its done marker and fresh screenshots, keep copies as evidence."""
     import shutil
     import time
+    from .devshots import set_scenes
+    scenes = set_scenes(project, scenes)
     log = run_dir / "client.log"
     step = {"tasks": ["runDevShots"], "started_at": _now(), "log": str(log)}
     receipt["commands"].append(step)
@@ -303,13 +321,18 @@ def _client_run(project: Path, run_dir: Path, receipt: dict, home: Path, inputs:
         shots.append(copy.relative_to(project).as_posix())
     if count < 1 or len(shots) != count:
         raise ValueError(f"The client reported {count} screenshots but {len(shots)} were found")
-    receipt["client"] = {"run": "runDevShots", "subject": done.group(2), "screenshots": shots}
+    receipt["client"] = {"run": "runDevShots", "subject": done.group(2), "scenes": scenes or "all", "screenshots": shots}
+    frozen = frozen_frames([project / shot for shot in shots])
+    if frozen:
+        receipt["client"]["identical_frames"] = frozen
+        receipt["warnings"].append(f"{len(frozen)} run(s) of identical consecutive screenshots (first: {frozen[0]}): the camera "
+                                   "or the client froze, usually because the game window was clicked; rerun without touching it")
     receipt["tiers"]["client_load"] = "passed"
     return shots
 
 
 def verify_project(project: Path, java_home: Path | None = None, *, starter: bool = False, load: bool = False,
-                   client: bool = False) -> dict:
+                   client: bool = False, scenes: str | None = None) -> dict:
     project = Path(os.path.abspath(project))
     guard_output(project)
     if not project.is_dir():
@@ -385,7 +408,7 @@ def verify_project(project: Path, java_home: Path | None = None, *, starter: boo
         if starter:
             from scripts.verify_starter import verify
             receipt["starter"] = verify(project)
-        client_shots = _client_run(project, run_dir, receipt, home, inputs) if client else []
+        client_shots = _client_run(project, run_dir, receipt, home, inputs, scenes) if client else []
         if _inputs(project) != inputs or _generated(project) != receipt["generated"]:
             raise ValueError("Project inputs/generated data changed while collecting verification evidence")
         outputs = [artifact.relative_to(project).as_posix()]

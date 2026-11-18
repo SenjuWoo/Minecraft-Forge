@@ -363,19 +363,29 @@ class LibraryTests(Temp):
         self.assertGreater(len(libs.catalog()["libraries"]), 40)
 
     def test_add_writes_one_replaceable_block_per_build_system(self):
-        cases = {"fabric-1.20.1": 'modImplementation "maven.modrinth:geckolib:4.8.4"',
-                 "forge-1.20.1": 'implementation fg.deobf("maven.modrinth:geckolib:4.8.4")',
-                 "neoforge-1.21.1": 'implementation "maven.modrinth:geckolib:4.8.4"',
-                 "fabric-26.3": 'implementation "maven.modrinth:geckolib:4.8.4"'}
+        # A version number is resolved to the release's version id for the project's loader (one number can name
+        # files for several loaders); the id is what goes into the Gradle coordinate.
+        cases = {"fabric-1.20.1": 'modImplementation "maven.modrinth:geckolib:AbCd1234"',
+                 "forge-1.20.1": 'implementation fg.deobf("maven.modrinth:geckolib:AbCd1234")',
+                 "neoforge-1.21.1": 'implementation "maven.modrinth:geckolib:AbCd1234"',
+                 "fabric-26.3": 'implementation "maven.modrinth:geckolib:AbCd1234"'}
+        rows = [{"version_number": "4.9.0", "id": "Newer999", "version_type": "release", "dependencies": [],
+                 "files": [{"primary": True, "filename": "geckolib-4.9.0.jar", "url": "https://example.invalid/a", "hashes": {}}]},
+                {"version_number": "4.8.4", "id": "AbCd1234", "version_type": "release", "dependencies": [],
+                 "files": [{"primary": True, "filename": "geckolib-4.8.4.jar", "url": "https://example.invalid/b", "hashes": {}}]}]
+        from unittest.mock import patch
         for target_id, line in cases.items():
-            with self.subTest(target=target_id):
+            with self.subTest(target=target_id), patch("mcforge.libs._get", return_value=rows):
                 path = self.make(target_id)
                 libs.add(path, "geckolib", "4.8.4")
-                libs.add(path, "geckolib", "4.8.4")
+                result = libs.add(path, "geckolib", "4.8.4")
+                self.assertEqual(result["version_id"], "AbCd1234")
                 build = (path / "build.gradle").read_text()
                 self.assertIn(line, build)
                 self.assertEqual(build.count("// mcforge libs: geckolib"), 1)
                 self.assertEqual(project.inspect_project(path)["errors"], [])
+        with patch("mcforge.libs._get", return_value=rows), self.assertRaisesRegex(ValueError, "no neoforge release 9.9.9"):
+            libs.add(self.root / "neoforge-1.21.1", "geckolib", "9.9.9")
         with self.assertRaisesRegex(ValueError, "safe"):
             libs.add(self.root / "neoforge-1.21.1", "geckolib", "1.0;evil")
 
@@ -400,11 +410,11 @@ class CliTests(Temp):
     def test_plan_routes_animated_entities_and_sounds_to_their_guides(self):
         result = json.loads(self.invoke(["plan", "an animated geckolib mob with voice lines and sfx"])[1])
         routes = {step.get("route"): step for step in result["steps"]}
-        self.assertEqual(routes["animated entity"]["guide"], "entities")
+        self.assertEqual(routes["character mob (GeckoLib)"]["guide"], "mobs")   # 1.4.0: the mob build path
         self.assertEqual(routes["sounds"]["guide"], "audio")
         self.assertIn("mob", routes)
         result = json.loads(self.invoke(["plan", "a bright red ore block"])[1])
-        self.assertNotIn("animated entity", {step.get("route") for step in result["steps"]})
+        self.assertNotIn("character mob (GeckoLib)", {step.get("route") for step in result["steps"]})
 
     def test_entity_and_audio_guides_print(self):
         for topic, marker in (("entities", "[-rx, -ry, rz]"), ("audio", "libvorbis")):

@@ -74,7 +74,8 @@ def _project_target(project: Path) -> tuple[str, str, str]:
     return lock.get("loader", "neoforge"), lock["minecraft"], family
 
 
-def resolve(slug: str, loader: str, minecraft: str) -> dict:
+def resolve(slug: str, loader: str, minecraft: str, version: str | None = None) -> dict:
+    """Newest matching release, or with `version` the release of that version number (or version id) for this loader."""
     if not SLUG.fullmatch(slug):
         raise ValueError("Library slug must be a Modrinth project slug, e.g. geckolib")
     loaders = [loader] + (["fabric"] if loader == "quilt" else [])
@@ -83,6 +84,14 @@ def resolve(slug: str, loader: str, minecraft: str) -> dict:
     releases = [row for row in versions if row.get("version_type") == "release"] or versions
     if not releases:
         raise ValueError(f"{slug} publishes no {loader} file for Minecraft {minecraft}; pick another library or version")
+    if version:
+        # One version number can name files for several loaders; only the version id is unique, so the number is
+        # matched among this loader's releases and the id goes into the Gradle coordinate.
+        named = [row for row in versions if version in (row.get("version_number"), row.get("id"))]
+        if not named:
+            known = ", ".join(row["version_number"] for row in versions[:8])
+            raise ValueError(f"{slug} has no {loader} release {version} for Minecraft {minecraft}; available: {known}")
+        releases = named
     row = releases[0]
     primary = next((item for item in row["files"] if item.get("primary")), row["files"][0])
     dependencies = []
@@ -100,7 +109,7 @@ def resolve(slug: str, loader: str, minecraft: str) -> dict:
             "sha512": primary["hashes"].get("sha512"), "sha1": primary["hashes"].get("sha1"), "size": primary.get("size"),
             # The version id is unique; one version number can name files for several loaders and Minecraft versions.
             "dependencies": dependencies, "maven": f"maven.modrinth:{slug}:{row['id']}",
-            "note": "Newest matching release on Modrinth; a candidate, not compatibility proof"}
+            "note": ("The requested release" if version else "Newest matching release") + " on Modrinth; a candidate, not compatibility proof"}
 
 
 def configuration(family: str, project: Path) -> str:
@@ -133,8 +142,7 @@ def add(project: Path, slug: str, version: str | None = None) -> dict:
     loader, minecraft, family = _project_target(project)
     if version and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", version):
         raise ValueError("Version contains characters that are not safe in a Gradle coordinate")
-    resolved = resolve(slug, loader, minecraft) if not version else {"slug": slug, "version": version,
-                                                                     "maven": f"maven.modrinth:{slug}:{version}", "dependencies": []}
+    resolved = resolve(slug, loader, minecraft, version)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", resolved["maven"].rsplit(":", 1)[1]):
         raise ValueError("Version contains characters that are not safe in a Gradle coordinate")
     path = project / "build.gradle"

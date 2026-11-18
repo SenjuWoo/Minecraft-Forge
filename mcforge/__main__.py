@@ -29,7 +29,42 @@ from .workbench import ROOT, check_java, default_launcher, guard_output, init_pr
 
 GUIDES = {"workflow": "WORKFLOW.md", "neoforge": "NEOFORGE.md", "fabric": "FABRIC.md", "forge": "FORGE.md", "content": "CONTENT.md",
           "assets": "ASSETS.md", "libraries": "LIBRARIES.md", "launchers": "LAUNCHERS.md", "packs": "PACKS.md",
-          "tools": "TOOLS.md", "testing": "TESTING.md", "entities": "ENTITIES.md", "audio": "AUDIO.md"}
+          "tools": "TOOLS.md", "testing": "TESTING.md", "entities": "ENTITIES.md", "audio": "AUDIO.md", "api": "API.md",
+          "mobs": "MOBS.md"}
+LOCAL_GUIDE = __import__("re").compile(r"[a-z0-9][a-z0-9_-]{0,40}")
+
+
+def local_guide_dirs() -> list[Path]:
+    """Folders of private, machine-local guides: MCFORGE_GUIDES (path list) and local/guides beside the toolkit.
+
+    They are never packaged or installed over: notes that belong to one machine or one owner (house style,
+    private project lessons) load through the same `guide NAME` as the bundled ones.
+    """
+    folders = [Path(part) for part in os.environ.get("MCFORGE_GUIDES", "").split(os.pathsep) if part]
+    return folders + [ROOT / "local" / "guides"]
+
+
+def local_guides() -> dict[str, Path]:
+    found: dict[str, Path] = {}
+    for folder in local_guide_dirs():
+        if folder.is_dir():
+            for path in sorted(folder.glob("*.md")):
+                name = path.stem.lower()
+                if LOCAL_GUIDE.fullmatch(name) and name not in GUIDES and name not in found:
+                    found[name] = path
+    return found
+
+
+def guide_text(topic: str) -> str:
+    if topic in GUIDES:
+        return (ROOT / "docs" / GUIDES[topic]).read_text(encoding="utf-8")
+    extra = local_guides()
+    if topic in extra:
+        if extra[topic].stat().st_size > 2 * 1024 * 1024:
+            raise ValueError("Local guide exceeds 2 MiB")
+        return extra[topic].read_text(encoding="utf-8-sig")
+    raise ValueError(f"Unknown guide {topic!r}: bundled {', '.join(sorted(GUIDES))}"
+                     + (f"; local {', '.join(sorted(extra))}" if extra else ""))
 OPTIONAL_TOOLS = ("blockbench", "magick", "ffmpeg", "krita", "gimp", "aseprite", "audacity", "blender", "rg")
 
 
@@ -217,8 +252,10 @@ def capabilities() -> dict:
                             "choices": list(action.choices) if action.choices else None, "required": bool(action.required)})
         commands[name] = {"help": helps.get(name), "arguments": options}
     from .targets import list_targets
-    return {"version": __version__, "commands": commands, "guides": sorted(GUIDES), "targets": [row["id"] for row in list_targets()],
-            "content_kinds": list(CONTENT_KINDS), "mcp": "none; every command is a foreground CLI call"}
+    from .kit import KITS
+    return {"version": __version__, "commands": commands, "guides": sorted(GUIDES), "local_guides": sorted(local_guides()),
+            "targets": [row["id"] for row in list_targets()], "content_kinds": list(CONTENT_KINDS), "kits": list(KITS),
+            "mcp": "none; every command is a foreground CLI call"}
 
 
 def target_options(command):
@@ -256,6 +293,7 @@ def parser() -> argparse.ArgumentParser:
     verify_mode.add_argument("--starter", action="store_true", help="also assert the bundled example recipe and test identities")
     verify.add_argument("--load", action="store_true", help="also boot the headless game-test server: proves the mod and its data load")
     verify.add_argument("--client", action="store_true", help="also run the devShots client (devshots PROJECT) and record its screenshots: client_load")
+    verify.add_argument("--scenes", help="with --client: run only these DevScenes scenes (comma-separated), e.g. turntable,night")
     instances = commands.add_parser("instances", help="list launcher instances read-only: ATLauncher, Prism/MultiMC, CurseForge, Modrinth, official")
     instances.add_argument("--atlauncher", type=Path, help="ATLauncher folder; lists only that launcher")
     instances.add_argument("--launcher", default="all", choices=("all", "atlauncher", "prism", "curseforge", "modrinth", "vanilla"))
@@ -335,7 +373,23 @@ def parser() -> argparse.ArgumentParser:
     shots = commands.add_parser("devshots", help="scaffold a development-only client screenshot run (NeoForge 1.21.1 test mod)")
     shots.add_argument("path", type=Path)
     shots.add_argument("--subject", help="entity id to photograph (default: the project's first mob, else minecraft:pig)")
-    shots.add_argument("--force", action="store_true", help="replace an existing DevShots.java")
+    shots.add_argument("--force", action="store_true", help="replace the DevShots.java engine (DevScenes.java, your scene script, is kept)")
+    devlog = commands.add_parser("devlog", help="gate the dev client log: script finished, no mod errors, no missing sounds/assets, trace rules")
+    devlog.add_argument("path", type=Path, help="project directory")
+    devlog.add_argument("--log", type=Path, help="log file (default: run-devshots/logs/latest.log or the newest receipt's client.log)")
+    devlog.add_argument("--rules", type=Path, help="rules JSON (default: PROJECT/devlog-rules.json when present)")
+    devlog.add_argument("--gate", help="run only this gate of the rules (default: all)")
+    kit = commands.add_parser("kit", help="copy a Java kit for GeckoLib mobs: bonemath, trace, springs, layer, geomob")
+    kit.add_argument("path", type=Path, help="project directory")
+    kit.add_argument("kit", choices=("bonemath", "trace", "springs", "layer", "geomob"))
+    kit.add_argument("--mob", help="geomob: the mob's id, e.g. cave_stalker")
+    kit.add_argument("--hitbox", help="geomob: WIDTHxHEIGHT in blocks (default 0.7x1.9)")
+    kit.add_argument("--force", action="store_true", help="replace kit classes that already exist (generated gen/ placeholders are kept)")
+    pipe = commands.add_parser("pipeline", help="scaffold a code-driven asset pipeline (model, texture, animation, sounds) for a GeckoLib mob")
+    pipe.add_argument("path", type=Path, help="project directory")
+    pipe.add_argument("--mob", required=True, help="the mob's id, e.g. cave_stalker")
+    pipe.add_argument("--dir", type=Path, dest="directory", help="pipeline folder (default: asset-pipeline beside the project)")
+    pipe.add_argument("--force", action="store_true", help="refresh lib/ and the entry script; mob/, palette.json and pipeline.json are kept")
     audio = commands.add_parser("audio-check", help="sounds.json vs registered SoundEvents vs OGG files: format, duration, loudness")
     audio.add_argument("path", type=Path, help="project directory")
     audio.add_argument("--no-loudness", action="store_true", help="skip FFmpeg loudness measurement")
@@ -363,8 +417,8 @@ def parser() -> argparse.ArgumentParser:
     for option in ("--stacktrace", "--offline", "--info", "--all", "--rerun-tasks"):
         gradle.add_argument(option, action="append_const", const=option, dest="gradle_options", default=[])
     gradle.add_argument("--log", type=Path, help="write to a new log file; default is a unique file in PROJECT/build/mcforge/logs")
-    guide = commands.add_parser("guide", help="load just one focused agent reference")
-    guide.add_argument("topic", choices=GUIDES)
+    guide = commands.add_parser("guide", help="load just one focused agent reference (guide list shows bundled and local ones)")
+    guide.add_argument("topic", help="one of: " + ", ".join(sorted(GUIDES)) + ", list, or a local guide name")
     search = commands.add_parser("search", help="query Modrinth, filtered to one loader and an exact Minecraft version")
     search.add_argument("query")
     search.add_argument("--minecraft", default="1.21.1")
@@ -429,6 +483,10 @@ def main(argv=None) -> int:
                 emit(check_receipt(args.path))
             else:
                 extra = {key: True for key in ("load", "client") if getattr(args, key)}
+                if args.scenes and not args.client:
+                    raise ValueError("--scenes filters the client run; use it with --client")
+                if args.scenes:
+                    extra["scenes"] = args.scenes
                 emit(verify_project(args.path, args.java_home, starter=args.starter, **extra))
         elif args.command == "instances":
             from .launchers import discover
@@ -483,6 +541,23 @@ def main(argv=None) -> int:
         elif args.command == "devshots":
             from .devshots import add_devshots
             emit(add_devshots(args.path, args.subject, force=args.force))
+        elif args.command == "devlog":
+            from .devlog import check_devlog
+            result = check_devlog(args.path, args.log, args.rules, args.gate)
+            emit(result)
+            return 1 if result["problems"] else 0
+        elif args.command == "kit":
+            from .kit import add_kit
+            hitbox = (0.7, 1.9)
+            if args.hitbox:
+                parts = args.hitbox.lower().split("x")
+                if len(parts) != 2:
+                    raise ValueError("--hitbox is WIDTHxHEIGHT in blocks, e.g. 0.9x2.0")
+                hitbox = (float(parts[0]), float(parts[1]))
+            emit(add_kit(args.path, args.kit, args.mob, force=args.force, hitbox=hitbox))
+        elif args.command == "pipeline":
+            from .pipeline import add_pipeline
+            emit(add_pipeline(args.path, args.mob, args.directory, force=args.force))
         elif args.command == "audio-check":
             from .audiocheck import check_audio
             result = check_audio(args.path, measure=not args.no_loudness)
@@ -505,7 +580,11 @@ def main(argv=None) -> int:
             # stdout carries nothing else for this command, so its progress lines go there.
             return run_gradle(args.path, args.tasks, args.java_home, options=args.gradle_options, log_path=args.log, out=sys.stdout)
         elif args.command == "guide":
-            print((ROOT / "docs" / GUIDES[args.topic]).read_text(encoding="utf-8"))
+            if args.topic == "list":
+                emit({"bundled": sorted(GUIDES), "local": {name: str(path) for name, path in sorted(local_guides().items())},
+                      "local_folders": [str(folder) for folder in local_guide_dirs()]})
+            else:
+                print(guide_text(args.topic))
         elif args.command == "search":
             emit(search_mods(args.query, args.minecraft, args.loader))
         elif args.command == "sources":

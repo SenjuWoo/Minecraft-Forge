@@ -1,8 +1,10 @@
 """Scaffold the development-only client screenshot run (NeoForge 1.21.1 test mod).
 
-`devshots PROJECT` writes `DevShots.java` into the test source set and a `devShots`
-client run into build.gradle. `verify PROJECT --client` then runs it after the
-build and records the screenshots and log in the receipt (client_load tier).
+`devshots PROJECT` writes the scripted driver `DevShots.java` and a starter scene
+script `DevScenes.java` into the test source set and a `devShots` client run into
+build.gradle. `verify PROJECT --client [--scenes a,b]` then runs it after the build
+and records the screenshots and log in the receipt (client_load tier). The engine
+is replaced by `--force`; the scene script belongs to the project and is kept.
 """
 from __future__ import annotations
 
@@ -13,6 +15,8 @@ import re
 from .workbench import ROOT, guard_output, read_json
 
 TEMPLATE = "templates/devshots/DevShots.java"
+SCENES_TEMPLATE = "templates/devshots/DevScenes.java"
+SCENE_NAMES = re.compile(r"[a-z0-9_]+(,[a-z0-9_]+)*")
 BEGIN, END = "// mcforge devshots (toolkit: devshots PROJECT; verify PROJECT --client)", "// end mcforge devshots"
 SUBJECT = re.compile(r"[a-z0-9_.-]+:[a-z0-9_./-]+")
 
@@ -37,6 +41,7 @@ neoForge {{
             loadedMods = [neoForge.mods[project.mod_id], neoForge.mods["${{project.mod_id}}_tests"]]
             systemProperty 'mcforge.devshots', 'true'
             systemProperty 'mcforge.devshots.subject', '{subject}'
+            systemProperty 'mcforge.trace', 'true'
             programArguments.addAll('--width', '1280', '--height', '800')
         }}
     }}
@@ -64,6 +69,12 @@ def add_devshots(project: Path, subject: str | None = None, *, force: bool = Fal
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text((ROOT / TEMPLATE).read_text(encoding="utf-8").replace("@PACKAGE@", lock["package"]),
                       encoding="utf-8", newline="\n")
+    scenes = target.with_name("DevScenes.java")
+    scenes_written = not scenes.exists()
+    if scenes_written:
+        # The scene script is project-owned: written once, never replaced (also not by --force).
+        scenes.write_text((ROOT / SCENES_TEMPLATE).read_text(encoding="utf-8").replace("@PACKAGE@", lock["package"]),
+                          encoding="utf-8", newline="\n")
     build = project / "build.gradle"
     text = build.read_text(encoding="utf-8")
     block = gradle_block(subject)
@@ -75,7 +86,21 @@ def add_devshots(project: Path, subject: str | None = None, *, force: bool = Fal
     build.write_text(text, encoding="utf-8", newline="\n")
     lock["devshots"] = {"subject": subject}
     lock_path.write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
-    return {"project": str(project), "driver": str(target), "subject": subject, "run": "runDevShots",
+    return {"project": str(project), "driver": str(target), "scenes": str(scenes), "scenes_written": scenes_written,
+            "subject": subject, "run": "runDevShots",
             "screenshots": str(project / "run-devshots" / "screenshots"),
-            "next": "verify PROJECT --client (builds, runs the client, records the screenshots); "
+            "next": "edit DevScenes.java (one scene per feature), then verify PROJECT --client [--scenes a,b] "
+                    "(builds, runs the client, records the screenshots) and devlog PROJECT; "
                     "a display is required, so this does not run on headless CI"}
+
+
+def set_scenes(project: Path, scenes: str | None) -> str:
+    """Write (or clear) run-devshots/scenes.txt, the filter the driver reads; returns the normalised filter."""
+    value = (scenes or "").replace(" ", "")
+    if value and not SCENE_NAMES.fullmatch(value):
+        raise ValueError("--scenes is a comma-separated list of scene names (lowercase letters, digits, underscores)")
+    folder = Path(project) / "run-devshots"
+    guard_output(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "scenes.txt").write_text(value + "\n" if value else "", encoding="utf-8", newline="\n")
+    return value

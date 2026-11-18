@@ -29,6 +29,10 @@
 
 - Installed launcher keeps the caller's folder; one JSON error contract with documented exit codes; `search --loader`; `pack --zip` naming; Fabric loader versions in `targets`; stale verification locks; deploy never overwrites; write guards on every content command; every template hash-checked when packaging.
 
+## Added in 1.4.0
+
+- `pipeline` (a code-driven asset pipeline scaffold for GeckoLib mobs), `kit` (Java kits: bone math, spring solver, shared-bone layer, trace, a GeckoLib mob skeleton), a scripted `devshots` engine with scene filters, `devlog` (a rules gate over the client log), `guide mobs` and `guide api`, private local guides, more voxel shapes; the top and bottom face UV direction corrected.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).

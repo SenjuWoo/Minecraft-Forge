@@ -61,7 +61,13 @@ Synthesis in Python (numpy/scipy) gives original, licence-clean effects that fit
 
 - Generating many takes locally: check that no other job holds the GPU first (`nvidia-smi`). A text-to-sound job slowed from about 17 s to 5 minutes per take while another session's job shared the GPU.
 - Voice consistency: derive variants (hurt, panic, death) from a few base takes by pitch and time processing instead of generating each separately.
-- Loudness-match the set by RMS with a limiter; `audio-check` warns when mean loudness spans more than 9 dB.
+- Loudness-match the set by RMS with a limiter; `audio-check` warns when mean loudness spans more than 9 dB. Loudness normalisation (`loudnorm`) needs about three seconds of signal: on sub-second effects it gave a 24 dB spread and overshot voice by 4 LU. Trim padding silence, cap each take at its event's length, apply one static gain per file from measured RMS, then limit peaks (about -1.5 dBTP).
+- Targets measured from vanilla 1.21.1 sounds: voice about -24 dB mean, foley -26, soft ambience -27, hits -20.
+- Cut reaction sounds to their animation (a hurt grunt under a second); a sound longer than its clip trails into the next action.
+- Pick takes by measurement: score real voicing (a dialogue model sometimes renders a whistle or drone instead of a voice and its own ranking does not notice), pitch against the reference and a speech-to-text match of the words; non-verbal takes fail the word check by design.
+- One sound event per spoken line when a subtitle must show exactly those words, with the recorded length in ticks as a generated constant (talk time, queues); grouped events with variants for interchangeable cues.
+- A music disc that should fade with distance is mono, like every positional sound; `JukeboxSong.length_in_seconds` is the real length of the take, not the one requested.
+- Generate into a staging folder outside the mod and copy finished sets in: a running generation job must never change mod sources while `verify` hashes its inputs.
 
 ## Proving it
 

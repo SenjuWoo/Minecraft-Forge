@@ -72,7 +72,10 @@ Edit `gradle.properties` with an editor or a writer that produces UTF-8 **withou
 - Pipeline entry scripts run with `python -I` (isolated mode) do not see their own folder on `sys.path`: insert the script's directory before importing sibling modules.
 - Build validators into the generators (coplanar overlaps: `model-check FILE`, bone names the Java code references, UV inside the texture, sound events in `sounds.json` match the registry) so a broken asset fails before the game starts.
 - Iterate with evidence in this order: GameTests for behaviour (`guide testing`), a client screenshot run for looks and animation, then a deploy for the user to play. Each loop costs minutes, not a user round trip.
-- Guides: `guide entities` (GeckoLib conventions, head look, actions, secondary motion, custom AI), `guide audio` (sounds.json, synthesis, voice).
+- The toolkit ships that pipeline and the Java it feeds: `pipeline PROJECT --mob NAME`, `kit PROJECT geomob --mob NAME`, `devshots`, `devlog`. `guide mobs` is the whole path with the order of work that avoided rework.
+- Order by risk: scaffold, blockout, then the one mechanic the mob is defined by proven in a real client, then final art, behaviour, secondary motion, sounds. Decide the fallback for the risky mechanic in the plan.
+- Plan as a task table whose rows each name the command or file that proves them; re-prove the table at the release commit (`build_assets.py plan reprove`). Keep the plan and state ledgers out of the commits whose hashes they record.
+- Guides: `guide mobs` (the build path), `guide entities` (GeckoLib conventions, head look, actions, secondary motion, custom AI), `guide api` (verified NeoForge 1.21.1 and GeckoLib 4.9.3 signatures), `guide audio` (sounds.json, synthesis, voice). `guide list` also shows private guides kept on this machine (`local/guides/*.md` beside the toolkit, or folders in `MCFORGE_GUIDES`).
 - Deliverable layout that survives a later edit or share: `mod/` (the built JAR), `source/` (the Gradle project), `asset-pipeline/` (generators and raw takes), `media/` (screenshots, `.bbmodel`), plus a `MANIFEST.json` with JAR name, SHA-256, Minecraft/loader/Java versions, required mods with version ranges, test status and untested items. Large generator installs (TTS models, Python venvs with model weights) are tools, not project files: keep them out.
 
 ## Handoff

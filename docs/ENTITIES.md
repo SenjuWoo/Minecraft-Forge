@@ -2,6 +2,8 @@
 
 For mobs beyond `add PROJECT mob` (vanilla `EntityModel` rigs): keyframed animation, many bones, weapon swaps, secondary motion and custom behaviour. Measured on NeoForge 21.1.265 / Minecraft 1.21.1 with GeckoLib 4.9.3; recheck the conventions below against the GeckoLib version you pin (`sources --project PATH "GeoBone"` or `javap`).
 
+Start a new character mob with `guide mobs` (the build path: `pipeline`, `kit`, `devshots`, `devlog`) and keep `guide api` (verified signatures) at hand; this guide is the reasoning behind both.
+
 ## Dependency
 
 `libs --add geckolib --project PATH` writes an exact version. By hand on NeoForge 1.21.1:
@@ -41,8 +43,8 @@ Facts that follow from that:
 
 - Animation rotation is **added** to the bone's rest rotation, not substituted. Author poses as offsets from rest.
 - Front is north (-Z). Blockbench +X is the model's own right side as it faces you: name bones by the model's side (`arm_right`), not the viewer's, or write down which you chose.
-- Per-face UV direction, seen from outside the cube: `u` runs left to right on the side faces; `up` maps u along +X and v along +Z; `down` maps v along -Z. A UV-ramp texture rendered in the client proved all six.
-- Prove orientation once with a UV test texture: paint every face as a dark-to-bright left-to-right ramp with a letter, render front/back/both sides in the client, and check each face reads correctly from outside. A swapped east/west or flipped U shows up immediately; guessing it from code does not.
+- Per-face UV direction, seen from outside the cube: on the four side faces `u` runs left to right and `v` top to bottom. On `up`, u grows toward -X and v toward -Z; on `down`, u grows toward -X and v toward +Z (GeckoLib 4.9.3 quad builder, `guide api`; an earlier version of this guide had the top and bottom faces wrong).
+- Prove orientation once with a UV test texture: every face a dark-to-bright ramp along u with a white band where v starts (`voxel` and the pipeline write `NAME_uvtest.png`), rendered from the front, back, both sides, above and below in the client (`devshots` scene `uv`). A swapped east/west or flipped U shows up immediately; guessing it from code does not.
 
 ## Head look and procedural bones
 
@@ -76,12 +78,17 @@ Give look, physics and other procedural motion their **own bones that no animati
 - Feet and shoes: give them a separate bone/cube from the leg cuff so the cuff never overlaps the shoe faces at bent poses.
 - `withScale(f)` on the renderer scales the whole model; remember it when you convert world motion into model pixels (`16 / scale`).
 - **Babies are not scaled for you.** `GeoEntityRenderer` uses `isBaby()` only for limb swing. Override `scaleModelForRender(...)` and scale when `!isReRender`; the base method already skips re-renders, so layers do not scale twice.
-- Layers re-render the same baked model with `getRenderer().reRender(bakedModel, poseStack, bufferSource, animatable, renderType, bufferSource.getBuffer(renderType), partialTick, packedLight, packedOverlay, argbColour)`; any other loaded geo comes from `getGeoModel().getBakedModel(ResourceLocation)`.
-- `AutoGlowingGeoLayer` looks for `<texture>_glowmask.png` next to whatever texture the model returns, so every texture variant (baby, skins, armor) needs its own glowmask file, even an empty one.
+- Layers re-render the same baked model with `getRenderer().reRender(bakedModel, poseStack, bufferSource, animatable, renderType, bufferSource.getBuffer(renderType), partialTick, packedLight, packedOverlay, argbColour)`.
+- **A second geometry that shares the bones** (shell, glass, fluid, outline, armour, prop) comes from `GeckoLibCache.getBakedModels().get(location)`, with bone state copied from the main processor each frame (`kit PROJECT layer`). `getGeoModel().getBakedModel(other)` switches the animation processor to the other model: the layer then reads its own rest pose and never follows an animation.
+- `AutoGlowingGeoLayer` looks for `<texture>_glowmask.png` next to whatever texture the model returns, so every texture variant (baby, skins, armor) needs its own glowmask file of the same size with at least one opaque texel: an empty mask crashes texture registration.
+- Whole-model extra passes are the main per-instance cost. Draw glow only for the cubes that have glow texels, bake colour variants into textures instead of tinting a re-render, and cull back faces of closed shells; a 1,500-cube mob then costs about 1 ms of CPU.
+- Death: the red hurt overlay tints the whole death clip unless `getPackedOverlay` shows it only while `hurtTime > 0`.
 - Per-texel cutout works with the default `entityCutoutNoCull`: hair strand tips, chain-link holes and see-through straps need no translucent type. Use translucency only for partial alpha.
 - Run `model-check FILE` (`.bbmodel`, `.geo.json` or a block model) after every generator change: it lists same-facing, coplanar, overlapping faces in the rest pose, skips overlaps another cube covers (by containing or touching them from outside), and exits 1 while any remain. Every cube counts as opaque: re-check see-through cubes by eye. It compares cubes that share one rotation frame; check rotated parts and posed frames in a render.
 
 ## Secondary motion (hair, cloth, tails, dangling props, soft bodies)
+
+`kit PROJECT springs` copies a data-driven solver (`SpringBones`) that implements everything below; `pipeline` generates its spring table and tunes gains from the client trace. The principle:
 
 Cheap and convincing: a damped spring per degree of freedom, evaluated per rendered frame on the client and written as bone offsets.
 
@@ -95,6 +102,12 @@ v += (-k * x - c * v + force) * h;  x += v * h;
 - Store state per entity instance (a client-only field on the entity, typed as `Object`), never in a static.
 - Add an impulse on `hurtTime` rising for hit reactions. Use slightly different stiffness on paired parts so they never move in lockstep.
 - Tune from a logged trace (every spring's offset per tick while walking and galloping, next to its clamp), not from screenshots: aim for peaks at about 65-85 % of the clamp. A first tuning that rides the clamp at full speed looks stiff. Expose strength in a client config.
+- Frame-rate independence: entity motion is linear within a tick, so velocity jumps at tick boundaries. Filter the acceleration inside the fixed sub-steps (an exact exponential low-pass), not once per frame, or the same gains peak differently at 60 and 120 fps. Differentiate the entity's own translation once per game tick; a per-frame estimate turns every frame hitch into a lurch.
+- A long frame (screenshot, chunk load, GC) and the frame after it are not motion: restart the acceleration estimate, keep integrating. A jump faster than about 80 blocks per second is a teleport: re-seed.
+- Soft-clamp outputs (`c * tanh(x / c)`) so the clamp is never a hard stop, and record the unclamped ratio in the trace so overshoot stays visible.
+- The trace statistic that repeats between runs is the 90th percentile of per-second maxima over a scripted scene (a NoAI subject moved by the driver); leave a fixed time after hits and landings out of it, they kick the springs on purpose. AI wandering changes peaks by a quarter from run to run.
+- Map displacement to rotation through the mass offset from the hinge (`theta = r x d / |r|^2`), to volume-preserving squash and stretch along it, and for soft masses to a little translation; one mass then drives all three.
+- Chains that must connect two points (hoses, ropes, tethers) are verlet chains on sibling segment bones, not springs: `guide mobs`.
 
 ## Recipes that worked (NeoForge 1.21.1, GeckoLib 4.9.3)
 
@@ -108,8 +121,9 @@ v += (-k * x - c * v + force) * h;  x += v * h;
 
 For organic parts with many cubes, describe shapes instead of placing boxes: `voxel SPEC.json --project PATH` (or `--out DIR`). Start from `templates/voxel/example.json`.
 
-- Shapes: `ellipsoid`, `superellipsoid` (exponent > 2 gives squarer, chunkier forms), tapered `capsule` (limbs, tails, horns), `box`, `union`, `smooth_union` (k about 0.3-0.8 blends parts softly), `subtract`. Coordinates are Blockbench model pixels, y up, front north (-Z). Each blob belongs to a bone and has a colour.
-- Each blob is voxelized on a grid and greedy-merged into a **partition** of boxes. A partition never has two same-facing coplanar faces that overlap, so a blob cannot z-fight with itself. Each blob then tries sub-pixel grid offsets (multiples of 0.03 px) until none of its visible faces lies on a visible face of an earlier blob. The result includes a `model-check` report; a 941-cube model built this way reported zero visible overlaps without manual nudging.
+- Shapes: `ellipsoid`, `superellipsoid` (exponent > 2 gives squarer, chunkier forms), tapered `capsule` (limbs, tails, horns), `box`, `torus` (rings, collars, rims), `union`, `smooth_union` (k about 0.3-0.8 blends parts softly), `subtract`, `intersect` and `halfspace` (cut lines: hems, openings, quarters of a skirt). Coordinates are Blockbench model pixels, y up, front north (-Z). Each blob belongs to a bone and has a colour; a blob may set its own `cell` and `texels_per_pixel`.
+- Each blob is voxelized on a grid and greedy-merged into a **partition** of boxes. A partition never has two same-facing coplanar faces that overlap, so a blob cannot z-fight with itself. Each blob then tries sub-pixel grid offsets (multiples of 0.03 px) until none of its visible faces lies within 0.012 px of a visible same-facing face of an earlier blob (`model-check` flags 0.01 px). The result includes a `model-check` report; a 941-cube model built this way reported zero visible overlaps without manual nudging.
+- For a full character with materials, painted shading, layers and animation, use `pipeline PROJECT --mob NAME`: the same voxeliser with numpy, a 3D painter and the rest of the asset chain. `voxel SPEC.json` stays the quick route for props, projectiles and simple creatures.
 - Faces covered by the blob's own voxels are left out of the per-face UV map. GeckoLib 4.9.3 builds no quad for a missing face (`BakedModelFactory.buildQuad` returns null when the face has no UV; `GeoRenderer.renderCube` skips it), so hidden faces cost neither draw time nor atlas space: about a quarter of all faces on a large model.
 - Cell size: 0.6-1.0 px reads as clean Minecraft steps; 0.5 px or finer looks noisy under vanilla face lighting and doubles the cube count. `texels_per_pixel` (default 2) sets texture density; `cell` can differ per blob (eyes, claws).
 - Output: `geo/entity/NAME.geo.json`, `textures/entity/NAME.png` (flat blob colours with light noise, a base to paint over), and `blockbench/NAME.bbmodel` plus `NAME_uvtest.png` (dark-to-bright left to right per face, one hue per direction) for orientation checks.

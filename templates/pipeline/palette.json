@@ -1,0 +1,8 @@
+{
+ "strict": true,
+ "ramps": {
+  "hide": ["#3B4A3A", "#566B4C", "#7C9562", "#A9BE7E"],
+  "plate": ["#8A7A52", "#C2AE74", "#EADFA6"],
+  "eye": ["#1B1420", "#F2F0E6", "#FFD35A"]
+ }
+}

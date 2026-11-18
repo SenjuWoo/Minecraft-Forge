@@ -18,17 +18,21 @@ ROUTES = [
     (("datapack", "data pack", "mcfunction", "function", "loot table tweak"), "data pack",
      ["pack NEW_PATH --kind data --name NAME --minecraft VERSION"], "packs",
      ["Recipes, tags, loot and functions need no compiled mod; KubeJS covers pack-level scripting"]),
-    (("blockbench", "bbmodel", "custom model"), "Blockbench model",
+    (("blockbench", "bbmodel"), "Blockbench model",
      ["bbmodel PROJECT FILE.bbmodel --block ID", "bbmodel PROJECT FILE.bbmodel --entity ID", "preview PROJECT FILE.bbmodel"], "content",
      ["Block models: one rotation axis per cube; entity models: rotate bones, not cubes", "Embed the texture in the .bbmodel before importing"]),
-    (("animation", "animated", "geckolib", "keyframe", "physics", "boss fight"), "animated entity",
-     ["libs --add geckolib --project PROJECT", "voxel SPEC.json --project PROJECT", "preview PROJECT FILE.geo.json --animation FILE --clip NAME",
-      "ground FILE.animation.json --geo FILE.geo.json --legs LEGS --clips CLIPS", "devshots PROJECT", "verify PROJECT --client", "guide entities"], "entities",
-     ["Scripted .geo.json/animation JSON: rotation [-x,-y,z], pivot [-x,y,z]; animation rotation adds to rest",
-      "Prove orientation with a UV test texture in a client screenshot run before texturing",
-      "Procedural bones (look, springs) must not be keyed by any animation",
-      "Animation predicates run on the client: read synced data or positions, never server-only fields",
-      "model-check FILE after each generator change; z-fighting count must be zero before texturing"]),
+    (("animation", "animated", "geckolib", "keyframe", "physics", "boss fight", "custom model", "character", "companion", "jiggle",
+      "spring", "high quality", "detailed"), "character mob (GeckoLib)",
+     ["libs --add geckolib --project PROJECT --version PACK_VERSION", "pipeline PROJECT --mob NAME  (then: python -I asset-pipeline/build_assets.py all --validate)",
+      "kit PROJECT geomob --mob NAME", "devshots PROJECT --subject MOD:NAME", "verify PROJECT --client [--scenes a,b]", "devlog PROJECT",
+      "guide mobs", "guide api"], "mobs",
+     ["Order by risk: blockout and orientation proof, then the mob's defining mechanic in a real client, then final art",
+      "Scripted .geo.json/animation JSON: rotation [-x,-y,z], pivot [-x,y,z]; animation rotation adds to rest",
+      "Procedural bones (look, springs) must not be keyed by any animation; write them absolutely from the rest snapshot",
+      "The server decides effects from tick constants; animation predicates and timeline events run on the client",
+      "A second geometry on the same bones comes from GeckoLibCache, not GeoModel.getBakedModel (kit PROJECT layer)",
+      "model-check must report zero before texturing; gate numbers with MCFORGE-TRACE lines and devlog rules",
+      "guide list shows private guides kept on this machine; read the relevant one before designing"]),
     (("sound", "sfx", "voice", "music", "audio", "subtitle"), "sounds",
      ["audio-check PROJECT", "guide audio"], "audio",
      ["sounds.json keys, SoundEvent ids and OGG paths must agree; positional sounds are mono OGG Vorbis",
@@ -88,5 +92,11 @@ def plan(request: str) -> dict:
     if not packs_only:
         steps.append({"step": "prove it", "commands": ["verify PROJECT  (NeoForge before 1.21.5: tests PROJECT first)", "verify PROJECT --check"],
                       "guide": "testing", "pitfalls": ["Build, server load, client rendering and gameplay are separate claims"]})
-    return {"request": request, "loader": loader, "minecraft": version[1] if version else None, "mod_needed": not packs_only, "steps": steps,
-            "note": "Routing only; nothing was written. Read the named guide before writing code (guide NAME)."}
+    result = {"request": request, "loader": loader, "minecraft": version[1] if version else None, "mod_needed": not packs_only, "steps": steps,
+              "note": "Routing only; nothing was written. Read the named guide before writing code (guide NAME)."}
+    from .__main__ import local_guides
+    private = sorted(local_guides())
+    if private:
+        result["local_guides"] = private
+        result["note"] += " This machine also has private guides: " + ", ".join(f"guide {name}" for name in private) + "."
+    return result

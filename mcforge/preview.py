@@ -287,12 +287,14 @@ def preview_block_model(project: Path, mod_id: str, model_path: Path, output: Pa
 
 
 def _face_fraction(face: str, point, low, high):
-    """(u, v) fractions across a face as seen from outside: u left to right, v top to bottom (Blockbench space)."""
+    """(u, v) fractions across a face in Blockbench space, as GeckoLib 4.9.3 maps per-face UV (guide api): on the
+    side faces u runs left to right and v top to bottom seen from outside; on the top face u grows toward -X and v
+    toward -Z, on the bottom face u toward -X and v toward +Z."""
     x, y, z = point
     w, h, d = (max(high[i] - low[i], 1e-6) for i in range(3))
     return {"north": ((high[0] - x) / w, (high[1] - y) / h), "south": ((x - low[0]) / w, (high[1] - y) / h),
             "west": ((z - low[2]) / d, (high[1] - y) / h), "east": ((high[2] - z) / d, (high[1] - y) / h),
-            "up": ((x - low[0]) / w, (z - low[2]) / d), "down": ((x - low[0]) / w, (high[2] - z) / d)}[face]
+            "up": ((high[0] - x) / w, (high[2] - z) / d), "down": ((high[0] - x) / w, (z - low[2]) / d)}[face]
 
 
 def geo_boxes(geometry: dict, texture: Image, texture_size, matrices: dict) -> list[dict]:

@@ -23,8 +23,8 @@ PRODUCT_NAMES = (
     "SECURITY.md",
 )
 
-# Templates the commands copy: the devshots driver and the voxel example spec.
-EXTRA_TEMPLATES = ("templates/devshots/DevShots.java", "templates/voxel/example.json")
+# Templates the commands copy: the devshots driver and scene script and the voxel example spec.
+EXTRA_TEMPLATES = ("templates/devshots/DevShots.java", "templates/devshots/DevScenes.java", "templates/voxel/example.json")
 
 PRODUCT_GLOBS = {
     "assets": ("*.svg", "*.png"),
@@ -43,6 +43,9 @@ def product_files(root: Path) -> list[Path]:
     files.extend(root / "templates/testing" / name for name in TESTING_FILES)
     files.append(root / LOAD_TEST)
     files.extend(root / name for name in EXTRA_TEMPLATES)
+    from .kit import template_files as kit_templates
+    from .pipeline import template_files as pipeline_templates
+    files.extend(root / name for name in kit_templates() + pipeline_templates())
     for directory, patterns in PRODUCT_GLOBS.items():
         for pattern in patterns:
             files.extend((root / directory).rglob(pattern))
