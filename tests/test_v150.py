@@ -120,6 +120,15 @@ class PipelineLessons(Temp):
         # the glowmask of the example gets a cube list for the selective glow pass
         cubes = (self.project / "src/main/java/dev/example/probe/gen/CaveStalkerCubes.java").read_text(encoding="utf-8")
         self.assertIn("public static final String[] GLOWMASK = {", cubes)
+        # GeckoLib takes the glow colour from the base texture: the painter copies it there
+        from PIL import Image
+        tex = self.project / "src/main/resources/assets/probe/textures/entity"
+        base = Image.open(tex / "cave_stalker.png").convert("RGBA")
+        mask = Image.open(tex / "cave_stalker_glowmask.png").convert("RGBA")
+        lit = [(x, y) for y in range(mask.height) for x in range(mask.width) if mask.getpixel((x, y))[3] > 0]
+        self.assertTrue(lit)
+        for xy in lit[:50]:
+            self.assertEqual(base.getpixel(xy)[:3], mask.getpixel(xy)[:3], xy)
         out = self.snippet("""
             from lib import ik, animtools as A, rigtools
             # mirrored rest rotation: (rx, ry, rz) on the left side becomes (rx, -ry, -rz) on the right

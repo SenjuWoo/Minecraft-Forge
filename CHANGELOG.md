@@ -9,6 +9,7 @@ Lessons from two more GeckoLib mob builds (NeoForge 1.21.1, GeckoLib 4.9.3), tur
 - `audio-check` reports variants of one event that are the same audio (same bytes, or the same decoded samples with FFmpeg).
 - Pipeline rig: an optional rest rotation per bone (`(name, parent, pivot, (rx, ry, rz))`, mirrored for `_L` bones) written to the geometry and the Blockbench export; parts marked `local=True` stay out of ambient occlusion and the body union.
 - Fixed: `lib/ik.two_bone` turned the middle joint away from the pole for the default negative flex range. The joint now points toward the pole for either sign; projects that mirrored the pole to compensate should un-mirror it.
+- Fixed: glow rendered dark. GeckoLib 4.9.3 takes a glowing texel's colour from the base texture and only its alpha from the glowmask; the painter now copies the glow colour into the base texture (found by a client night shot of the selective glow pass).
 - Animation export unwraps key rotations to the nearest equivalent Euler triple, so IK output no longer makes GeckoLib's controller transitions spin.
 - Project commands without patching `lib/`: an optional `mob/commands.py` (`COMMANDS`, `ALL_ORDER`). The sprites step calls `mob/sprites.py` `write_particles()` when present.
 - `mob/sounds.py` PLANNED: events still being made are reported, never an error and never in `sounds.json` (fixes `sounds --validate` failing on listed events without files).

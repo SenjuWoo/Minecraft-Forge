@@ -138,6 +138,11 @@ def paint(geo=""):
                 base[v:v + h, u:u + w, 3] = 255
             if gl is not None:
                 glow[v:v + h, u:u + w] = np.clip(gl, 0, 255).astype(np.uint8)
+    # GeckoLib 4.9.3 (GeoGlowingTextureMeta.createImageMask) takes a glowing texel's colour from the BASE texture and
+    # only its alpha from the glowmask: a glow colour that lives only in the mask renders as the dark base texel.
+    lit = glow[..., 3] > 0
+    base[lit, :3] = glow[lit, :3]
+    base[lit, 3] = 255
     return base, glow, fj
 
 
