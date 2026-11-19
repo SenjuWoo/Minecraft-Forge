@@ -33,6 +33,10 @@
 
 - `pipeline` (a code-driven asset pipeline scaffold for GeckoLib mobs), `kit` (Java kits: bone math, spring solver, shared-bone layer, trace, a GeckoLib mob skeleton), a scripted `devshots` engine with scene filters, `devlog` (a rules gate over the client log), `guide mobs` and `guide api`, `kit home` and the pipeline's `world` step (home block, structures from code, lava and Nether anchoring), `verify --client --world normal`, `guide worldgen`, private local guides, more voxel shapes; the top and bottom face UV direction corrected.
 
+## Added in 1.5.0
+
+- Selective glow and overlay passes (`cubes` step, `passes` kit), the pipeline `audio` post-processor and validator, copies in `audio-check`, bone rest rotation, the IK pole fix and Euler continuity, project commands in `mob/commands.py`, planned sound events, palette anchors, an opt-in audio scene.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).

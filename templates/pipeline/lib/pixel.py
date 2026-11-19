@@ -124,6 +124,8 @@ def run(args) -> int:
             if not model.exists():
                 paths.write_text(model, json.dumps({"parent": "minecraft:item/generated",
                                                     "textures": {"layer0": f"{paths.MOD}:item/{target.stem}"}}, indent=2) + "\n")
+    if hasattr(MS, "write_particles"):        # particle definitions (assets/<mod>/particles/*.json) live with the sprites
+        MS.write_particles()
     print(f"sprites: {written} texture(s)")
     return 0
 

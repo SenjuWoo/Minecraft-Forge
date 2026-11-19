@@ -73,7 +73,7 @@ class Ctx:
 class Painter:
     def __init__(self, geo=""):
         self.parts = {p.name: p for p in modeltools.load_parts() if p.geo == geo}
-        blobs = [p.shape for p in self.parts.values() if p.kind == "blob"]
+        blobs = [p.shape for p in self.parts.values() if p.kind == "blob" and not p.local]   # local parts live in another frame
         self.body = sdf.union(*blobs) if blobs else None
         pal = palette.load()
         self.ramps = {k: np.array([palette.rgb(h) for h in v], np.float32) for k, v in pal["ramps"].items()}
@@ -128,7 +128,7 @@ def paint(geo=""):
         for face, (u, v, w, h) in c["uv"].items():
             P = face_points(cube, face, w, h)
             N = pt.normals(part, face, P)
-            ao = pt.ao(P, N) if part.kind == "blob" else np.ones((h, w), np.float32)
+            ao = pt.ao(P, N) if part.kind == "blob" and not part.local else np.ones((h, w), np.float32)
             out = fn(Ctx(part, cube, face, P, N, ao, pt.light(N, ao), pt.ramps))
             rgb, gl = out if isinstance(out, tuple) else (out, None)
             if rgb.shape[-1] == 4:
@@ -182,7 +182,7 @@ def bbmodel(name, fj, png: bytes) -> dict:
         groups.setdefault(c["bone"], []).append(e["uuid"])
 
     def outline(parent):
-        return [{"name": b["name"], "uuid": uid(b["name"], "group"), "origin": list(b["pivot"]), "rotation": [0, 0, 0], "isOpen": False,
+        return [{"name": b["name"], "uuid": uid(b["name"], "group"), "origin": list(b["pivot"]), "rotation": list(b.get("rotation", [0, 0, 0])), "isOpen": False,
                  "children": groups.get(b["name"], []) + outline(b["name"])} for b in m["bones"] if b["parent"] == parent]
     source = "data:image/png;base64," + base64.b64encode(png).decode("ascii")
     return {"meta": {"format_version": "4.10", "model_format": "free", "box_uv": False}, "name": name,

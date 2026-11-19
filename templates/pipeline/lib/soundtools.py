@@ -90,7 +90,10 @@ def run(args) -> int:
             paths.write_json(target, merged)
         if java_path.exists():
             java_path.unlink()
-    print(f"sounds: {len(found)} event(s) with files, {len(missing)} without" + (f" ({', '.join(missing[:8])})" if missing else ""))
+    from mob import sounds as MS
+    planned = list(getattr(MS, "PLANNED", {}))
+    print(f"sounds: {len(found)} event(s) with files, {len(missing)} without" + (f" ({', '.join(missing[:8])})" if missing else "")
+          + (f"; {len(planned)} planned" if planned else ""))
     return 0
 
 

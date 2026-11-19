@@ -22,6 +22,9 @@ The first run creates `asset-pipeline/.venv` (numpy, pillow) with uv, or with ve
 | `mob/sprites.py` item, particle, block and GUI art drawn with `lib/pixel.py` | `sprites` | `textures/<path>.png`, item models |
 | `mob/sounds.py` events; OGG files in `assets/<mod>/sounds/<mob>/` | `sounds` | `sounds.json`, subtitles, `gen/<Mob>Sounds.java` |
 | `mob/world.py` structure templates, worldgen data, natural spawns (not part of `all`: opt in) | `world` | `data/<mod>/structure/*.nbt`, `worldgen/structure*`, biome and structure tags, biome modifier |
+| layer textures (`<mob>_glowmask.png`, overlays) | `cubes` (in `all`) | `gen/<Mob>Cubes.java`: the cubes each selective pass redraws (kit `CubePasses`) |
+| `audio/export/<voice\|sfx\|music>/` staged takes | `audio export [DIR]`, `audio --validate` | levelled mono OGGs in `assets/<mod>/sounds/<mob>/`; silent, clipping and copied variants fail |
+| `mob/commands.py` (optional) | your own commands | `COMMANDS` adds modules from `mob/`; `ALL_ORDER` puts them into `all` |
 | - | `springs [scene]` | `spring_gains.json` from the client trace (then `rig`) |
 | `../docs/VALIDATION.md` | `release` | `../mod/<jar>`, `../mod/MANIFEST.json` from the verified receipt |
 | `../PLAN.md` | `plan status ID STATE "evidence"`, `plan reprove [check]` | the plan's Status and Evidence cells |

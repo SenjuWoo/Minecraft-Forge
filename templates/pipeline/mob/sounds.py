@@ -1,6 +1,9 @@
 """The sound events of this mob (lib/soundtools.py turns them into sounds.json, subtitles and
-gen/<Mob>Sounds.java). An event with no OGG file yet is reported and left out of sounds.json, so the mod never
-references a missing sound.
+gen/<Mob>Sounds.java).
+
+EVENTS are live: each needs its OGG files (`sounds --validate` fails on one without). PLANNED holds the events
+still being made: listed in the report, never an error, never in sounds.json. Move an entry from PLANNED to EVENTS
+in the same commit that adds its files.
 
 event id -> (subtitle, file stem or glob under assets/<mod>/sounds/, options)
   options: {"stream": True} for music and other long files; {"volume": 0.8}; {"pitch": 1.0};
@@ -17,6 +20,8 @@ Practice that held up:
 - Generate into a staging folder and copy finished files into the mod: a running job must never change mod
   sources mid-verify.
 """
+
+PLANNED = {}
 
 EVENTS = {
     # "ambient": ("Sentinel hums", "ambient_*", {}),

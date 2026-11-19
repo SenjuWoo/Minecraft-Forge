@@ -8,6 +8,7 @@ a heuristic, reported as such.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -63,6 +64,39 @@ def _sound_entries(entry) -> list[dict]:
         result.append({"name": sound, "type": "file"} if isinstance(sound, str) else
                       {"name": sound.get("name", ""), "type": sound.get("type", "file"), "stream": bool(sound.get("stream"))})
     return result
+
+
+def _fingerprint(path: Path, decode: bool) -> str:
+    """Bytes hash; with ffmpeg, the hash of the decoded audio (a re-encoded copy has other bytes, same samples)."""
+    ffmpeg = shutil.which("ffmpeg") if decode else None
+    if ffmpeg:
+        done = subprocess.run([ffmpeg, "-v", "error", "-i", str(path), "-map", "0:a", "-ac", "1", "-f", "md5", "-"],
+                              capture_output=True, text=True)
+        if done.returncode == 0 and done.stdout.strip():
+            return done.stdout.strip()
+    return "sha256=" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _copies(events: dict, files_on_disk: dict, mod_id: str, decode: bool) -> list[str]:
+    """Variants of one event that are the same audio: the game picks among copies, so the event never varies.
+    Generators have returned one take for every variant of a batch (one run per variant with its own seed fixes it)."""
+    out = []
+    for event, entry in events.items():
+        paths = []
+        for sound in _sound_entries(entry):
+            namespace, _, path = sound["name"].partition(":") if ":" in sound["name"] else (mod_id, "", sound["name"])
+            if sound["type"] != "event" and namespace == mod_id and path in files_on_disk:
+                paths.append(path)
+        if len(paths) < 2:
+            continue
+        seen: dict[str, str] = {}
+        for path in paths:
+            key = _fingerprint(files_on_disk[path], decode)
+            if key in seen:
+                out.append(f"{event!r}: variants {seen[key]} and {path} are the same audio; regenerate one with its own seed")
+            else:
+                seen[key] = path
+    return out
 
 
 def check_audio(project: Path, *, measure: bool = True) -> dict:
@@ -128,6 +162,7 @@ def check_audio(project: Path, *, measure: bool = True) -> dict:
         if path not in used:
             warnings.append(f"{row['file']} is not referenced by sounds.json")
         files.append(row)
+    problems.extend(_copies(events, files_on_disk, mod_id, measure))
     levels = [row["loudness"]["mean_db"] for row in files if isinstance(row.get("loudness"), dict) and "mean_db" in row["loudness"]]
     if len(levels) > 1 and max(levels) - min(levels) > 9:
         warnings.append(f"mean loudness spans {min(levels):.1f} to {max(levels):.1f} dB; match the set (RMS plus a limiter)")

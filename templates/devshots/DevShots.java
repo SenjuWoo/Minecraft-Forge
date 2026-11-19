@@ -168,11 +168,12 @@ public final class DevShots {
 
     /** True when the scene is wanted: no filter, or the scene is named in it. */
     static boolean wanted(String scene) {
-        String only = scenesFilter();
-        if (only.isBlank()) {
-            return true;
-        }
-        for (String name : only.split(",")) {
+        return scenesFilter().isBlank() || named(scene);
+    }
+
+    /** True only when the filter names the scene: for long or loud scenes that a plain run skips (audio sweeps). */
+    static boolean named(String scene) {
+        for (String name : scenesFilter().split(",")) {
             if (name.trim().equals(scene)) {
                 return true;
             }

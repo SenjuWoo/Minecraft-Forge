@@ -169,6 +169,9 @@ static void shot(String n) { var mc = Minecraft.getInstance(); Screenshot.grab(m
 ```
 
 - Without the two pause lines above, frames capture the pause menu as soon as the window loses focus.
+- Do not click or focus the client window during a run: the camera froze (every later frame identical while the server kept teleporting the camera player). `verify --client` reports frozen frames; rerun when it does.
+- A scene leaves the world as the next scene expects it: undo time, weather and gamerules it changed and clear the blocks it placed. A night scene that did not reset the time darkened every later shot; a world scene that built a plot broke the next scene's floor.
+- Long or loud scenes are opt-in: `DevShots.named("audio")` is true only when `--scenes` names the scene (the starter `audio` scene plays every sound event of the mod).
 - `time set` reaches the sky and light a few ticks late: shots taken 4 ticks after it were still at night; wait about 20 ticks.
 - First steps: `gamerule doDaylightCycle false`, `time set 6000`, `gamerule doMobSpawning false`, `weather clear`, `gamemode spectator`, `options.hideGui = true`; flat world surface is y = -60.
 - Camera: `tp @s x y z yaw pitch` with `yaw = atan2(-dx, dz)`, `pitch = -atan2(dy, horizontal)` toward the subject. `tp` places the feet; the eye is 1.62 higher. For a 2.4-block mob at FOV 70 in a 1600x1000 window, close-ups need about 1.7-2.2 blocks; at 5-6 blocks the subject is small.

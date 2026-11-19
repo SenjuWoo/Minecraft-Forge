@@ -48,12 +48,25 @@ def _frame(a, b):
     return np.stack([a, b, np.cross(a, b)], axis=1)
 
 
+def _side(v, axis):
+    """The part of v perpendicular to axis, normalised; None when v runs along the axis."""
+    a = np.asarray(axis, float)
+    a = a / max(np.linalg.norm(a), 1e-9)
+    p = np.asarray(v, float) - a * (a @ np.asarray(v, float))
+    n = float(np.linalg.norm(p))
+    return p / n if n > 1e-5 else None
+
+
 def two_bone(upper: str, lower: str, end_point, target, pose=None, pole=(0.0, 0.0, 1.0), flex=(-150.0, 0.0)) -> dict:
     """Rotations for `upper` and `lower` that put `end_point` (rest coordinates, e.g. the palm or the sole) on `target`.
 
     The middle joint flexes about its local X axis within `flex` degrees (the bend comes from the distance, by
     bisection on the limb's own geometry); the upper bone then aligns the solved chain with the target and turns
     the middle joint toward `pole` (model space: where the elbow or knee should point). Returns a Pose to add().
+
+    The joint's side is measured from the solved limb itself, so the pole means the same thing for either sign of
+    `flex` (before 1.5.0 a negative flex range turned the joint away from the pole; a pole that was mirrored to get
+    the right knee must be un-mirrored).
     """
     m = A.model()
     pose = pose or {}
@@ -90,10 +103,17 @@ def two_bone(upper: str, lower: str, end_point, target, pose=None, pole=(0.0, 0.
         theta = (a + b) / 2
     w = up + rot_matrix(theta, 0, 0)[:3, :3] @ lo          # start -> end in the upper bone's rest frame
     t_hat = tl / max(D, 1e-6)
-    n = np.cross(pl, t_hat)                                # flex axis that bends the joint toward the pole
-    if np.linalg.norm(n) < 1e-4:
-        n = np.cross(np.array([0.0, 0.0, 1.0]), t_hat)
-    Q = _frame(t_hat, n) @ _frame(w, np.array([1.0, 0.0, 0.0])).T
+    knee = _side(up, w)                                    # where the middle joint sits off the start -> end line
+    if knee is None:                                       # a straight limb: the side it would bend to
+        probe = flex[0] if abs(flex[0]) > abs(flex[1]) else flex[1]
+        knee = _side(up, up + rot_matrix(probe * 0.5, 0, 0)[:3, :3] @ lo)
+    want = _side(pl, t_hat)                                # the pole, perpendicular to the target line
+    if want is None:
+        want = _side(np.array([0.0, 0.0, -1.0]), t_hat) if abs(t_hat[2]) < 0.99 else np.array([0.0, 1.0, 0.0])
+    if knee is None:
+        Q = _frame(t_hat, want) @ _frame(w, np.array([1.0, 0.0, 0.0])).T
+    else:
+        Q = _frame(t_hat, want) @ _frame(w, knee).T         # start -> end onto the target line, joint side onto the pole
     ex, ey, ez = _euler_zyx(Q)
     rest = U["rest"]
     out = A.add(A.R(upper, ex - rest[0], ey - rest[1], ez - rest[2]), A.R(lower, theta))

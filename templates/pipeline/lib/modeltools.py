@@ -25,6 +25,7 @@ class Part:
     normal_shape: Shape | None = None   # a smoother shape to shade from (e.g. the union the part belongs to)
     hide: tuple = ()                # faces never shown (plate backs)
     geo: str = ""                   # "" = the main geometry; any other name builds <mob>_<geo>.geo.json with the same bones
+    local: bool = False             # authored in its bone's unrotated frame (a bone with a rest rotation): no AO, not in the body union
 
 
 def load_parts() -> list[Part]:
@@ -63,6 +64,11 @@ def geo_json(cubes, W, H, geo: str = "") -> dict:
         e = {"name": b["name"], "pivot": [-b["pivot"][0] + 0.0, b["pivot"][1], b["pivot"][2]]}
         if b["parent"]:
             e["parent"] = b["parent"]
+        rt = b.get("rotation") or [0, 0, 0]
+        if any(abs(v) > 1e-6 for v in rt):
+            # rest rotation, Bedrock layout [-rx, -ry, rz]; the bone's cubes stay in its unrotated frame and GeckoLib
+            # turns them about the pivot at load time
+            e["rotation"] = [-rt[0] + 0.0, -rt[1] + 0.0, rt[2] + 0.0]
         own = by_bone.pop(b["name"], [])
         if own:
             # Bedrock layout: x mirrored (origin [-x1, y0, z0]); GeckoLib undoes it at load time

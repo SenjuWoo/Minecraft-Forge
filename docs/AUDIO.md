@@ -55,9 +55,23 @@ Synthesis in Python (numpy/scipy) gives original, licence-clean effects that fit
 - Keep the raw takes and the reference in the asset pipeline so lines can be added later in the same voice; ship only the encoded OGGs.
 - Lines per event: ambient 4-6, greet 2-3, attack/cast 2-3 each, hurt 3, death 1-2. Rate-limit ambient chatter in code (`getAmbientSoundInterval`).
 
+- Pitch-match takes instead of regenerating them: give each class a ceiling above the speaking reference (sighs and hums about +3 to +5 semitones, gasps, hurts and shouts up to +10 to +12: non-verbals sit higher and climb with intensity) and shift the best take back inside it with a formant-preserving shifter. Beyond about 6 semitones of shift it sounds processed: rewrite the line and retake it.
+- A text-to-speech model that reads tags as words cannot make non-verbals; a dialogue model conditioned on the reference held the pitch on sustained non-verbals (+0.9 semitones). Keep the reference and the scorer's table (`SCORES.md`) in the pipeline.
+
+## Post-processing and staging (`build_assets.py audio`)
+
+Generators write into `asset-pipeline/audio/export/<class>/` (voice, sfx, music), never into the mod. `audio export` writes the processed set into `assets/<mod>/sounds/<mob>/`: 35 Hz high-pass, silence trimmed, RMS levelling (voice -24 dB, effects -22 dB; `mob/sounds.py` AUDIO overrides per class), a soft limiter under -1 dBFS, mono Vorbis (music too: a positional disc in stereo is heard across the world). Only changed files are rewritten. `audio --validate` fails on silent, clipping, sub-50 ms or non-mono files and on variants that are copies (correlation above 0.98).
+
+- Generators have returned the same audio for every same-text variant of one batch. Run one variant index per run with its own seed, and let the validator (and `audio-check`, which flags identical variants of an event) catch copies.
+- A take that comes back silent gets its own reseed instead of a rerun of the batch.
+- Effects levelled to one RMS level narrowed a set from a -38..-5 dB spread to -29..-13 dB.
+- Never generate audio while a game client runs on the same GPU, and never let a generator write into the mod while `verify` runs.
+- Events whose files are still being made go in `mob/sounds.py` PLANNED: reported, never an error, never in `sounds.json`. Move them to EVENTS with their files.
+- `verify --client --scenes audio` plays every sound event of the mod once (the DevScenes `audio` scene, opt-in); `devlog` then fails on a missing file or unknown event that only a late sequence step would play.
+
 ## Checking the set (`audio-check`)
 
-`audio-check PROJECT` reports in one go: `sounds.json` events against `SoundEvent` ids registered in Java (a source scan of `DeferredHolder<SoundEvent, ...>`, `SOUNDS.register("id", ...)` and `SoundEvent.createVariableRangeEvent(...)` / `SoundEvent.of(...)` patterns), entries whose `.ogg` is missing, files nobody references, missing subtitle keys, and per file: channels (positional sounds must be mono), sample rate, duration (long sounds should set `"stream": true`) and, with FFmpeg on PATH, mean and peak loudness. It exits 1 on problems (a registered event without a `sounds.json` entry plays nothing).
+`audio-check PROJECT` reports in one go: `sounds.json` events against `SoundEvent` ids registered in Java (a source scan of `DeferredHolder<SoundEvent, ...>`, `SOUNDS.register("id", ...)` and `SoundEvent.createVariableRangeEvent(...)` / `SoundEvent.of(...)` patterns), entries whose `.ogg` is missing, files nobody references, missing subtitle keys, and per file: channels (positional sounds must be mono), sample rate, duration (long sounds should set `"stream": true`) and, with FFmpeg on PATH, mean and peak loudness. Variants of one event that are the same audio (same bytes, or with FFmpeg the same decoded samples) are a problem. It exits 1 on problems (a registered event without a `sounds.json` entry plays nothing).
 
 - Generating many takes locally: check that no other job holds the GPU first (`nvidia-smi`). A text-to-sound job slowed from about 17 s to 5 minutes per take while another session's job shared the GPU.
 - Voice consistency: derive variants (hurt, panic, death) from a few base takes by pitch and time processing instead of generating each separately.

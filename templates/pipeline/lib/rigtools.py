@@ -12,16 +12,19 @@ GAINS = paths.PIPE / "spring_gains.json"
 
 
 def mirror(entries):
-    """Expand *_L entries into _l and _r with the pivot x mirrored."""
+    """Expand *_L entries into _l and _r with the pivot x mirrored. An optional 4th element is the bone's rest
+    rotation in Blockbench degrees (rx, ry, rz); the mirrored side gets (rx, -ry, -rz)."""
     out = []
-    for name, parent, pivot in entries:
+    for entry in entries:
+        name, parent, pivot = entry[:3]
+        rot = tuple(float(v) for v in entry[3]) if len(entry) > 3 else (0.0, 0.0, 0.0)
         if "_L" in name:
             for side, sx in (("l", 1), ("r", -1)):
                 n = name.replace("_L", "_" + side)
                 p = parent.replace("_L", "_" + side) if parent else None
-                out.append((n, p, (pivot[0] * sx + 0.0, pivot[1], pivot[2])))
+                out.append((n, p, (pivot[0] * sx + 0.0, pivot[1], pivot[2]), (rot[0], rot[1] * sx + 0.0, rot[2] * sx + 0.0)))
         else:
-            out.append((name, parent.replace("_L", "_l") if parent else None, pivot))
+            out.append((name, parent.replace("_L", "_l") if parent else None, pivot, rot))
     return out
 
 
@@ -46,7 +49,8 @@ def manifest() -> dict:
         rx = -r[0] if bone.endswith("_r_phys") or "_r_" in bone else r[0]
         springs.append({"bone": bone, "k": k, "c": c, "clamp_rot_deg": clamp[0], "clamp_pos_px": clamp[1], "clamp_scale": clamp[2],
                         "r": [rx + 0.0, r[1], r[2]], "gain": round(float(tuned.get(bone, gain)), 4)})
-    return {"bones": [{"name": n, "parent": p, "pivot": list(pv)} for n, p, pv in bl], "procedural": procedural(names),
+    return {"bones": [{"name": n, "parent": p, "pivot": list(pv), "rotation": list(rt)} for n, p, pv, rt in bl],
+            "procedural": procedural(names),
             "swap_groups": R.SWAP_GROUPS, "springs": springs, "look": R.LOOK, "legs": R.LEGS}
 
 

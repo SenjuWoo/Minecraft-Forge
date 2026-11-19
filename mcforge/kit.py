@@ -6,6 +6,7 @@ Kits are source the project owns afterwards; nothing is rewritten unless --force
     trace     kit/DevTrace.java          MCFORGE-TRACE lines for devlog
     springs   kit/SpringBones.java       data-driven secondary motion (adds bonemath and trace)
     layer     kit/SharedBoneLayer.java   a second geometry that follows the main bones
+    passes    kit/CubePasses.java        glow and overlay passes that redraw only the cubes carrying their texels
     geomob    a GeckoLib mob skeleton: entity, model, renderer, registration, spawn egg (adds all of the above)
     home      a home for a geomob: a block whose block entity forms the mob and re-forms it, plus a structure
               type that anchors a template to a natural fluid surface (cave lava, the Nether lava sea, water)
@@ -24,7 +25,8 @@ from .workbench import ROOT, guard_output, read_json
 
 COMMON = {"bonemath": ["BoneMath.java"], "trace": ["DevTrace.java"],
           "springs": ["BoneMath.java", "DevTrace.java", "SpringBones.java"], "layer": ["SharedBoneLayer.java"],
-          "geomob": ["BoneMath.java", "DevTrace.java", "SpringBones.java", "SharedBoneLayer.java"], "home": []}
+          "passes": ["CubePasses.java"],
+          "geomob": ["BoneMath.java", "DevTrace.java", "SpringBones.java", "SharedBoneLayer.java", "CubePasses.java"], "home": []}
 HOME = ("HomeBlock", "HomeBlockEntity", "HomeStructure", "HomePiece", "HomeContent")
 KITS = tuple(COMMON)
 NAME = re.compile(r"[a-z][a-z0-9_]{0,40}")

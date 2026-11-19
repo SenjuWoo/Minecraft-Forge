@@ -219,6 +219,24 @@ def _key(t):
     return f"{t:.4f}".rstrip("0").rstrip(".") if t else "0.0"
 
 
+def unwrap_euler(vals):
+    """Per key, the representative of the same rotation nearest to the previous key (the first: nearest to zero).
+    (x, y, z) and (x + 180, 180 - y, z + 180) are the same Rz Ry Rx rotation, and any component may move by 360. IK
+    output can land on the far one (179.9, 48, -178.9 for a 132 degree twist): dense keys still play, but GeckoLib's
+    controller transitions then spin through every angle in between."""
+    out, prev = [], (0.0, 0.0, 0.0)
+    for v in vals:
+        best, cost = None, None
+        for c in ((v[0], v[1], v[2]), (v[0] + 180.0, 180.0 - v[1], v[2] + 180.0)):
+            w = tuple(c[k] - 360.0 * round((c[k] - prev[k]) / 360.0) for k in range(3))
+            d = sum(abs(w[k] - prev[k]) for k in range(3))
+            if cost is None or d < cost - 1e-9:
+                best, cost = w, d
+        out.append(best)
+        prev = best
+    return out
+
+
 def to_json(c: Clip, times, frames):
     bones = sorted({b for f in frames for b in f})
     out = {}
@@ -226,6 +244,8 @@ def to_json(c: Clip, times, frames):
         chans = {}
         for ci, key, tol in ((0, "rotation", ROT_TOL), (1, "position", POS_TOL), (2, "scale", SCL_TOL)):
             vals = [tuple(f.get(b, [I3, I3, ONE])[ci]) for f in frames]
+            if ci == 0:
+                vals = unwrap_euler(vals)
             neutral = ONE if ci == 2 else I3
             if all(max(abs(v[k] - neutral[k]) for k in range(3)) < tol for v in vals):
                 continue

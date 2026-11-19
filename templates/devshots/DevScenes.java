@@ -1,6 +1,8 @@
 package @PACKAGE@.testing;
 
 import java.util.List;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * The screenshot script of the development client run. This file is yours: add a scene per feature and name its
@@ -63,6 +65,18 @@ final class DevScenes {
             s.shotFramed("night_back", 200f, 10f, 1.0);
             s.cmd("time set 6000").waitTicks(40);
         }
+        if (DevShots.named("audio")) {
+            // Plays every sound event of the subject's mod once (opt-in: --scenes audio). devlog then fails on a
+            // missing file or an unknown event, which a sound that only plays deep in a sequence would otherwise hide
+            // until someone reaches it. Every subtitle shows on screen during the run.
+            s.tag("audio").cmd("gamerule sendCommandFeedback false").then(10, mc -> mc.options.showSubtitles().set(true));
+            String namespace = ResourceLocation.parse(DevShots.SUBJECT).getNamespace();
+            BuiltInRegistries.SOUND_EVENT.keySet().stream().filter(id -> id.getNamespace().equals(namespace)).sorted()
+                    .forEach(id -> s.cmd("playsound " + id + " neutral @a ~ ~ ~ 0.6 1").waitTicks(6));
+            s.cmd("gamerule sendCommandFeedback true");
+        }
+        // Leave the world as the next scene expects it: undo time, weather and gamerules you changed, and clear
+        // the blocks a scene placed (a "world" scene that builds a plot should fill it with air at its end).
         s.tag("none");
         return s.steps;
     }

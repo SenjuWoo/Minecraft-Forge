@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.0 - 2026-11-18
+
+Lessons from two more GeckoLib mob builds (NeoForge 1.21.1, GeckoLib 4.9.3), turned into pipeline steps, a kit and guide notes. No command or option was removed.
+
+- New pipeline step `cubes` (part of `all`): `gen/<Mob>Cubes.java` lists, for every layer texture (glowmask, overlays), the cubes that carry its texels. New kit `passes` (`CubePasses`, also part of `geomob`): a glow layer and an overlay redraw that draw only those cubes; the geomob renderer implements the cube filter. Measured in the builds: glow 1.55 -> 1.03 ms per instance, three overlays 3.45 -> 1.17 ms.
+- New pipeline step `audio`: `audio export [STAGING]` writes a staged sound set into the mod (35 Hz high-pass, silence trim, RMS levelling per class, soft limiter, mono Vorbis, only changed files); `audio --validate` fails on silent, clipping, very short or non-mono files and on variants that are copies.
+- `audio-check` reports variants of one event that are the same audio (same bytes, or the same decoded samples with FFmpeg).
+- Pipeline rig: an optional rest rotation per bone (`(name, parent, pivot, (rx, ry, rz))`, mirrored for `_L` bones) written to the geometry and the Blockbench export; parts marked `local=True` stay out of ambient occlusion and the body union.
+- Fixed: `lib/ik.two_bone` turned the middle joint away from the pole for the default negative flex range. The joint now points toward the pole for either sign; projects that mirrored the pole to compensate should un-mirror it.
+- Animation export unwraps key rotations to the nearest equivalent Euler triple, so IK output no longer makes GeckoLib's controller transitions spin.
+- Project commands without patching `lib/`: an optional `mob/commands.py` (`COMMANDS`, `ALL_ORDER`). The sprites step calls `mob/sprites.py` `write_particles()` when present.
+- `mob/sounds.py` PLANNED: events still being made are reported, never an error and never in `sounds.json` (fixes `sounds --validate` failing on listed events without files).
+- `lib/palette.py`: `ramp_from_image` measures anchors by default (circular-mean hue, median mid-tone saturation, percentile lightness, evenly spaced steps) with `hsv_filter` for material pixels; k-means stays available as `method="kmeans"`.
+- `devshots`: an opt-in `audio` scene plays every sound event of the mod (`verify --client --scenes audio`, then `devlog`); `DevShots.named(scene)` for scenes a plain run skips.
+- Guides: body types by region mapping, angled crisp parts, palette review of dark bands, dense sampling of contact clips, block-to-prop hand-offs from one definition, sequences as server tick tables with one abort path, POI lookups, no float world positions, overlays on game time (`mobs`); emissive pass order and glow keyed to the real texture (`entities`); pitch ceilings and the shift limit, staging, copies, levels (`audio`); scene cleanup and window focus (`testing`); vegetation instead of structures and proving it (`worldgen`).
+
 ## 1.4.1 - 2026-11-17
 
 - `verify PROJECT --client` turns NeoForge's early loading window off in the screenshot run's game directory (`run-devshots/config/fml.toml`, `earlyWindowControl = false`). With the GPU busy, the early window could fail to hand over to the game window and show an error dialog; the unattended run then hung until it was killed. Only that line of the file is changed.

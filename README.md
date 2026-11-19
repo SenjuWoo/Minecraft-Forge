@@ -72,7 +72,7 @@ On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies th
 | A home in the world: home block that forms the mob, structures from code, lava and Nether anchoring, natural spawns | `kit P home --mob NAME`, pipeline `world`, `verify P --client --world normal` | `guide worldgen` |
 | Scripted screenshots from a real client, recorded as evidence, and a gate over its log | `devshots P`, `verify P --client [--scenes a,b] [--world normal]`, `devlog P [--rules FILE]` | `guide testing` |
 | Start from scratch (no example block/item) | `quickstart P ... --no-examples` | `guide testing` |
-| Sounds, original SFX and voice lines | `audio-check P`, OGG pipeline | `guide audio` |
+| Sounds, original SFX and voice lines | `audio-check P`, pipeline `audio export` / `audio --validate`, `verify P --client --scenes audio` | `guide audio` |
 | Blockbench models in and out | `bbmodel P FILE --block ID` / `--entity ID`; furniture and mobs ship a `.bbmodel` | `guide content` |
 | See a model without launching | `preview P FILE` (block model, `.bbmodel`, `.geo.json` posed and lit like the game, texture) | `guide content` |
 | Popular libraries (GeckoLib, Curios, Architectury, JEI, Cloth Config, ~60) | `libs`, `libs --add SLUG --project P` | `guide libraries` |

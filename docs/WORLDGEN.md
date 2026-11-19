@@ -18,6 +18,7 @@ minecraft-forge devlog PROJECT                               # {"kind": "locate"
 | Belongs to a place and should always be there | a **home block** inside a structure; the block entity forms the mob |
 | Is unique per player or summoned | an item or event creates it; store ownership in synced data and `SavedData` |
 | Lives in villages | find meeting points with `PoiManager`, record the village in `SavedData` (`guide entities`) |
+| Grows or lives in certain biomes with something it needs (a plant, a nest, an ore) | vegetation: a placed feature added by a `neoforge:add_features` biome modifier on a biome tag, plus natural spawns; the mob places a few starting blocks in `finalizeSpawn`. No structure: in a pack with terrain mods (Tectonic, Lithostitched) structures are risk for no gain |
 
 ## The home block (do not store the mob in the template)
 
@@ -63,7 +64,9 @@ Every search is bounded. `findNearestMapStructure(level, holders, origin, radius
 
 ## Natural spawns
 
-`data/<mod>/neoforge/biome_modifier/<name>.json` with `"type": "neoforge:add_spawns"`, a biome tag or id and a spawner list (`lib/worldgen.natural_spawns`). Use the `c:` biome tags (`#c:is_snowy`, ...) to cover modded biomes, and check what a tag really contains (frozen_river is not in `#c:is_snowy`). Register a spawn placement (`ON_GROUND`, a heightmap, a predicate); a config weight can scale the predicate while the JSON weight stays fixed. `CREATURE` category mobs spawn at chunk generation and rarely afterwards; make rare unique mobs persistent and keep them apart with a distance check in the predicate.
+`data/<mod>/neoforge/biome_modifier/<name>.json` with `"type": "neoforge:add_spawns"`, a biome tag or id and a spawner list (`lib/worldgen.natural_spawns`). Use the `c:` biome tags (`#c:is_snowy`, ...) to cover modded biomes (read the biome mod's own tags from its jar with `jar PATH`), and check what a tag really contains (frozen_river is not in `#c:is_snowy`). Register a spawn placement (`ON_GROUND`, a heightmap, a predicate); a config weight can scale the predicate while the JSON weight stays fixed. `CREATURE` category mobs spawn at chunk generation and rarely afterwards; make rare unique mobs persistent and keep them apart with a distance check in the predicate.
+
+Prove vegetation and spawns like structures: a `world` scene under `verify --client --world normal` scans a bounded area, traces `MCFORGE-TRACE world patches=N mobs=N ms=N`, flies to one of each and photographs it; a devlog gate requires at least one.
 
 ## World content that is data
 

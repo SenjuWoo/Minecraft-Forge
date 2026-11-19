@@ -13,7 +13,10 @@ Rules that save iterations:
 - Expressions, hands, props: one bone per variant under a common parent, listed in SWAP_GROUPS; code shows one.
 """
 
-# (name, parent, pivot)
+# (name, parent, pivot[, rest rotation (rx, ry, rz) in Blockbench degrees])
+# A rest rotation turns the bone's cubes about its pivot, so parts authored axis-aligned in that bone come out tilted
+# but crisp (a ring facing 45 degrees down, an angled plate). Mark those parts `local=True` in mob/model.py: they are
+# authored in the bone's unrotated frame, so they stay out of ambient occlusion and the body union.
 BONES = [
     ("root", None, (0, 0, 0)),
     ("hips", "root", (0, 11, 0)),
