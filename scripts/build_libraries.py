@@ -83,6 +83,21 @@ CURATED = {
     "prism-lib": ("ui", "Colour utility library"),
     "polymer": ("server", "Server-side content that vanilla clients can see"),
     "spark": ("diagnostics", "Profiler; use it to measure tick and memory cost of a mod"),
+    # Added 2026-11-24 from the WooVoid pack audit (what a 1.21.1 NeoForge pack actually ships).
+    "lithium": ("performance", "Vanilla tick/physics optimisations; overlaps ModernFix, disable its duplicate mixins if both are present"),
+    "modernfix": ("performance", "Broad vanilla/bugfix optimiser; the usual base layer in a 1.21.1 pack"),
+    "ferrite-core": ("performance", "Memory reduction (block states, model parts)"),
+    "immediatelyfast": ("performance", "Batches HUD/font/entity rendering; pairs with Sodium"),
+    "entityculling": ("performance", "Skips rendering entities hidden behind blocks"),
+    "sodium-extra": ("performance", "Sodium settings for particles, fog, weather and render distance"),
+    "badoptimizations": ("performance", "Removes redundant GL state changes and empty draw calls"),
+    "structure-layout-optimizer": ("performance", "Caches structure-layout lookups during worldgen; needs resourceful-config"),
+    "distanthorizons": ("rendering", "Distant terrain LODs; needs CHUNKS_ONLY with custom worldgen and no render-volume mods"),
+    "physicsmod": ("rendering", "Real-time block/fluid physics; its ocean renderer replaces shader water (turn oceanPhysics off with shaders)"),
+    "probejs": ("scripting", "Type definitions and autocomplete for KubeJS; pairs with kubejs"),
+    "resourceful-config": ("config", "Config backend required by resourceful-lib and structure-layout-optimizer"),
+    "forge-config-api-port": ("config", "NeoForge config API on Fabric; only needed for cross-loader builds"),
+    "kotlin-for-forge": ("language", "Kotlin adapter; keep the version matching the pack's Kotlin mods"),
 }
 
 

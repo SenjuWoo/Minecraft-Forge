@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1 - 2026-11-24
+
+Library catalog and guide notes from a 221-mod NeoForge 1.21.1 pack audit. No command changed.
+
+- `libs` catalog: new `performance` category with Lithium, ModernFix, FerriteCore, ImmediatelyFast, EntityCulling, Sodium Extra, BadOptimizations and Structure Layout Optimizer; rendering entries for Distant Horizons and Physics Mod; `probejs` for KubeJS and `resourceful-config`. Titles, licences and Minecraft ranges are read from Modrinth; 71 entries (was 59).
+- `docs/LIBRARIES.md`: performance-stack and rendering-boundary rules measured on the pack - Lithium/ModernFix duplicate mixins, only one render-scale/frame-generation mod (DLSS measured at 51.9% of the render thread and 178 -> 84 fps under shaders), Distant Horizons `CHUNKS_ONLY` with custom worldgen, cave culling and overdraw/fade settings for the vanilla border, Physics Mod ocean off under shaders, orphaned-library check, spark profiling.
+
 ## 1.5.0 - 2026-11-18
 
 Lessons from two more GeckoLib mob builds (NeoForge 1.21.1, GeckoLib 4.9.3), turned into pipeline steps, a kit and guide notes. No command or option was removed.

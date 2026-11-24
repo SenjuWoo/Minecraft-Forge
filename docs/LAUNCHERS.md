@@ -29,3 +29,8 @@ Each instance gets a `suggested_project`: the `init` options that build a mod fo
 3. It moves any JAR that provides the same mod id, and any file already at the destination name, into `<game dir>/mcforge-backups/<timestamp>/`, copies the new JAR and checks its hash. Nothing in `mods/` is overwritten.
 
 Close the game first. Deploying is not a runtime test: launch the pack and read `logs/latest.log`. For a pack you care about, deploy into a copy of the instance first. Project folders are refused inside any launcher instance (`init`, `pack` and logs never write there).
+
+Two launcher behaviours that bite automated pack work (seen on ATLauncher, 2026-11-24):
+
+- The launcher rewrites `instance.json` from memory, so it can re-enable a mod you disabled on disk and can overwrite edits made while it runs. Close it before editing an instance; its own `disabledmods/` folder plus `"disabled": true` in `instance.json` is the supported way to turn a mod off.
+- A running game keeps its JARs locked (Windows); moving or deleting `mods/` then fails halfway. Wait for the process to exit, and verify the mod set by hash afterwards.

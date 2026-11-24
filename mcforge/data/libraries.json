@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "source": "https://api.modrinth.com/v2",
- "generated": "2026-11-13",
+ "generated": "2026-11-24",
  "note": "Titles, loaders, licences, links and version ranges come from each project's Modrinth record. The maven coordinate is Modrinth's own repository (https://api.modrinth.com/maven); resolve an exact version with: libs --resolve SLUG.",
  "libraries": {
   "accessories": {
@@ -97,6 +97,29 @@
    "client_side": "required",
    "server_side": "required",
    "maven": "maven.modrinth:azurelib:<version>"
+  },
+  "badoptimizations": {
+   "title": "BadOptimizations",
+   "category": "performance",
+   "purpose": "Removes redundant GL state changes and empty draw calls",
+   "project_id": "g96Z4WVZ",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/imthosea/BadOptimizations/",
+   "docs": "https://github.com/imthosea/BadOptimizations/wiki",
+   "issues": "https://github.com/imthosea/BadOptimizations/issues",
+   "page": "https://modrinth.com/mod/badoptimizations",
+   "minecraft": {
+    "oldest": "1.19.1",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:badoptimizations:<version>"
   },
   "balm": {
    "title": "Balm",
@@ -417,6 +440,29 @@
    "server_side": "required",
    "maven": "maven.modrinth:curios:<version>"
   },
+  "distanthorizons": {
+   "title": "Distant Horizons",
+   "category": "rendering",
+   "purpose": "Distant terrain LODs; needs CHUNKS_ONLY with custom worldgen and no render-volume mods",
+   "project_id": "uCdwusMi",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://gitlab.com/distant-horizons-team/distant-horizons",
+   "docs": "https://gitlab.com/distant-horizons-team/distant-horizons/-/wikis/home",
+   "issues": "https://gitlab.com/distant-horizons-team/distant-horizons/-/issues",
+   "page": "https://modrinth.com/mod/distanthorizons",
+   "minecraft": {
+    "oldest": "1.12.2",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:distanthorizons:<version>"
+  },
   "emi": {
    "title": "EMI",
    "category": "recipes",
@@ -465,6 +511,30 @@
    "server_side": "unsupported",
    "maven": "maven.modrinth:entity-model-features:<version>"
   },
+  "entityculling": {
+   "title": "Entity Culling",
+   "category": "performance",
+   "purpose": "Skips rendering entities hidden behind blocks",
+   "project_id": "NNAgCjsB",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-tr7zw-Protective-License",
+   "source": "https://github.com/tr7zw/EntityCulling",
+   "docs": null,
+   "issues": "https://github.com/tr7zw/EntityCulling/issues",
+   "page": "https://modrinth.com/mod/entityculling",
+   "minecraft": {
+    "oldest": "1.7.10",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:entityculling:<version>"
+  },
   "fabric-api": {
    "title": "Fabric API",
    "category": "core",
@@ -507,10 +577,34 @@
    "server_side": "optional",
    "maven": "maven.modrinth:fabric-language-kotlin:<version>"
   },
+  "ferrite-core": {
+   "title": "FerriteCore",
+   "category": "performance",
+   "purpose": "Memory reduction (block states, model parts)",
+   "project_id": "uXXizFIs",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/malte0811/FerriteCore",
+   "docs": null,
+   "issues": "https://github.com/malte0811/FerriteCore/issues",
+   "page": "https://modrinth.com/mod/ferrite-core",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:ferrite-core:<version>"
+  },
   "forge-config-api-port": {
    "title": "Forge Config API Port",
    "category": "config",
-   "purpose": "NeoForge/Forge config system on every loader",
+   "purpose": "NeoForge config API on Fabric; only needed for cross-loader builds",
    "project_id": "ohNO6lps",
    "loaders": [
     "fabric",
@@ -646,6 +740,30 @@
    "server_side": "required",
    "maven": "maven.modrinth:iceberg:<version>"
   },
+  "immediatelyfast": {
+   "title": "ImmediatelyFast",
+   "category": "performance",
+   "purpose": "Batches HUD/font/entity rendering; pairs with Sodium",
+   "project_id": "5ZwdcRci",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-or-later",
+   "source": "https://github.com/RaphiMC/ImmediatelyFast",
+   "docs": null,
+   "issues": "https://github.com/RaphiMC/ImmediatelyFast/issues",
+   "page": "https://modrinth.com/mod/immediatelyfast",
+   "minecraft": {
+    "oldest": "1.18.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:immediatelyfast:<version>"
+  },
   "iris": {
    "title": "Iris Shaders",
    "category": "rendering",
@@ -719,7 +837,7 @@
   "kotlin-for-forge": {
    "title": "Kotlin for Forge",
    "category": "language",
-   "purpose": "Kotlin language adapter for NeoForge/Forge",
+   "purpose": "Kotlin adapter; keep the version matching the pack's Kotlin mods",
    "project_id": "ordsPcFz",
    "loaders": [
     "forge",
@@ -761,6 +879,29 @@
    "client_side": "optional",
    "server_side": "optional",
    "maven": "maven.modrinth:kubejs:<version>"
+  },
+  "lithium": {
+   "title": "Lithium",
+   "category": "performance",
+   "purpose": "Vanilla tick/physics optimisations; overlaps ModernFix, disable its duplicate mixins if both are present",
+   "project_id": "gvQqBUqZ",
+   "loaders": [
+    "fabric",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/caffeinemc/lithium-fabric",
+   "docs": null,
+   "issues": "https://github.com/caffeinemc/lithium-fabric/issues",
+   "page": "https://modrinth.com/mod/lithium",
+   "minecraft": {
+    "oldest": "1.16.2",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:lithium:<version>"
   },
   "lithostitched": {
    "title": "Lithostitched",
@@ -830,6 +971,29 @@
    "client_side": "optional",
    "server_side": "optional",
    "maven": "maven.modrinth:midnightlib:<version>"
+  },
+  "modernfix": {
+   "title": "ModernFix",
+   "category": "performance",
+   "purpose": "Broad vanilla/bugfix optimiser; the usual base layer in a 1.21.1 pack",
+   "project_id": "nmDcB62a",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/embeddedt/ModernFix",
+   "docs": "https://github.com/embeddedt/ModernFix/wiki",
+   "issues": "https://github.com/embeddedt/ModernFix/issues",
+   "page": "https://modrinth.com/mod/modernfix",
+   "minecraft": {
+    "oldest": "1.16.4",
+    "newest": "26.1.2"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:modernfix:<version>"
   },
   "modmenu": {
    "title": "Mod Menu",
@@ -947,6 +1111,30 @@
    "server_side": "required",
    "maven": "maven.modrinth:pehkui:<version>"
   },
+  "physicsmod": {
+   "title": "Physics Mod",
+   "category": "rendering",
+   "purpose": "Real-time block/fluid physics; its ocean renderer replaces shader water (turn oceanPhysics off with shaders)",
+   "project_id": "Xy8aRQKS",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LicenseRef-All-Rights-Reserved",
+   "source": null,
+   "docs": "https://minecraftphysicsmod.com/",
+   "issues": "https://github.com/haubna/PhysicsMod/issues",
+   "page": "https://modrinth.com/mod/physicsmod",
+   "minecraft": {
+    "oldest": "1.16.5",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:physicsmod:<version>"
+  },
   "placebo": {
    "title": "Placebo",
    "category": "core",
@@ -1038,6 +1226,29 @@
    "server_side": "unsupported",
    "maven": "maven.modrinth:prism-lib:<version>"
   },
+  "probejs": {
+   "title": "ProbeJS",
+   "category": "scripting",
+   "purpose": "Type definitions and autocomplete for KubeJS; pairs with kubejs",
+   "project_id": "JJNYRb4B",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "LGPL-2.1-only",
+   "source": "https://github.com/Prunoideae/ProbeJS",
+   "docs": "https://github.com/Prunoideae/ProbeJS/wiki",
+   "issues": "https://github.com/Prunoideae/ProbeJS/issues",
+   "page": "https://modrinth.com/mod/probejs",
+   "minecraft": {
+    "oldest": "1.19.2",
+    "newest": "1.21.1"
+   },
+   "client_side": "required",
+   "server_side": "required",
+   "maven": "maven.modrinth:probejs:<version>"
+  },
   "puzzles-lib": {
    "title": "Puzzles Lib",
    "category": "multiloader",
@@ -1083,6 +1294,30 @@
    "client_side": "optional",
    "server_side": "optional",
    "maven": "maven.modrinth:rei:<version>"
+  },
+  "resourceful-config": {
+   "title": "Resourceful Config",
+   "category": "config",
+   "purpose": "Config backend required by resourceful-lib and structure-layout-optimizer",
+   "project_id": "M1953qlQ",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/Team-Resourceful/Resourceful-Config",
+   "docs": "https://config.wiki.teamresourceful.com/",
+   "issues": "https://github.com/Team-Resourceful/Resourceful-Config/issues",
+   "page": "https://modrinth.com/mod/resourceful-config",
+   "minecraft": {
+    "oldest": "1.19.2",
+    "newest": "26.3"
+   },
+   "client_side": "optional",
+   "server_side": "optional",
+   "maven": "maven.modrinth:resourceful-config:<version>"
   },
   "resourceful-lib": {
    "title": "Resourceful Lib",
@@ -1154,6 +1389,29 @@
    "server_side": "unsupported",
    "maven": "maven.modrinth:sodium:<version>"
   },
+  "sodium-extra": {
+   "title": "Sodium Extra",
+   "category": "performance",
+   "purpose": "Sodium settings for particles, fog, weather and render distance",
+   "project_id": "PtjYWJkn",
+   "loaders": [
+    "fabric",
+    "neoforge",
+    "quilt"
+   ],
+   "license": "LGPL-3.0-only",
+   "source": "https://github.com/FlashyReese/sodium-extra-fabric",
+   "docs": "https://github.com/FlashyReese/sodium-extra-fabric/wiki",
+   "issues": "https://github.com/FlashyReese/sodium-extra-fabric/issues",
+   "page": "https://modrinth.com/mod/sodium-extra",
+   "minecraft": {
+    "oldest": "1.16.2",
+    "newest": "26.3"
+   },
+   "client_side": "required",
+   "server_side": "unsupported",
+   "maven": "maven.modrinth:sodium-extra:<version>"
+  },
   "spark": {
    "title": "spark",
    "category": "diagnostics",
@@ -1177,6 +1435,29 @@
    "client_side": "optional",
    "server_side": "optional",
    "maven": "maven.modrinth:spark:<version>"
+  },
+  "structure-layout-optimizer": {
+   "title": "Structure Layout Optimizer",
+   "category": "performance",
+   "purpose": "Caches structure-layout lookups during worldgen; needs resourceful-config",
+   "project_id": "ayPU0OHc",
+   "loaders": [
+    "fabric",
+    "forge",
+    "neoforge"
+   ],
+   "license": "MIT",
+   "source": "https://github.com/TelepathicGrunt/StructureLayoutOptimizer",
+   "docs": null,
+   "issues": "https://github.com/TelepathicGrunt/StructureLayoutOptimizer/issues",
+   "page": "https://modrinth.com/mod/structure-layout-optimizer",
+   "minecraft": {
+    "oldest": "1.16.1",
+    "newest": "26.3"
+   },
+   "client_side": "unsupported",
+   "server_side": "required",
+   "maven": "maven.modrinth:structure-layout-optimizer:<version>"
   },
   "supermartijn642s-config-lib": {
    "title": "SuperMartijn642's Config Lib",
