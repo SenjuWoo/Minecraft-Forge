@@ -1,6 +1,6 @@
 # Libraries mods build on
 
-`libs` lists a catalog of popular libraries and APIs (about 60): loader cores, multi-loader layers, config screens, animation, equipment slots, recipe viewers, tooltips, worldgen, scripting, language adapters and the big content mods that others integrate with. Titles, loaders, licences, links and Minecraft ranges come from each project's Modrinth record (`scripts/build_libraries.py`), and the catalog is read offline.
+`libs` lists a catalog of popular libraries and APIs (about 70): loader cores, multi-loader layers, config screens, animation, equipment slots, recipe viewers, tooltips, worldgen, scripting, language adapters and the big content mods that others integrate with. Titles, loaders, licences, links and Minecraft ranges come from each project's Modrinth record (`scripts/build_libraries.py`), and the catalog is read offline.
 
 ```powershell
 .\Minecraft-Forge.ps1 libs --loader fabric --minecraft 1.20.1

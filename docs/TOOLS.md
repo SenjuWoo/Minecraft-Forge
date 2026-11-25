@@ -11,7 +11,7 @@
 | JDK 17 / 21 / 25 (and 8) | 17: Forge 1.20.1; 21: NeoForge 1.21.1; 25: 26.x targets and every Fabric build (Loom 1.19 runs on 25); 8: ForgeGradle 7's run tool | Discover/reuse installed JDKs (Program Files vendors, `JAVA_HOME_<n>_*`, `~/.jdks`, `/usr/lib/jvm`, SDKMAN, macOS, launcher runtimes); `setup-java --major N` installs a verified Temurin into the per-user JDK folder (`%LOCALAPPDATA%\Minecraft-Tools\jdks`, `~/.local/share/minecraft-forge-jdks`, or `MCFORGE_JDK_ROOT`), shared by every toolkit copy |
 | Blockbench project codec | `.bbmodel` import/export for blocks and entity models | Included; follows Blockbench's own Java-export arithmetic |
 | Software previewer | Renders models and textures to PNG without the game | Included |
-| Version facts and library catalog | Pack formats, folder names per release; ~60 libraries | `mcforge/data/*.json`, rebuilt by `scripts/build_facts.py` and `scripts/build_libraries.py` |
+| Version facts and library catalog | Pack formats, folder names per release; ~70 libraries | `mcforge/data/*.json`, rebuilt by `scripts/build_facts.py` and `scripts/build_libraries.py` |
 | Minecraft, NeoForge and library artifacts | Build/runtime dependencies | Resolved by Gradle from the project's repositories and pins |
 | `rg`, JDK `javap` | Find source and inspect exact signatures | Reuse installed CLIs; no MCP required |
 
