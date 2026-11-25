@@ -27,7 +27,10 @@ final class DevScenes {
             // The flat-world scenes below use flat-world coordinates and are skipped here.
             return s.steps;
         }
-        s.cmd("gamerule doDaylightCycle false").cmd("gamerule doWeatherCycle false").cmd("gamerule doMobSpawning false")
+        // difficulty normal: peaceful deletes hostile subjects and actors. Clear what world generation spawned
+        // (slimes, animals), or wild copies of the subject hijack @e[type=...,limit=1] lookups in later scenes.
+        s.cmd("difficulty normal").cmd("gamerule doDaylightCycle false").cmd("gamerule doWeatherCycle false").cmd("gamerule doMobSpawning false")
+                .cmd("kill @e[type=!minecraft:player]")
                 .cmd("weather clear").cmd("time set 6000")
                 .cmd("summon " + DevShots.SUBJECT + " 0.5 -60 0.5 {NoAI:1b,PersistenceRequired:1b,Silent:1b,Rotation:[180f,0f]}")
                 .cmd("gamemode spectator")

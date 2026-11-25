@@ -58,6 +58,13 @@ Synthesis in Python (numpy/scipy) gives original, licence-clean effects that fit
 - Pitch-match takes instead of regenerating them: give each class a ceiling above the speaking reference (sighs and hums about +3 to +5 semitones, gasps, hurts and shouts up to +10 to +12: non-verbals sit higher and climb with intensity) and shift the best take back inside it with a formant-preserving shifter. Beyond about 6 semitones of shift it sounds processed: rewrite the line and retake it.
 - A text-to-speech model that reads tags as words cannot make non-verbals; a dialogue model conditioned on the reference held the pitch on sustained non-verbals (+0.9 semitones). Keep the reference and the scorer's table (`SCORES.md`) in the pipeline.
 
+## Fewer files, better sounds
+
+- A creature made of a material takes its steps, hurt and death from that block's `SoundType`, pitched down for weight: it scales to every modded block with no files. Record only signature moves no vanilla sound fits, and keep a take only when it scores (CLAP 0.33 or more) and is not a near-silent blip.
+- A second mob that shares effects with the first uses its files through `"first_mob/stem_*"` patterns in `mob/sounds.py` with a pitch offset; only its voice needs new takes.
+- A generation job that dies part-way: keep the finished takes, pick among them by measurement (level of the loudest half, real clipping, spectral centroid) and rerun only the unfinished prompts. Regenerate voice as a whole set when the word check that picks takes was lost.
+- Long music rarely reaches CLAP 0.3 against style tags; judge a boss loop by its lowest level (no dead air mid-fight) and play the full take on the disc.
+
 ## Post-processing and staging (`build_assets.py audio`)
 
 Generators write into `asset-pipeline/audio/export/<class>/` (voice, sfx, music), never into the mod. `audio export` writes the processed set into `assets/<mod>/sounds/<mob>/`: 35 Hz high-pass, silence trimmed, RMS levelling (voice -24 dB, effects -22 dB; `mob/sounds.py` AUDIO overrides per class), a soft limiter under -1 dBFS, mono Vorbis (music too: a positional disc in stereo is heard across the world). Only changed files are rewritten. `audio --validate` fails on silent, clipping, sub-50 ms or non-mono files and on variants that are copies (correlation above 0.98).

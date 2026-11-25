@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.2 - 2026-11-24
+
+Lessons from six more mod builds and a pack audit (NeoForge 1.21.1, GeckoLib 4.9.3 and 4.9.4). No command or option was removed.
+
+- Several mobs in one pipeline: `pipeline PROJECT --mob NAME --add` puts another mob in `mobs/NAME/` beside `mob/` with one shared `lib/`. Every command runs once per mob in its own process (`--mob a,b` selects); per-mob `build/` and `media/` folders, optional per-mob `palette.json` and spring gains; plan and release run once. Single-mob pipelines are unchanged.
+- Fixed: `lib/rigtools` imported `mob/rig.py` at import time, so a mob module that imported `lib.animtools` met a half-initialised module; the rig is now read on first use.
+- Fixed: kit `springs` peaks rose with the frame rate. Frames shorter than the 4 ms sub-step dropped their force; the force is now averaged over every frame since the last sub-step (same scene: 0.81 at low fps, 1.9-2.3 at high fps before).
+- `lib/ik.two_bone` returns the Euler representative nearest the rest pose, and `two_bone_blend` the one nearest its start, so blends and additive offsets take the short way round (an arm reach swung through the body before). New `animtools.nearest_euler`.
+- `lib/voxel`: fine cells search finer sub-pixel offsets, so small parts no longer run out of clash-free shifts.
+- `mob/sounds.py` patterns may name another mob's folder (`"other_mob/step_*"`): a shared sound bank with a pitch offset.
+- Devshots: the screenshot world is NORMAL difficulty (peaceful deleted hostile subjects and actors mid-scene) and the script clears world-generation mobs before the first summon.
+- `deploy` checks the JAR's required dependencies against the instance (missing or outside the declared range is a mismatch), refuses `--apply` while a game runs from the instance (`--allow-running` overrides) and records each deploy in `mcforge-deployed.json`.
+- `inventory` reports `dependency_problems` for the whole pack, `deployed_missing` (deployed mods a launcher reinstall or pack update dropped) and `fml` for libraries FML loads through their manifest or a loader service; such a multi-loader library with only `fabric.mod.json` is no longer listed as Fabric-only.
+- Guides: GeckoLib 4.9.4 compatibility (signatures and glow-mask builder compared with 4.9.3), `GeoObjectRenderer` re-render offset, holding entities by riding, synced attachments, replacing any mob's look at render time, a layer on every renderer, bosses, titans, block-textured creatures, block sound types, shared sound banks, interrupted audio jobs, scene hygiene.
+
 ## 1.5.1 - 2026-11-24
 
 Library catalog and guide notes from a 221-mod NeoForge 1.21.1 pack audit. No command changed.

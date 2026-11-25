@@ -114,16 +114,29 @@ def two_bone(upper: str, lower: str, end_point, target, pose=None, pole=(0.0, 0.
         Q = _frame(t_hat, want) @ _frame(w, np.array([1.0, 0.0, 0.0])).T
     else:
         Q = _frame(t_hat, want) @ _frame(w, knee).T         # start -> end onto the target line, joint side onto the pole
-    ex, ey, ez = _euler_zyx(Q)
     rest = U["rest"]
+    # the representative nearest the rest pose: blends from rest and additive offsets then take the short way round
+    ex, ey, ez = A.nearest_euler(_euler_zyx(Q), tuple(rest))
     out = A.add(A.R(upper, ex - rest[0], ey - rest[1], ez - rest[2]), A.R(lower, theta))
     _CACHE[key] = out
     return out
 
 
 def two_bone_blend(upper, lower, end_point, target, pose, k, rest_pose=None, **kw) -> dict:
-    """Blend from `rest_pose` (default: the limb at rest) to the IK solution by k (0..1): reaching and letting go."""
+    """Blend from `rest_pose` (default: the limb at rest) to the IK solution by k (0..1): reaching and letting go.
+
+    The solution's upper rotation is taken as the Euler representative nearest the start, so the blend takes the short
+    path. A linear blend still moves the hand on an arc of its own: when the in-between path must clear the body,
+    move the target along a model-space path instead and solve two_bone() every frame."""
     rest_pose = rest_pose or {}
     if k <= 1e-3:
         return rest_pose
-    return A.blend(rest_pose, two_bone(upper, lower, end_point, target, pose, **kw), k)
+    solved = two_bone(upper, lower, end_point, target, pose, **kw)
+    if upper in rest_pose:
+        rest = A.model().bones[upper]["rest"]
+        start = tuple(rest[i] + rest_pose[upper][0][i] for i in range(3))
+        r, q, s = solved[upper]
+        near = A.nearest_euler(tuple(rest[i] + r[i] for i in range(3)), start)
+        solved = dict(solved)
+        solved[upper] = [tuple(near[i] - rest[i] for i in range(3)), q, s]
+    return A.blend(rest_pose, solved, k)

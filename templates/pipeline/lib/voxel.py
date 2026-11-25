@@ -135,8 +135,10 @@ class Placer:
 def voxel_blob(placer: Placer, name, shape, cell, bone, tpp, material="", orders=("yxz", "xyz", "zyx"), hide_faces=()):
     """Voxelise one blob; returns (cubes, clashes, offset). Tries three greedy orders and keeps the fewest boxes."""
     best = None
-    for attempt in range(max(1, int(cell / STEP))):
-        off = STEP * attempt
+    # fine cells search finer offsets (still wider than PLANE_WINDOW), or a small part runs out of clash-free shifts
+    step = max(PLANE_WINDOW * 1.1, min(STEP, cell / 12))
+    for attempt in range(max(1, int(cell / step))):
+        off = step * attempt
         occ, origin = voxelize(shape, cell, off)
         if not occ.any():
             raise ValueError(f"blob {name} is empty at cell {cell}")

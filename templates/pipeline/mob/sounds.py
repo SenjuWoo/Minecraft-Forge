@@ -9,6 +9,8 @@ event id -> (subtitle, file stem or glob under assets/<mod>/sounds/, options)
   options: {"stream": True} for music and other long files; {"volume": 0.8}; {"pitch": 1.0};
            {"attenuation_distance": 24}.
 Variants are files that share a stem: step_1.ogg, step_2.ogg ... The game picks one at random.
+A pattern "other_mob/step_*" uses another mob's files (a shared bank: same effects, {"pitch": 1.15} for a smaller
+body); only the voice needs its own takes.
 
 Practice that held up:
 - Positional sounds are mono OGG Vorbis; stereo plays at full volume everywhere. A music disc that should fade

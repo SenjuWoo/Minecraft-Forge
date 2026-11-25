@@ -28,7 +28,9 @@ def collect():
     from mob import sounds as MS
     found, missing = {}, []
     for event, (subtitle, pattern, options) in MS.EVENTS.items():
-        files = sorted(FOLDER.glob(pattern + ".ogg")) if FOLDER.is_dir() else []
+        # "other_mob/stem_*" shares another mob's files (a shared bank with a pitch offset); a bare glob is this mob's
+        folder = paths.SOUNDS / pattern.rsplit("/", 1)[0] if "/" in pattern else FOLDER
+        files = sorted(folder.glob(pattern.rsplit("/", 1)[-1] + ".ogg")) if folder.is_dir() else []
         if files:
             found[event] = (subtitle, files, options)
         else:
@@ -75,7 +77,7 @@ def run(args) -> int:
     for event, (subtitle, files, options) in found.items():
         sounds = []
         for f in files:
-            entry = {"name": f"{paths.MOD}:{paths.MOB}/{f.stem}"} | {k: v for k, v in options.items()}
+            entry = {"name": f"{paths.MOD}:{f.parent.name}/{f.stem}"} | {k: v for k, v in options.items()}
             sounds.append(entry if len(entry) > 1 else entry["name"])
         key = f"subtitles.{paths.MOD}.{prefix}{event}"
         merged[prefix + event] = {"subtitle": key, "sounds": sounds}

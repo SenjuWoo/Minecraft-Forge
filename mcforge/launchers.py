@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import time
 
 from .inventory import MAX_INSTANCE_BYTES, _bounded_read, inspect_jar
@@ -222,7 +223,101 @@ def suggest(instance: dict) -> dict:
     return result
 
 
-def deploy(project: Path, instance: Path, *, apply: bool = False, allow_mismatch: bool = False, unverified: bool = False) -> dict:
+PLATFORM_IDS = {"minecraft", "neoforge", "forge", "fml", "javafml", "java"}
+LEDGER = "mcforge-deployed.json"
+
+
+def _record_deploy(game_dir: Path, mod_id: str, destination: Path, digest: str, project: Path) -> None:
+    """Remember what deploy put into the instance: a launcher reinstall or pack update can drop hand-added JARs
+    silently, and inventory reports ledger entries whose file is gone."""
+    path = Path(game_dir) / LEDGER
+    try:
+        ledger = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        ledger = {}
+    ledger[mod_id] = {"file": destination.name, "sha256": digest, "project": str(project), "deployed_at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(ledger, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def running_games(game_dir: Path) -> list[int] | None:
+    """PIDs of Java processes whose command line names this game folder (the launcher passes it as --gameDir);
+    None when the process list cannot be read. Moving mods or configs under a running game corrupts the session."""
+    needle = str(Path(game_dir)).lower().replace("\\", "/").rstrip("/")
+    try:
+        if os.name == "nt":
+            script = ("Get-CimInstance Win32_Process -Filter \"Name like 'java%'\" | "
+                      "ForEach-Object { \"$($_.ProcessId)`t$($_.CommandLine)\" }")
+            done = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                                  capture_output=True, text=True, timeout=30)
+        else:
+            done = subprocess.run(["ps", "-eo", "pid=,args="], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    pids = []
+    for line in done.stdout.splitlines():
+        pid, _, command = line.strip().partition("\t" if os.name == "nt" else " ")
+        command = command.lower().replace("\\", "/")
+        if pid.isdigit() and "java" in command and needle in command:
+            pids.append(int(pid))
+    return pids
+
+
+def _version_key(text: str) -> tuple:
+    return tuple(int(part) for part in re.findall(r"\d+", text))
+
+
+def version_in_range(version: str | None, spec: str | None) -> bool | None:
+    """Maven version range check ("[4.9,)", "[1.0,2.0)", "4.9.3" = at least); None when it cannot be told."""
+    if not spec or spec.strip() in ("*", ""):
+        return True
+    if not version or "${" in version or not re.search(r"\d", version):
+        return None
+    v = _version_key(version)
+    spec = spec.strip()
+    if spec[0] not in "[(":
+        return v >= _version_key(spec)
+    ranges = re.findall(r"[\[(][^\])]*[\])]", spec)
+    if not ranges:
+        return None
+    for item in ranges:
+        low, _, high = item[1:-1].partition(",")
+        if "," not in item:
+            if v == _version_key(low):
+                return True
+            continue
+        ok = True
+        if low.strip():
+            ok &= v >= _version_key(low) if item[0] == "[" else v > _version_key(low)
+        if high.strip():
+            ok &= v <= _version_key(high) if item[-1] == "]" else v < _version_key(high)
+        if ok:
+            return True
+    return False
+
+
+def dependency_report(artifact: Path, installed: dict[str, str | None]) -> list[dict]:
+    """Required dependencies of the built JAR against what the instance has (mod id -> version)."""
+    rows = []
+    for dependency in inspect_jar(artifact)["dependencies"]:
+        mod_id = dependency.get("mod_id")
+        if dependency.get("type") != "required" or not mod_id or mod_id in PLATFORM_IDS:
+            continue
+        if mod_id not in installed:
+            status = "missing"
+        else:
+            fits = version_in_range(installed[mod_id], dependency.get("version_range"))
+            status = "ok" if fits else "unknown" if fits is None else "outside_range"
+        rows.append({"mod_id": mod_id, "version_range": dependency.get("version_range"), "installed": installed.get(mod_id),
+                     "side": dependency.get("side"), "status": status})
+    return rows
+
+
+def deploy(project: Path, instance: Path, *, apply: bool = False, allow_mismatch: bool = False, unverified: bool = False,
+           allow_running: bool = False) -> dict:
     """Plan, or with ``apply`` perform, copying the verified mod JAR into an instance's mods folder."""
     project, instance = Path(project).resolve(), Path(instance).resolve()
     lock = json.loads((project / "mcforge-project.json").read_text(encoding="utf-8-sig"))
@@ -248,10 +343,21 @@ def deploy(project: Path, instance: Path, *, apply: bool = False, allow_mismatch
         mismatch.append(f"instance loader {summary['loader']['type']} != project loader {project_loader}")
     if summary["minecraft"] and summary["minecraft"] != lock["minecraft"]:
         mismatch.append(f"instance Minecraft {summary['minecraft']} != project Minecraft {lock['minecraft']}")
+    replaced, installed = [], {}
+    for path in sorted(mods.glob("*.jar")):
+        found = inspect_jar(path)["mods"]
+        if any(mod["mod_id"] == mod_id for mod in found):
+            replaced.append(path)
+            continue
+        installed.update({mod["mod_id"]: mod["version"] for mod in found})
+    dependencies = dependency_report(artifact, installed)
+    for row in dependencies:
+        if row["status"] == "missing":
+            mismatch.append(f"required dependency {row['mod_id']} {row['version_range'] or ''} is not in the instance".replace("  ", " "))
+        elif row["status"] == "outside_range":
+            mismatch.append(f"instance {row['mod_id']} {row['installed']} is outside the required range {row['version_range']}")
     if mismatch and not allow_mismatch:
         raise ValueError("Instance does not match the project: " + "; ".join(mismatch) + ". Pass --allow-mismatch to deploy anyway")
-    replaced = [path for path in sorted(mods.glob("*.jar"))
-                if any(mod["mod_id"] == mod_id for mod in inspect_jar(path)["mods"])]
     destination = mods / artifact.name
     # A file already at the destination that was not recognised as this mod (unreadable, other metadata) is still
     # somebody's file: it goes to the backup too instead of being overwritten.
@@ -260,11 +366,16 @@ def deploy(project: Path, instance: Path, *, apply: bool = False, allow_mismatch
     backup =Path(summary["game_dir"]) / "mcforge-backups" / time.strftime("%Y%m%d-%H%M%S")
     plan = {"project": str(project), "instance": summary["name"], "launcher": summary["launcher"], "artifact": str(artifact),
             "evidence": evidence, "destination": str(destination), "replaces": [str(path) for path in replaced],
-            "backup": str(backup) if replaced else None, "mismatch": mismatch, "applied": False,
+            "backup": str(backup) if replaced else None, "mismatch": mismatch, "dependencies": dependencies, "applied": False,
             "note": "Close the game first. The mod loads on the next launch; this is not a runtime test."}
+    running = running_games(Path(summary["game_dir"]))
+    plan["game_running"] = running if running is not None else "unknown"
     if not apply:
         plan["next"] = "Review the plan, then repeat with --apply"
         return plan
+    if running and not allow_running:
+        raise ValueError(f"The game is running from this instance (java PID {', '.join(map(str, running))}); close it first, "
+                         "or pass --allow-running")
     with artifact.open("rb") as stream:
         digest = hashlib.file_digest(stream, "sha256").hexdigest()
     if replaced:
@@ -275,5 +386,6 @@ def deploy(project: Path, instance: Path, *, apply: bool = False, allow_mismatch
     with destination.open("rb") as stream:
         if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
             raise ValueError("Deployed JAR differs from the built artifact; restore from the backup folder")
+    _record_deploy(Path(summary["game_dir"]), mod_id, destination, digest, project)
     plan.update(applied=True, sha256=digest)
     return plan

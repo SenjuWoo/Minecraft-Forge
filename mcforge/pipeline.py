@@ -11,6 +11,8 @@ a small example creature to replace. The pipeline needs numpy and Pillow; it cre
 on first run. The toolkit core stays standard-library only.
 
 `--force` refreshes `lib/` and the entry script; `mob/`, `palette.json` and `pipeline.json` are never replaced.
+`--add` puts another mob into an existing pipeline (`mobs/<name>/`, listed in pipeline.json "mobs"): one shared
+`lib/`, per-mob build/ and media/ folders, optional per-mob palette.json and spring gains.
 """
 from __future__ import annotations
 
@@ -33,7 +35,35 @@ def template_files() -> list[str]:
                   if path.is_file() and "__pycache__" not in path.parts and path.suffix in (".py", ".json", ".md", ".txt"))
 
 
-def add_pipeline(project: Path, mob: str, directory: Path | None = None, *, force: bool = False) -> dict:
+def add_mob(target: Path, mob: str) -> list[str]:
+    """Copy the example mob package to mobs/<mob>/ and list it in pipeline.json; returns the created paths."""
+    config_path = target / "pipeline.json"
+    config = read_json(config_path)
+    if mob == config["mob"] or mob in config.get("mobs", []):
+        raise ValueError(f"{mob!r} is already a mob of {target}")
+    if mob in ("look", "anim", "lookdev"):
+        raise ValueError(f"{mob!r} would collide with a media folder; choose another id")
+    created = []
+    package = target / "mobs"
+    if not (package / "__init__.py").is_file():
+        package.mkdir(parents=True, exist_ok=True)
+        (package / "__init__.py").write_text('"""Mob packages beside the first one (mob/); see lib/paths.py."""\n',
+                                             encoding="utf-8", newline="\n")
+        created.append("mobs/__init__.py")
+    for relative in template_files():
+        name = relative[len(TEMPLATE) + 1:]
+        if not name.startswith(OWNED[0]):
+            continue
+        destination = package / mob / name[len(OWNED[0]):]
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((ROOT / relative).read_bytes())
+        created.append(destination.relative_to(target).as_posix())
+    config["mobs"] = list(dict.fromkeys([config["mob"], *config.get("mobs", []), mob]))
+    config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8", newline="\n")
+    return created
+
+
+def add_pipeline(project: Path, mob: str, directory: Path | None = None, *, force: bool = False, add: bool = False) -> dict:
     project = Path(project).resolve()
     guard_output(project)
     lock = read_json(project / "mcforge-project.json")
@@ -44,10 +74,22 @@ def add_pipeline(project: Path, mob: str, directory: Path | None = None, *, forc
     if target == project or project in target.parents and target.parent == project and target.name in ("src", "build", "gradle"):
         raise ValueError("Choose a pipeline folder that is not part of the Gradle project layout")
     config_path = target / "pipeline.json"
+    if add:
+        if not config_path.is_file():
+            raise ValueError(f"--add needs an existing pipeline in {target}; run pipeline PROJECT --mob FIRST first")
+        created = add_mob(target, mob)
+        lock.setdefault("pipelines", {})[mob] = Path(os.path.relpath(target, project)).as_posix()
+        (project / "mcforge-project.json").write_text(json.dumps(lock, indent=2) + "\n", encoding="utf-8")
+        script = target / "build_assets.py"
+        return {"project": str(project), "pipeline": str(target), "mob": mob, "created": created, "refreshed": [], "kept": [],
+                "next": [f"python -I \"{script}\" all --validate --mob {mob}",
+                         f"kit PROJECT geomob --mob {mob}",
+                         f"replace the example in mobs/{mob}/ with your design; mobs/{mob}/palette.json (optional) replaces the shared palette for it"]}
     if config_path.is_file():
         existing = read_json(config_path)
-        if existing.get("mob") != mob and not force:
-            raise ValueError(f"{target} already holds the pipeline of {existing.get('mob')!r}; pass --dir DIR for a second mob")
+        if existing.get("mob") != mob and mob not in existing.get("mobs", []) and not force:
+            raise ValueError(f"{target} already holds the pipeline of {existing.get('mob')!r}; pass --add to build {mob!r} "
+                             "as a second mob with the same lib, or --dir DIR for a separate pipeline")
     created, kept, refreshed = [], [], []
     for relative in template_files():
         name = relative[len(TEMPLATE) + 1:]

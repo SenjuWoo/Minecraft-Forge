@@ -1,6 +1,6 @@
 """Asset pipeline entry point (scaffolded by the Minecraft Forge toolkit: pipeline PROJECT). Yours to edit.
 
-Usage: python -I asset-pipeline/build_assets.py <command> [--validate] [args]
+Usage: python -I asset-pipeline/build_assets.py <command> [--validate] [--mob NAME[,NAME]|all] [args]
 
 Commands: check rig model texture anim sheets sprites sounds world springs release plan all
 

@@ -26,7 +26,12 @@ Each instance gets a `suggested_project`: the `init` options that build a mod fo
 
 1. It requires a fresh verification receipt (`verify PROJECT`) whose hashes still match the sources; `--unverified` uses the newest built JAR instead and says so.
 2. It refuses an instance whose loader or Minecraft version differs from the project (`--allow-mismatch` overrides).
-3. It moves any JAR that provides the same mod id, and any file already at the destination name, into `<game dir>/mcforge-backups/<timestamp>/`, copies the new JAR and checks its hash. Nothing in `mods/` is overwritten.
+3. It checks the JAR's required dependencies against the instance (missing, or installed outside the declared range, counts as a mismatch) and lists them under `dependencies`.
+4. `--apply` refuses while a game runs from that instance (Java process whose command line names its folder; `--allow-running` overrides): moving files under a running game left a pack half-changed.
+5. It moves any JAR that provides the same mod id, and any file already at the destination name, into `<game dir>/mcforge-backups/<timestamp>/`, copies the new JAR and checks its hash. Nothing in `mods/` is overwritten.
+6. It records the deploy in `<game dir>/mcforge-deployed.json`. `inventory` lists `deployed_missing`: mods deploy put there that no enabled JAR provides any more. A launcher reinstall or pack update can drop hand-added JARs without a word (seen: ten deployed mods gone after a pack update); redeploy them from each project's release JAR.
+
+`inventory` also reports `dependency_problems` for the whole pack (required (Neo)Forge dependencies nobody provides; `nested?` = probably shipped inside another JAR) and `fml` for a JAR that FML loads through its manifest (`FMLModType`) or a loader service, so a multi-loader library with only `fabric.mod.json` is not called foreign.
 
 Close the game first. Deploying is not a runtime test: launch the pack and read `logs/latest.log`. For a pack you care about, deploy into a copy of the instance first. Project folders are refused inside any launcher instance (`init`, `pack` and logs never write there).
 

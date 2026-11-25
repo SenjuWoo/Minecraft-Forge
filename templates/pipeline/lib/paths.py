@@ -1,5 +1,9 @@
 """Project paths, read from pipeline.json. Generators write only below the mod's resources, the gen/ Java package,
-MEDIA (review images) and BUILD (intermediate, git-ignored)."""
+MEDIA (review images) and BUILD (intermediate, git-ignored).
+
+Several mobs: "mob" is the first (package mob/, build/, media/, palette.json, spring_gains.json as before); every
+other name in "mobs" has its package in mobs/<name>/ and its own build/<name>/ and media/<name>/. A mobs/<name>/
+palette.json replaces the shared palette for that mob; its spring gains are mobs/<name>/spring_gains.json."""
 from __future__ import annotations
 
 import json
@@ -11,7 +15,11 @@ from pathlib import Path
 PIPE = Path(__file__).resolve().parent.parent
 CONFIG = json.loads((PIPE / "pipeline.json").read_text(encoding="utf-8"))
 MOD = CONFIG["mod_id"]
-MOB = CONFIG["mob"]
+PRIMARY = CONFIG["mob"]
+MOBS = list(dict.fromkeys([PRIMARY, *CONFIG.get("mobs", [])]))
+MOB = os.environ.get("PIPELINE_MOB") or PRIMARY
+if MOB not in MOBS:
+    raise SystemExit(f"PIPELINE_MOB={MOB!r} is not in pipeline.json (mobs: {', '.join(MOBS)})")
 PACKAGE = CONFIG["package"]
 PASCAL = "".join(part.capitalize() for part in MOB.split("_"))
 PROJECT = (PIPE / CONFIG["project"]).resolve()
@@ -24,8 +32,9 @@ GEO = ASSETS / "geo/entity"
 ANIM = ASSETS / "animations/entity"
 TEX = ASSETS / "textures/entity"
 SOUNDS = ASSETS / "sounds"
-MEDIA = (PIPE / CONFIG.get("media", "../media")).resolve()
-BUILD = PIPE / "build"
+MOB_DIR = PIPE / "mob" if MOB == PRIMARY else PIPE / "mobs" / MOB
+MEDIA = (PIPE / CONFIG.get("media", "../media")).resolve() / ("" if MOB == PRIMARY else MOB)
+BUILD = PIPE / "build" / ("" if MOB == PRIMARY else MOB)
 
 
 def ensure(*dirs: Path) -> None:

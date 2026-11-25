@@ -25,7 +25,8 @@ import software.bernie.geckolib.cache.object.GeoBone;
  *
  * <p>Rules that keep it stable (each one was learned from a traced client run):
  * <ul>
- * <li>Integrate in fixed 4 ms steps; filter inside those steps, not once per frame, or peaks depend on the frame rate.
+ * <li>Integrate in fixed 4 ms steps; filter inside those steps, not once per frame, and feed them the force averaged
+ *     over every frame since the last step (frames shorter than a step run none), or peaks depend on the frame rate.
  * <li>Restart the acceleration estimators after a long frame (screenshot, chunk load, GC) and after a teleport; keep
  *     integrating the springs. A jump in position is not motion, and the client shows a short teleport as three
  *     ticks of fast travel: detect it by the velocity step, not by the speed.
@@ -75,6 +76,9 @@ public final class SpringBones {
         /** Index of the dominant axis of r: the stretch axis. */
         final int axis;
         final Vector3f d = new Vector3f(), v = new Vector3f(), force = new Vector3f(), filtered = new Vector3f();
+        /** Force integrated over the frames since the last sub-step (frames shorter than one sub-step run none). */
+        final Vector3f pending = new Vector3f();
+        float pendingTime;
         final Accel anchor = new Accel();
         /** Unclamped output as a fraction of the clamp (above 1 means the clamp is working). */
         float use;
@@ -203,6 +207,8 @@ public final class SpringBones {
                     s.v.zero();
                     s.d.zero();
                     s.filtered.zero();
+                    s.pending.zero();
+                    s.pendingTime = 0f;
                 }
             } else {
                 state.accumulator = Math.min(state.accumulator + dt, 0.1);
@@ -211,8 +217,19 @@ public final class SpringBones {
                 float blend = (float) (1.0 - Math.exp(-H / CLIP_TAU));   // exact first-order low-pass per sub-step
                 for (Spring s : state.springs) {
                     float k = s.def.k(), c = s.def.c();
+                    // Time-weight the force over every frame since the last sub-step: above ~250 fps most frames run
+                    // no sub-step, and feeding only the latest frame's force for a whole step let one-frame spikes of
+                    // tick-stepped motion count several times over, so peaks rose with the frame rate.
+                    s.pending.fma((float) dt, s.force);
+                    s.pendingTime += (float) dt;
+                    if (steps == 0) {
+                        continue;
+                    }
+                    Vector3f mean = new Vector3f(s.pending).div(Math.max(s.pendingTime, 1e-6f));
+                    s.pending.zero();
+                    s.pendingTime = 0f;
                     for (int n = 0; n < steps; n++) {
-                        s.filtered.lerp(s.force, blend);
+                        s.filtered.lerp(mean, blend);
                         s.v.x += (-k * s.d.x - c * s.v.x + s.filtered.x) * H;
                         s.v.y += (-k * s.d.y - c * s.v.y + s.filtered.y) * H;
                         s.v.z += (-k * s.d.z - c * s.v.z + s.filtered.z) * H;

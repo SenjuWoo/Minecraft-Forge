@@ -28,6 +28,8 @@ listed in an optional `mob/commands.py` (`COMMANDS`, and `ALL_ORDER` to put it i
 
 Project layout that every finished project used: `source/` (the Gradle project), `asset-pipeline/` (generators; nothing in it ships), `media/` (review images), `mod/` (staged release JAR and manifest), `docs/` (design, validation), `reference/` (supplied material, read-only).
 
+Several mobs in one mod share one pipeline: `pipeline PROJECT --mob second --add` creates `mobs/second/` beside `mob/` and lists it in pipeline.json `mobs`. Each command runs once per mob in its own process (`--mob a,b` selects); per-mob `build/<mob>/`, `media/<mob>/`, optional `mobs/<mob>/palette.json` and `spring_gains.json`; plan and release run once. Shared rig families or clip libraries go in a package of your own that both mob packages import. One fix point for 13 golems beat 13 pipeline copies.
+
 ## Order of work
 
 Risk first, art last. Each line is a stage with its own proof.
@@ -105,6 +107,10 @@ Chains that must reach somewhere (hoses, ropes, tethers) are a different tool: a
 - A sequence (a ride, a scene, a ritual) is a server table of (phase, tick) -> effects built from the generated clip tick constants; the entity counts ticks and never waits for the client. One abort path restores everything (blocks, props, wardrobe, camera, items), with a GameTest per abort cause.
 - Find blocks the mob needs (food, plants, stations) with a POI type on the right block state (`PoiManager` search), not by scanning blocks every few ticks; the POI updates itself when the block grows or is used.
 - Never sync a world position as a float: at large coordinates it is off by about 0.1 block. A seat or camera uses an entity's own double position.
+- A boss: one per structure through its home block, no biome spawns; music as a looping streamed sound started and stopped on the client with boss-bar membership. "At most one per world, only after X" is a server spawner gated on SavedData, not a biome modifier.
+- Effects on any mob (possession, curses, merges) live in a data attachment on the host, not in a replacement entity: the host keeps its model, loot and identity, and it works on modded mobs and players.
+- A titan: author at a native size near 42 px and scale the renderer (1.75 gave a 4.6-block boss at about 2,000 cubes); cell 1.0 px for the body, 0.5 px for face, claws and teeth.
+- A creature of any block: texture it at runtime from the block atlas (per-face sprites, procedural UV from rest-pose positions, block tint) instead of baking per block; hand-made variants seed the painter with the vanilla block texture.
 - One-of-a-kind companions: `updateInterval(1)` on the entity type makes client-side motion reading smooth.
 
 ## Proving it

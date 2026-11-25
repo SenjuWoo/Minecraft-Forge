@@ -72,7 +72,12 @@ def inspect_jar(path: Path, hash_file: bool = False) -> dict:
                 except (ValueError, OSError, RuntimeError, zlib.error, zipfile.BadZipFile) as error:
                     result["errors"].append(str(error))
             preferred = next((name for name in expected[:2] if name in names), None)
-            result["foreign_fabric_only"] = "fabric.mod.json" in names and preferred is None
+            # A multi-loader library may carry only fabric.mod.json and still be a (Neo)Forge library: FML reads the
+            # manifest's FMLModType or a loader service (locator) instead of a mods.toml.
+            native = sorted(name for name in names if name.startswith(("META-INF/services/net.neoforged.", "META-INF/services/net.minecraftforge.")))
+            if manifest.get("FMLModType") or native:
+                result["fml"] = {"mod_type": manifest.get("FMLModType"), "services": native}
+            result["foreign_fabric_only"] = "fabric.mod.json" in names and preferred is None and "fml" not in result
             for name in result["metadata"]:
                 if names.count(name) > 1:
                     result["errors"].append(f"duplicate archive entry: {name}")
@@ -222,5 +227,45 @@ def inventory(instance: Path, hash_files: bool = False) -> dict:
             providers.setdefault(mod_id, []).append(jar["file"])
     result["duplicates"] = [{"mod_id": mod_id, "files": files} for mod_id, files in sorted(providers.items()) if len(files) > 1]
     result["foreign_fabric_only"] = [jar["file"] for jar in result["enabled"] if jar["foreign_fabric_only"]]
+    result["dependency_problems"] = dependency_problems(result["enabled"])
+    result["deployed_missing"] = deployed_missing(instance, result["enabled"])
     result["crashes"] = _crashes(instance)
     return result
+
+
+def deployed_missing(game_dir: Path, jars: list[dict]) -> list[dict]:
+    """Mods that deploy put into this instance (mcforge-deployed.json) and that no enabled JAR provides any more."""
+    try:
+        ledger = json.loads((Path(game_dir) / "mcforge-deployed.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    present = {mod["mod_id"] for jar in jars for mod in jar["mods"]}
+    return [{"mod_id": mod_id, **entry} for mod_id, entry in sorted(ledger.items()) if mod_id not in present]
+
+
+def dependency_problems(jars: list[dict]) -> list[dict]:
+    """Required (Neo)Forge dependencies that no enabled JAR provides, or whose installed version is outside the
+    declared range. A dependency a JAR may ship inside itself (jar-in-jar name match) is reported as "nested?"."""
+    from .launchers import PLATFORM_IDS, version_in_range
+    versions = {}
+    for jar in jars:
+        for mod in jar["mods"]:
+            versions.setdefault(mod["mod_id"], mod["version"])
+    # jar-in-jar files and library JARs without mod metadata provide ids we cannot read cheaply: match by file name
+    squash = lambda text: re.sub(r"[^a-z0-9]", "", str(text).lower())
+    nested = " ".join(squash(name) for jar in jars for name in [*jar.get("nested_jars", []), *([jar["file"]] if not jar["mods"] else [])])
+    problems = []
+    for jar in jars:
+        for dependency in jar["dependencies"]:
+            mod_id = dependency.get("mod_id")
+            if dependency.get("type") != "required" or not mod_id or mod_id in PLATFORM_IDS:
+                continue
+            if mod_id not in versions:
+                status = "nested?" if squash(mod_id) in nested else "missing"
+            elif version_in_range(versions[mod_id], dependency.get("version_range")) is False:
+                status = "outside_range"
+            else:
+                continue
+            problems.append({"jar": jar["file"], "needs": mod_id, "version_range": dependency.get("version_range"),
+                             "installed": versions.get(mod_id), "side": dependency.get("side"), "status": status})
+    return problems

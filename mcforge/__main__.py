@@ -304,7 +304,8 @@ def parser() -> argparse.ArgumentParser:
     ship.add_argument("path", type=Path, help="project directory")
     ship.add_argument("--instance", type=Path, required=True, help="instance folder from: instances")
     ship.add_argument("--apply", action="store_true", help="write into the instance; without it only the plan is printed")
-    ship.add_argument("--allow-mismatch", action="store_true", help="deploy although loader or Minecraft version differ")
+    ship.add_argument("--allow-mismatch", action="store_true", help="deploy although loader, Minecraft version or a required dependency differ")
+    ship.add_argument("--allow-running", action="store_true", help="apply although a game is running from the instance")
     ship.add_argument("--unverified", action="store_true", help="use the newest built JAR without a fresh verification receipt")
     scan = commands.add_parser("inventory", help="inspect installed JARs and bounded crash summaries (read-only)")
     scan.add_argument("--instance", type=Path, required=True)
@@ -392,6 +393,7 @@ def parser() -> argparse.ArgumentParser:
     pipe.add_argument("--mob", required=True, help="the mob's id, e.g. cave_stalker")
     pipe.add_argument("--dir", type=Path, dest="directory", help="pipeline folder (default: asset-pipeline beside the project)")
     pipe.add_argument("--force", action="store_true", help="refresh lib/ and the entry script; mob/, palette.json and pipeline.json are kept")
+    pipe.add_argument("--add", action="store_true", help="add another mob to an existing pipeline (mobs/NAME/, one shared lib)")
     audio = commands.add_parser("audio-check", help="sounds.json vs registered SoundEvents vs OGG files: format, duration, loudness")
     audio.add_argument("path", type=Path, help="project directory")
     audio.add_argument("--no-loudness", action="store_true", help="skip FFmpeg loudness measurement")
@@ -502,7 +504,8 @@ def main(argv=None) -> int:
                 emit(discover(args.launcher, args.root))
         elif args.command == "deploy":
             from .launchers import deploy
-            emit(deploy(args.path, args.instance, apply=args.apply, allow_mismatch=args.allow_mismatch, unverified=args.unverified))
+            emit(deploy(args.path, args.instance, apply=args.apply, allow_mismatch=args.allow_mismatch, unverified=args.unverified,
+                        allow_running=args.allow_running))
         elif args.command == "inventory":
             result = inventory(args.instance, args.hash)
             emit(result, args.output)
@@ -563,7 +566,7 @@ def main(argv=None) -> int:
             emit(add_kit(args.path, args.kit, args.mob, force=args.force, hitbox=hitbox))
         elif args.command == "pipeline":
             from .pipeline import add_pipeline
-            emit(add_pipeline(args.path, args.mob, args.directory, force=args.force))
+            emit(add_pipeline(args.path, args.mob, args.directory, force=args.force, add=args.add))
         elif args.command == "audio-check":
             from .audiocheck import check_audio
             result = check_audio(args.path, measure=not args.no_loudness)

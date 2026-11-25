@@ -4,11 +4,20 @@ from __future__ import annotations
 
 import json
 
-from mob import rig as R
-
 from . import paths
 
-GAINS = paths.PIPE / "spring_gains.json"
+
+class _Rig:
+    """mob/rig.py, imported on first use: a mob module that imports lib.animtools (which imports this module) at
+    import time would otherwise meet a half-initialised module."""
+
+    def __getattr__(self, name):
+        from mob import rig
+        return getattr(rig, name)
+
+
+R = _Rig()
+GAINS = paths.PIPE / "spring_gains.json" if paths.MOB == paths.PRIMARY else paths.MOB_DIR / "spring_gains.json"
 
 
 def mirror(entries):

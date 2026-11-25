@@ -110,7 +110,9 @@ public final class DevShots {
             if (!requested && mc.screen instanceof TitleScreen title) {
                 requested = true;
                 String name = "devshots_" + System.currentTimeMillis();
-                LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.PEACEFUL, true, new GameRules(),
+                // Not PEACEFUL: peaceful discards every hostile mob (persistence or not), so a hostile subject or scene
+                // actor vanished mid-run. The camera is a spectator, which nothing targets.
+                LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.NORMAL, true, new GameRules(),
                         WorldDataConfiguration.DEFAULT);
                 // second argument: generate structures. Off in the flat world; it must be on to prove worldgen.
                 mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(SEED, NORMAL_WORLD, false),

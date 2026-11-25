@@ -14,6 +14,8 @@ The compiler is the final authority: a row a build contradicts is wrong for your
 
 Use the build your target pack ships (`inventory --instance PATH`). `libs --add geckolib --project PROJECT --version 4.9.3` resolves the NeoForge file's Modrinth version id (`Grwn5rUB`); a bare version number in a Gradle coordinate can resolve another loader's file.
 
+4.9.4 (2026-11 reference pack): `GeoRenderer`, `GeoEntityRenderer`, `GeoObjectRenderer` and `AutoGlowingGeoLayer` keep every method signature of 4.9.3, and `GeoGlowingTextureMeta` and `BakedModelFactory$Builtin` are byte-identical (compared with `javap -c -p`), so the glow, UV and kit rows below hold and a mod built on 4.9.3 loads on 4.9.4. Pin the version the target pack ships for a new mod.
+
 ### GeoBone
 
 | Need | Signature |
@@ -63,6 +65,7 @@ On the four side faces that reads left to right, top to bottom. No east/west swa
 - **A second geometry on the same model:** `GeoModel.getBakedModel(other)` calls `AnimationProcessor.setActiveModel` when the location changes, so the processor's bone map becomes the other model's bones and a layer reads its own rest pose back. Fetch extra geometries with `GeckoLibCache.getBakedModels().get(location)` and copy bone state from `getGeoModel().getAnimationProcessor()` (`kit PROJECT layer`).
 - `AutoGlowingGeoLayer<T>(GeoRenderer<T>)` reads `<texture>_glowmask.png` beside whatever texture the model returns. The glow texture is built by `GeoGlowingTextureMeta.createImageMask(base, out)`: each mask texel with alpha copies the base texture's colour at that texel with the mask's alpha. The mask's own colour is ignored: paint the glow colour into the base texture. Every texture variant needs one; it must have the base texture's dimensions (`Glowmask texture dimensions do not match base texture dimensions!`) and at least one non-transparent texel (`Invalid glow layer texture provided, must have at least one pixel!` crashes texture registration).
 - Babies are not scaled for you (`isBaby()` only affects limb swing).
+- `GeoObjectRenderer.preRender` runs `scaleModelForRender` and translates by (0.5, 0.51, 0.5) on every call, also on the `reRender` a glow or overlay layer makes (4.9.3 and 4.9.4): the layer draws half a block away. Override `preRender` and call super only when `!isReRender`. Thin membranes and blades seen from both sides: return `RenderType.entityCutoutNoCull(texture)` from `getRenderType`.
 
 ### Animation
 
@@ -96,6 +99,8 @@ On the four side faces that reads left to right, top to bottom. No east/west swa
 | Falls, projectiles | `LivingFallEvent` (`setDistance`, `setDamageMultiplier`); `ProjectileImpactEvent` (`getRayTraceResult()`, `getProjectile()`) |
 | Thrown things | `ThrowableProjectile(EntityType, Level)` / `(EntityType, LivingEntity, Level)` are protected; `getDefaultGravity()`; `ThrownItemRenderer(Context)` renders `ItemSupplier.getItem()` |
 | Riding | override `Entity.getPassengerAttachmentPoint(Entity, EntityDimensions, float)` (protected); `canAddPassenger(Entity)`; `getControllingPassenger()` (`Mob` returns only a Mob passenger); a player always leaves by sneaking |
+| Holding an entity | make it a passenger of the holder (clients get position and relationship for free; a per-tick teleport rubber-bands players); cancel `EntityMountEvent` while held (dismount attempts can count as struggle presses); a passenger taller than the seat is squashed by the renderer, never moved through the ground. An invisible rider with `canControlVehicle` false lets the host's own AI act |
+| Synced state on any entity | a data attachment with `AttachmentType.Builder#sync` (21.1.265) reaches every tracking client; mob effects on a non-player are not sent to other clients (`LivingEntity#onEffectAdded`), so a client overlay cannot key on an effect. A per-entity attachment also works on every vanilla and modded mob and on players, where a replacement entity cannot |
 | Water | `LivingEntity.canBreatheUnderwater()` is final and reads `#minecraft:can_breathe_under_water`; `Attributes.WATER_MOVEMENT_EFFICIENCY` |
 | Type tags | `data/minecraft/tags/entity_type/<name>.json`: `powder_snow_walkable_mobs`, `freeze_immune_entity_types`, `can_breathe_under_water` |
 | Persistence | `Mob.removeWhenFarAway(double)`; `PersistenceRequired` for placed ones |
@@ -134,6 +139,8 @@ On the four side faces that reads left to right, top to bottom. No east/west swa
 | Item decorations | `RegisterItemDecorationsEvent.register(ItemLike, IItemDecorator)` |
 | Item in the world | `ItemRenderer.renderStatic(LivingEntity, ItemStack, ItemDisplayContext, boolean leftHand, PoseStack, MultiBufferSource, Level, int light, int overlay, int seed)` |
 | Custom render type | the `RenderType` constructor is public: `new RenderType(name, DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS, 1536, false, true, setup, clear) {}` |
+| Any mob's look | cancel `RenderLivingEvent.Pre` (and `GeoRenderEvent.Entity.Pre` for GeckoLib mobs) and draw your own model in place: replaces the look of every vanilla and modded mob without per-mob assets; keep the host recognisable by scale and a colour sampled from its own texture |
+| Layer on every renderer | `EntityRenderersEvent.AddLayers`: add a layer to each `LivingEntityRenderer` and player skin; an overlay that needs no UVs re-renders the posed parent model with a scrolling texture (charged-creeper technique) |
 | Entity lighting | `com.mojang.blaze3d.platform.Lighting`: `DIFFUSE_LIGHT_0 = normalize(0.2, 1, -0.7)`, `DIFFUSE_LIGHT_1 = normalize(-0.2, 1, 0.7)`; `shade = min(1, 0.6 (max(0, n.L0) + max(0, n.L1)) + 0.4)` |
 | First launch | a new game directory opens `AccessibilityOnboardingScreen` before `TitleScreen`; set `options.onboardAccessibility = false` |
 | Subscribers | `@EventBusSubscriber(modid = ..., value = Dist.CLIENT)` routes mod-bus and game-bus events by type on 21.1.265; the `bus` parameter is deprecated for removal |

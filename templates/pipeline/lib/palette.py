@@ -16,7 +16,7 @@ import numpy as np
 
 from . import paths
 
-PALETTE_JSON = paths.PIPE / "palette.json"
+PALETTE_JSON = paths.MOB_DIR / "palette.json" if (paths.MOB_DIR / "palette.json").is_file() else paths.PIPE / "palette.json"
 LUMA = np.array([0.299, 0.587, 0.114])
 
 

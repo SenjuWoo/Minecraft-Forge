@@ -184,6 +184,13 @@ static void shot(String n) { var mc = Minecraft.getInstance(); Screenshot.grab(m
 - Log numeric state too (spring offsets, health, positions) to `latest.log`; numbers settle tuning questions screenshots cannot.
 - Run it in the background with a timeout; read the PNGs (`run-devshots/screenshots/`) and the log. Report what was looked at; it is still not a pack-integration test. `verify` keeps `client_load` and `gameplay` at `not_run`: a screenshot run is evidence you report next to the receipt, not part of it.
 
+### Scene hygiene that cost reruns
+
+- The screenshot world is NORMAL difficulty (peaceful deletes hostile subjects and actors mid-scene, persistence or not), and the script clears what world generation spawned before the first summon (wild copies of the subject hijack `@e[type=...,limit=1]`).
+- Reset a mob's action state between scenes (a test hook such as `resetActionForTest()`): a NoAI-frozen attack leaks into the next scene.
+- Tune springs at full frame rate on a free GPU and gate them (`devlog --gate springs`); tuning at low fps rode the clamp at high fps before the kit averaged force across short frames (1.5.2).
+- From git-bash, `cmd //c minecraft-forge ...` can report exit -1 for a passed run; trust the receipt (`verify --check`).
+
 ## Existing crash baseline
 
 Inventory the active pack read-only and save the report outside the instance. Read the newest crash plus the relevant part of the matching log. Identify the first meaningful exception and any transforms of the failing class; a mod named in a stack trace is an isolation candidate, not automatically the cause.
