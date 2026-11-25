@@ -15,7 +15,7 @@ Local mod workbench for **NeoForge, Fabric and Forge**. Read `STATE.md` for curr
 
 | Need | Command / guide |
 |---|---|
-| Installed reality | `instances [--launcher L] [--root DIR]`, `inventory --instance PATH [--hash]`, `jar PATH [--hash]` |
+| Installed reality | `instances [--launcher L] [--root DIR]`, `inventory --instance PATH [--hash] [--links]`, `links --instance PATH \| --mods-dir DIR [--json]` (NoSuchMethodError / AbstractMethodError between mods before launch; exit 1 on problems), `jar PATH [--hash]` |
 | New mod | `quickstart` / `init PATH --mod-id ID --package dev.owner.mod --name "Name" [--loader L --minecraft V] [--fetch]` |
 | Content | `add PATH KIND NAME [--style S] [--tier T] [--repair ITEM] [--shape S] [--hostile]` - `guide content` |
 | Character mob (GeckoLib, NeoForge 1.21.1) | `pipeline PATH --mob NAME [--add]` (`--add`: another mob sharing one lib; asset generators: rig, model, texture, cubes, animation, sheets, sounds, audio, springs, release; project commands in `mob/commands.py`), `kit PATH geomob\|home\|springs\|layer\|passes\|bonemath\|trace [--mob NAME]` (`home`: a block that forms the mob, a fluid-anchored structure type, GameTests - `guide worldgen`), `devlog PATH [--rules FILE] [--gate G]` - `guide mobs`, `guide api` |

@@ -6,6 +6,7 @@ ATLauncher is the reference launcher, and the toolkit reads the others the same 
 .\Minecraft-Forge.ps1 instances                       # every launcher found in its default location
 .\Minecraft-Forge.ps1 instances --launcher prism --root "E:\PrismLauncher"
 .\Minecraft-Forge.ps1 inventory --instance "<instance folder>" --hash --output pack.json
+.\Minecraft-Forge.ps1 links --instance "<instance folder>"                 # binary compatibility between the installed mods
 .\Minecraft-Forge.ps1 deploy D:\Mods\MyMod --instance "<instance folder>"            # plan only
 .\Minecraft-Forge.ps1 deploy D:\Mods\MyMod --instance "<instance folder>" --apply    # copy, with backup
 ```
@@ -39,3 +40,28 @@ Two launcher behaviours that bite automated pack work (seen on ATLauncher, 2026-
 
 - The launcher rewrites `instance.json` from memory, so it can re-enable a mod you disabled on disk and can overwrite edits made while it runs. Close it before editing an instance; its own `disabledmods/` folder plus `"disabled": true` in `instance.json` is the supported way to turn a mod off.
 - A running game keeps its JARs locked (Windows); moving or deleting `mods/` then fails halfway. Wait for the process to exit, and verify the mod set by hash afterwards.
+
+## Link check (binary compatibility)
+
+Declared version ranges say which versions a mod accepts, not which members it calls. A mod compiled against one release of a library calls exact methods and fields (owner class, name, JVM descriptor). When an update renames or re-signs one of them while every range is still satisfied, `inventory` sees nothing wrong and the game crashes at the first call: `NoSuchMethodError`, `NoSuchFieldError`, `AbstractMethodError` (a class implements an interface that gained or renamed an abstract method) or `NoClassDefFoundError`. Seen: a rendering library's beta renamed one interface method, and a closed-source mod compiled against the previous release crashed on the first entity render.
+
+```powershell
+.\Minecraft-Forge.ps1 links --instance "<instance folder>"          # summary, problems first; exit 1 when any are found
+.\Minecraft-Forge.ps1 links --mods-dir "<copy of mods with the update>" --json
+.\Minecraft-Forge.ps1 inventory --instance "<instance folder>" --links   # adds a links report to the inventory JSON
+```
+
+`links` reads the class files of every JAR in `mods/` and of their nested JARs (`META-INF/jarjar/`, `META-INF/jars/`) from memory; nothing is extracted and no installed code runs. For each member reference from one JAR to a class another JAR defines, it walks the owner and its supertypes:
+
+| Kind | Meaning |
+|---|---|
+| `missing` | the member exists nowhere in the owner's fully scanned type hierarchy: `NoSuchMethodError` / `NoSuchFieldError` when called |
+| `abstract-missing` | a concrete class implements another JAR's interface without one of its abstract methods: `AbstractMethodError` when called |
+| `class-missing` | a referenced class is absent while another JAR ships classes in that same package: `NoClassDefFoundError` when reached |
+| `mixin-missing`, `mixin-class-missing` | the same, but only mixin classes make the reference; a mixin config plugin may skip that mixin for other versions of the target mod, so read its rules before acting |
+
+Anything the JARs cannot decide is counted as `unresolved` (with a reason and a few examples), never reported as a problem: a hierarchy that reaches a game, loader or JDK class, a member a mixin aimed at that class declares, or a class in a package no scanned JAR ships (usually optional compatibility code for a mod that is not installed).
+
+Limits: it checks mod-to-mod references only. Calls into Minecraft, the loader and their bundled libraries are not checked (those classes are not in `mods/`), and neither are mixin injection targets, reflection, method handles or a mod's own version guards. A reported problem in code the mod only runs for a matching version of the other mod is real but latent; the `from_class` field shows where it lives. A clean result is not a runtime test.
+
+Run it after every mod update, before launching: copy `mods/` to a scratch folder, apply the update there, run `links --mods-dir` on the copy and compare with the current set. A new `missing` or `abstract-missing` line between the updated JAR and a mod that depends on it means roll back that update or wait for the dependent mod to rebuild against it.

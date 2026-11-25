@@ -77,7 +77,7 @@ On Linux/macOS use `python -m mcforge ...` from this folder. `install` copies th
 | See a model without launching | `preview P FILE` (block model, `.bbmodel`, `.geo.json` posed and lit like the game, texture) | `guide content` |
 | Popular libraries (GeckoLib, Curios, Architectury, JEI, Cloth Config, ~60) | `libs`, `libs --add SLUG --project P` | `guide libraries` |
 | Resource, data and shader packs | `pack PATH --kind resource\|data\|shader` | `guide packs` |
-| Match and deploy to a launcher instance | `instances`, `inventory`, `deploy` | `guide launchers` |
+| Match and deploy to a launcher instance | `instances`, `inventory`, `links`, `deploy` | `guide launchers` |
 | Route a request before writing anything | `plan "a fabric 1.20.1 mod with a boar mob"` | |
 
 Generated art is original and procedural (standard-library PNG writer): no downloads, accounts or paid services. Replace it with your own when the feature is final; the Blockbench projects make that a round trip.
@@ -90,7 +90,7 @@ Project targets are locked (game, loader, Java, Gradle distribution and checksum
 
 ## Commands
 
-`doctor` `targets` `instances` `inventory` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `devlog` `kit` `pipeline` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` or `devlog` problems, `jar`/`inventory` errors), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
+`doctor` `targets` `instances` `inventory` `links` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `devlog` `kit` `pipeline` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`. `capabilities` prints all of them with every option as JSON; every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` or `devlog` problems, `jar`/`inventory` errors, `links` broken references between mods), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
 
 ## Scope and limits
 

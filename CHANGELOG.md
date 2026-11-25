@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.3 - 2026-11-25
+
+Pack lessons from a 1.21.1 NeoForge performance audit and a crash after a mod update. No command or option was removed.
+
+- New `links --instance PATH` (or `--mods-dir DIR`, `--json`; also `inventory --links`): reads the class files of every installed mod, including jar-in-jar, and reports calls from one mod into another that the installed version no longer has: missing methods, fields and classes, and abstract interface methods an implementing class lacks. These are the `NoSuchMethodError`, `NoClassDefFoundError` and `AbstractMethodError` crashes that appear after an update even though every declared version range is satisfied. References that a mixin may add at runtime, or that leave the scanned jars, are counted as unresolved rather than reported. Exit 1 when it finds a broken reference. A 221-mod pack scans in about 9 seconds. On a real pack it flagged a Sodium beta that renamed `VertexBufferWriter.push`, which three installed mods still called.
+- `plan` routes crash text with those errors, and "mod update", to the link check.
+- `guide libraries`: the performance section is rewritten from moving-camera measurements. It covers measuring in motion; Sodium betas with closed-source mods built against the Sodium API; measured results for DLSS and FSR upscalers; where far terrain starts with Distant Horizons under a shader pack (the pack's own DH program decides, not `DistantHorizons.toml`); Distant Horizons generation threads; Physics Mod vine and ocean costs; and why Rust rewrites are not an option for a modded pack. Replaces the 1.5.1 advice to keep `overdrawPrevention` at 0.5.
+
 ## 1.5.2 - 2026-11-24
 
 Lessons from six more mod builds and a pack audit (NeoForge 1.21.1, GeckoLib 4.9.3 and 4.9.4). No command or option was removed.

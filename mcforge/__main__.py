@@ -311,6 +311,14 @@ def parser() -> argparse.ArgumentParser:
     scan.add_argument("--instance", type=Path, required=True)
     scan.add_argument("--hash", action="store_true", help="hash JAR bytes for an exact local pack snapshot")
     scan.add_argument("--output", type=Path, help="create a new report; never overwrite a file")
+    scan.add_argument("--links", action="store_true", help="also check member references between the JARs (see: links)")
+    link = commands.add_parser("links", help="predict NoSuchMethodError / AbstractMethodError / NoClassDefFoundError between "
+                               "installed mods from their class files (read-only)")
+    link_source = link.add_mutually_exclusive_group(required=True)
+    link_source.add_argument("--instance", type=Path, help="instance folder from: instances")
+    link_source.add_argument("--mods-dir", type=Path, help="any folder of JARs, e.g. a copy of mods/ with an update applied")
+    link.add_argument("--java", type=int, default=21, help="Java feature version the game runs on, for multi-release JARs; default 21")
+    link.add_argument("--json", action="store_true", help="print the full JSON report instead of the summary")
     jar = commands.add_parser("jar", help="inspect mod IDs, versions, sides and dependency declarations")
     jar.add_argument("path", type=Path)
     jar.add_argument("--hash", action="store_true")
@@ -508,8 +516,22 @@ def main(argv=None) -> int:
                         allow_running=args.allow_running))
         elif args.command == "inventory":
             result = inventory(args.instance, args.hash)
+            if args.links:
+                from .links import check_instance
+                try:
+                    result["links"] = check_instance(args.instance)
+                except ValueError as error:
+                    result["links"] = {"error": str(error)}
             emit(result, args.output)
             return 1 if result["errors"] or any(jar["errors"] for jar in result["enabled"]) else 0
+        elif args.command == "links":
+            from .links import blocking, check_instance, check_mods_dir, summary_lines
+            result = check_mods_dir(args.mods_dir, args.java) if args.mods_dir else check_instance(args.instance, args.java)
+            if args.json:
+                emit(result)
+            else:
+                print("\n".join(summary_lines(result)))
+            return 1 if blocking(result) else 0
         elif args.command == "jar":
             result = inspect_jar(args.path, args.hash)
             emit(result)
