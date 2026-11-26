@@ -121,7 +121,7 @@ Every conversion is a whitelist; anything else raises "unsupported" and the file
 |---|---|
 | Mob variant registries (data-driven) | entity data: an enum synced as INT, saved under the 26.3 NBT key and id strings; for vanilla mobs (cow, pig, chicken climate variants) a synced data attachment on the exact class (a subclass such as the mooshroom must not inherit it) |
 | Archetype registries (data-driven numbers per variant) | a Java table with the 26.3 bootstrap numbers, matched by the ported item tags |
-| Variant inheritance when breeding | a mixin at RETURN of `getBreedOffspring` (covers spawn eggs used on adults; `BabyEntitySpawnEvent` does not) |
+| Variant inheritance when breeding | a mixin at RETURN of `getBreedOffspring` (also covers a spawn egg used on a grown animal; `BabyEntitySpawnEvent` does not) |
 | Variant models and skins of vanilla mobs | keep the vanilla renderer registered and untouched (the default variant stays vanilla, and model/texture mods keep working); for the other variants cancel the draw in `RenderLivingEvent.Pre` and draw a renderer subclass with the newer mesh on a mod layer. A texture swap alone fails when the newer skins have another size or extra parts. Cost: layers other mods add to the vanilla renderer are not drawn on those variants |
 | Attributes 1.21.1 lacks (bounciness, friction, air drag) | applied by the entity itself: the newer air-travel formula in `travel`, the bounce in `move` from the velocity before the move (1.21.1 zeroes collided axes) |
 | Equipment change hooks (`collectEquipmentChanges` is private) | diff the slot each server tick, which also covers loading from NBT |
