@@ -465,6 +465,16 @@ def parser() -> argparse.ArgumentParser:
     pack.add_argument("--style", default="auto")
     pack.add_argument("--size", type=int, choices=(16, 32), default=16)
     pack.add_argument("--zip", action="store_true", help="also write PATH.zip")
+    compat = commands.add_parser("packcompat", help="rewrite a resource pack's newer-format block/item models (and mismatched "
+                                 "blockstates) into a small overlay pack placed above it, for an older game")
+    compat.add_argument("pack", type=Path, help="resource pack ZIP or folder (read-only)")
+    compat.add_argument("--minecraft", required=True, help="Minecraft version the pack is loaded by, e.g. 1.21.1")
+    compat.add_argument("--mod-jar", type=Path, action="append", default=[], dest="mod_jars",
+                        help="mod JAR whose own blockstates win where the pack's use other property names; repeatable")
+    compat_where = compat.add_mutually_exclusive_group(required=True)
+    compat_where.add_argument("--out", type=Path, help="folder to write the overlay pack into (refused inside a launcher instance)")
+    compat_where.add_argument("--instance", type=Path, help="instance folder: plan resourcepacks/<pack>-compat there (write with --apply)")
+    compat.add_argument("--apply", action="store_true", help="with --instance: write the overlay pack into the instance")
     route = commands.add_parser("plan", help="route a plain-language request to commands, guides and pitfalls; writes nothing")
     route.add_argument("request")
     commands.add_parser("capabilities", help="list every command and option of this version as JSON")
@@ -660,6 +670,9 @@ def main(argv=None) -> int:
             from .packs import create_pack
             emit(create_pack(args.path, args.kind, args.name, args.minecraft, retexture=args.retexture, style=args.style,
                              size=args.size, archive=args.zip))
+        elif args.command == "packcompat":
+            from .packcompat import build
+            emit(build(args.pack, args.minecraft, out=args.out, instance=args.instance, apply=args.apply, mod_jars=args.mod_jars))
         elif args.command == "plan":
             from .plan import plan
             emit(plan(args.request))

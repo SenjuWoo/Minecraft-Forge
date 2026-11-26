@@ -170,5 +170,119 @@ class JavaTooNew(Temp):
         self.assertEqual(json.loads(output)["links"]["java_too_new"][0]["jar"], "new.jar")
 
 
+class PackCompat(Temp):
+    MODEL = "assets/minecraft/models/block/thing.json"
+
+    def make_pack(self, extra=None, name="Fancy.zip"):
+        newer = {"textures": {"all": {"sprite": "minecraft:block/thing", "force_translucent": True}},
+                 "elements": [{"from": [0, 0, 0], "to": [16, 16, 16], "shade_direction_override": "up", "light_emission": 7,
+                               "rotation": {"origin": [8, 8, 8], "x": 10, "y": -90},
+                               "faces": {"north": {"texture": {"sprite": "#all"}}}},
+                              {"from": [0, 0, 0], "to": [1, 1, 1], "rotation": {"origin": [0, 0, 0], "axis": "z", "angle": 30}}]}
+        meta = {"pack": {"pack_format": 15, "description": "x"},
+                "overlays": {"entries": [{"directory": "ov_old", "formats": [19, 999]},
+                                         {"directory": "ov_new", "formats": [50, 999]},
+                                         {"directory": "ov_obj", "formats": {"min_inclusive": 30, "max_inclusive": 40}}]}}
+        entries = {"pack.mcmeta": json.dumps(meta),
+                   "assets/minecraft/models/block/plain.json": json.dumps({"parent": "block/cube_all"}),
+                   "ov_old/" + self.MODEL: json.dumps(newer),
+                   self.MODEL: json.dumps({"parent": "block/cube_all"}),
+                   "ov_new/assets/minecraft/models/block/later.json": json.dumps({"elements": [{"rotation": {"x": 90}}]}),
+                   "ov_obj/assets/minecraft/models/item/gem.json": json.dumps({"textures": {"layer0": {"sprite": "item/gem"}}}),
+                   "../evil/assets/minecraft/models/block/evil.json": json.dumps({"elements": [{"rotation": {"x": 90}}]}),
+                   "assets/minecraft/blockstates/heart.json": json.dumps({"variants": {"active=true": {"model": "block/a"}}}),
+                   "assets/minecraft/blockstates/sign.json": json.dumps({"variants": {"facing=north": {"model": "block/s"}}})}
+        entries.update(extra or {})
+        path = self.root / name
+        with zipfile.ZipFile(path, "w") as archive:
+            for entry, data in entries.items():
+                archive.writestr(entry, data)
+        return path
+
+    def mod_jar(self):
+        path = self.root / "mod.jar"
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("assets/minecraft/blockstates/heart.json", json.dumps({"variants": {"state=awake": {"model": "block/a"}}}))
+            archive.writestr("assets/minecraft/blockstates/sign.json", json.dumps({"variants": {"": {"model": "block/s"}}}))
+        return path
+
+    def test_rules_overlays_and_blockstates(self):
+        out = self.root / "out"
+        code, output, _ = self.invoke(["packcompat", str(self.make_pack()), "--minecraft", "1.21.1", "--mod-jar", str(self.mod_jar()),
+                                       "--out", str(out)])
+        self.assertEqual(code, 0, output)
+        result = json.loads(output)
+        self.assertEqual(result["pack_format"], [34, 0])
+        self.assertEqual(result["overlays_active"], ["ov_old", "ov_obj"])
+        self.assertEqual([item["directory"] for item in result["overlays_skipped"]], ["ov_new"])
+        self.assertEqual(sorted(item["path"] for item in result["rewritten"]),
+                         ["assets/minecraft/models/block/thing.json", "assets/minecraft/models/item/gem.json"])
+        model = json.loads((out / self.MODEL).read_text(encoding="utf-8"))
+        first, second = model["elements"]
+        self.assertEqual(model["textures"]["all"], "minecraft:block/thing")
+        self.assertEqual((first["shade"], first["neoforge_data"], first["faces"]["north"]["texture"]), (False, {"block_light": 7}, "#all"))
+        self.assertNotIn("shade_direction_override", first)
+        self.assertEqual((first["rotation"]["axis"], first["rotation"]["angle"]), ("y", -45.0))
+        self.assertNotIn("x", first["rotation"])
+        self.assertEqual(second["rotation"]["angle"], 22.5)
+        self.assertEqual(result["fallbacks"], 3)  # Euler reduced, -90 clamped, 30 clamped
+        self.assertFalse((out / "assets/minecraft/models/block/later.json").exists())
+        self.assertFalse((out / "assets/minecraft/models/block/plain.json").exists())
+        self.assertFalse(any("evil" in str(path) for path in out.rglob("*")))
+        self.assertTrue(any("unsafe names" in warning for warning in result["warnings"]))
+        # heart: the pack's `active` property is not on the mod's block; sign: the mod's "" key gives no verdict
+        self.assertEqual([item["path"] for item in result["blockstates"]], ["assets/minecraft/blockstates/heart.json"])
+        self.assertEqual(json.loads((out / "assets/minecraft/blockstates/heart.json").read_text(encoding="utf-8"))["variants"],
+                         {"state=awake": {"model": "block/a"}})
+        self.assertEqual(json.loads((out / "pack.mcmeta").read_text(encoding="utf-8"))["pack"]["pack_format"], 34)
+        # a newer target applies the later overlay too, and the output says the rules were checked on 1.21.1
+        newer = json.loads(self.invoke(["packcompat", str(self.make_pack()), "--minecraft", "1.21.5", "--out", str(self.root / "o2")])[1])
+        self.assertEqual(newer["overlays_active"], ["ov_old", "ov_new"])
+        self.assertTrue(any("checked on 1.21.1" in warning for warning in newer["warnings"]))
+
+    def test_destination_rules(self):
+        pack = self.make_pack()
+        out = self.root / "out"
+        self.assertEqual(self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(out)])[0], 0)
+        (out / "stale.json").write_text("{}", encoding="utf-8")
+        self.assertEqual(self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(out)])[0], 0)
+        self.assertFalse((out / "stale.json").exists())  # a previous packcompat output is replaced
+        foreign = self.root / "foreign"
+        foreign.mkdir()
+        (foreign / "keep.txt").write_text("mine", encoding="utf-8")
+        code, _, error = self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(foreign)])
+        self.assertEqual(code, 2)
+        self.assertIn("not written by packcompat", error)
+        self.assertTrue((foreign / "keep.txt").is_file())
+        # nothing to rewrite: no pack is written
+        plain = self.make_pack({"ov_old/" + self.MODEL: json.dumps({"parent": "block/cube_all"}),
+                                "ov_obj/assets/minecraft/models/item/gem.json": "{}"}, name="Plain.zip")
+        result = json.loads(self.invoke(["packcompat", str(plain), "--minecraft", "1.21.1", "--out", str(self.root / "none")])[1])
+        self.assertEqual((result["written"], result["rewritten"]), (False, []))
+        self.assertFalse((self.root / "none").exists())
+
+    def test_instance_needs_apply_and_out_inside_an_instance_is_refused(self):
+        instance = self.root / "inst"
+        (instance / "resourcepacks").mkdir(parents=True)
+        (instance / "mods").mkdir()
+        (instance / "instance.json").write_text(json.dumps({"launcher": {"version": "1.21.1"}}), encoding="utf-8")
+        (instance / "options.txt").write_text('version=3955\nresourcePacks:["vanilla","file/Fancy.zip","file/Other"]\n', encoding="utf-8")
+        pack = self.make_pack()
+        code, _, error = self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(instance / "resourcepacks" / "x")])
+        self.assertEqual(code, 2)
+        self.assertIn("--instance INSTANCE --apply", error)
+        self.assertFalse((instance / "resourcepacks" / "x").exists())
+        code, output, _ = self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--instance", str(instance)])
+        plan_only = json.loads(output)
+        self.assertEqual((code, plan_only["written"]), (0, False))
+        self.assertFalse((instance / "resourcepacks" / "Fancy-compat").exists())
+        self.assertEqual(plan_only["options_txt"]["suggested"], 'resourcePacks:["vanilla","file/Fancy.zip","file/Fancy-compat","file/Other"]')
+        code, output, _ = self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--instance", str(instance), "--apply"])
+        self.assertEqual((code, json.loads(output)["written"]), (0, True))
+        self.assertTrue((instance / "resourcepacks" / "Fancy-compat" / self.MODEL).is_file())
+        self.assertIn('"file/Fancy.zip","file/Other"', (instance / "options.txt").read_text(encoding="utf-8"))  # never edited
+        self.assertEqual(self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(self.root / "o"), "--apply"])[0], 2)
+
+
 if __name__ == "__main__":
     unittest.main()
