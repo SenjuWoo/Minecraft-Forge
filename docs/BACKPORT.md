@@ -101,14 +101,32 @@ Every conversion is a whitelist; anything else raises "unsupported" and the file
 | Tree soil | `below_trunk_provider: soil_beneath_tree` | `dirt_provider` dirt + `force_dirt: false` |
 | Tree decorators and placers | new types (registered by your Java) | pass through with the 26.3 fields only when a module registers the type; fail closed on any unknown trunk/foliage placer type |
 | Biome placement | biome files list features | `neoforge:add_features` with exact vanilla biome ids (no tags: modded biomes stay untouched); a feature the newer version changed in place gets a mod-namespaced copy and a modifier that swaps the holder at the same index |
-| Natural spawns | biome attribute (spawn data) | `neoforge:add_spawns` biome modifiers, exact biome lists per weight group |
-| New feature types | e.g. fallen trees | not portable as data; drop the entry and report it |
+| Natural spawns | biome attribute (spawn data) | `neoforge:add_spawns` biome modifiers, exact biome lists per weight group (modded entity types never go into a biome file). A vanilla weight cannot be changed: NeoForge 1.21.1 runs REMOVE after ADD, so remove + re-add does not set a weight |
+| New feature types | `sequence`, `template`, `fallen_tree`, ... | register them in Java under the 26.3 id with the 26.3 codec; a type whose `minecraft:` id 1.21.1 already uses with an older config (`lake`, `root_system`) goes under the mod namespace. Until a module registers a type, drop the entry and report it |
+| `weighted_random_selector` | weighted entries | `random_selector` with sequential chances w_i / (w_i + ... + w_n): the same distribution |
+| `offset` placement | x, y, z providers | `random_offset` when x and z use the same provider (1.21.1 samples xz, y, xz); a count + offset that is not the random-patch shape stays as placements |
+| Int providers | `trapezoid` (plateau 0), `clamped_normal` | trapezoid -> weighted list of constants (same distribution); `clamped_normal` exists in both |
+| Noise parameters | `base_amplitude`, `base_octave`, `octave_count`, `amplitude_modifiers`, `normalize` | `firstOctave`, `amplitudes`: both sum the same octaves; amplitudes = modifier x N x base_amplitude / V. Oracle: every noise in both jars converts to its 1.21.1 amplitudes |
+| Biome files | `attributes` layered over the dimension's (fog, sky, music, mood) | the classic `effects` block, values resolved from the biome or the dimension default; drop what 1.21.1 cannot express (silencing music, dry-foliage colour: tint in code) and say so. A biome naming an unregistered sound event breaks the whole biome registry: register the music event first |
+| New biomes in the overworld | `OverworldBiomeBuilder` places them | a TerraBlender region with a weight against vanilla's (and the pack's other regions). Take the climate points from the newer builder: diff both decompiled builders, change only the cells that differ (here three: two table cells and one underground biome), and run the older builder for everything else. A GameTest compares the region's point list with vanilla's and allows only those cells |
+| Feature order per step | the newer version reorders some vanilla features | stable-sort a new biome's step lists to the order the older overworld biomes already use; otherwise `FeatureSorter` finds a cycle and world creation crashes. GameTest: run `FeatureSorter.buildFeaturesPerStep` over every registered biome |
+| Surface rules | biome rules in the noise settings | TerraBlender keys namespaced rules by the **biome's** namespace, so rules for `minecraft:` biomes go in with `addToDefaultSurfaceRulesAtStage(OVERWORLD, AFTER_BEDROCK)`. A 3D `noise_threshold` (26.3 samples x, y, z; 1.21.1 x, 0, z) needs an own condition codec and an access transformer for the `SurfaceRules` condition context fields |
+| Structure templates (NBT) | palette `{id, properties}`, newer DataVersion, entity `block_pos` | palette `{Name, Properties}`, DataVersion 3955; every block and property value must exist in 1.21.1 or the mod (fail closed: unknown blocks load as air); block entity NBT whitelisted per id; entities only when their type exists, `block_pos` -> `TileX/Y/Z`. Oracle: an NBT round trip equal to every 1.21.1 template byte for byte, then convert templates present in both jars |
+| Block-attached entities in templates | placement rewrites `block_pos` | 1.21.1 keeps the saved `TileX/Y/Z`: each placed copy logs "Block-attached entity at invalid position" and takes its position from the placement. Accept the log line or make the entity tolerate it |
+| Structures | structure, set, pools, templates, biome tags | port recursively from the start pool through every jigsaw pool; write the `has_structure/*` biome tags with the newer membership filtered to available biomes, and the structure tag `/locate` uses |
 
 ### Entities and items in code
 
 | 26.3 | 1.21.1 |
 |---|---|
-| Mob variant registries (data-driven) | entity data: an enum synced as INT, saved under the 26.3 NBT key and id strings |
+| Mob variant registries (data-driven) | entity data: an enum synced as INT, saved under the 26.3 NBT key and id strings; for vanilla mobs (cow, pig, chicken climate variants) a synced data attachment on the exact class (a subclass such as the mooshroom must not inherit it) |
+| Archetype registries (data-driven numbers per variant) | a Java table with the 26.3 bootstrap numbers, matched by the ported item tags |
+| Variant inheritance when breeding | a mixin at RETURN of `getBreedOffspring` (covers spawn eggs used on adults; `BabyEntitySpawnEvent` does not) |
+| Variant models and skins of vanilla mobs | keep the vanilla renderer registered and untouched (the default variant stays vanilla, and model/texture mods keep working); for the other variants cancel the draw in `RenderLivingEvent.Pre` and draw a renderer subclass with the newer mesh on a mod layer. A texture swap alone fails when the newer skins have another size or extra parts. Cost: layers other mods add to the vanilla renderer are not drawn on those variants |
+| Attributes 1.21.1 lacks (bounciness, friction, air drag) | applied by the entity itself: the newer air-travel formula in `travel`, the bounce in `move` from the velocity before the move (1.21.1 zeroes collided axes) |
+| Equipment change hooks (`collectEquipmentChanges` is private) | diff the slot each server tick, which also covers loading from NBT |
+| Golems built from a pumpkin pattern | a mixin at the tail of `CarvedPumpkinBlock#trySpawnGolem` and the return of `canSpawnGolem`. `BlockEvent.EntityPlaceEvent` misses `/setblock`, structure and GameTest placement, and neighbour events cannot tell dispensers a golem can form |
+| Container users (`ContainerUser`) | none: count non-player openers yourself and send the same lid block event the vanilla counter sends; redstone from trapped chests still reads players only |
 | Brain AI with memory types and sensors 1.21.1 lacks | goals with the same numbers, or the brain ported with new sensor types in the mod namespace; register a `minecraft:` AI entry (a memory type) only when saved entities must keep the newer key |
 | `equippable`, `consumable`, `use_cooldown` components | written in code on the item or entity (`isBodyArmorItem`, `mobInteract`, `finishUsingItem`) |
 | `EquipmentSlot.SADDLE` | a one-slot container (saddleable flag, NBT key) or the BODY slot |
@@ -132,6 +150,12 @@ Every conversion is a whitelist; anything else raises "unsupported" and the file
 | `canBeCollidedWith(other)` | has the other entity | no argument |
 | Display context `ON_SHELF` | exists | does not; use `NONE` (+ a turn for 3D models) |
 | Quad leash, `isFlyingVehicle`, camera-distance attribute | exist | do not: distances in code, `isNoGravity` for the floating-vehicle kick, `CalculateDetachedCameraDistanceEvent` |
+| `Mob#stopInPlace` | stops navigation and zeroes the movement | stops navigation only: a mob that freezes in place keeps sliding. Override it, call super and zero `deltaMovement` (a sliding freeze made a GameTest flaky) |
+| Blocks that change within a family (oxidation, waxing, scraping) | `shouldChangedStateKeepBlockEntity` keeps the block entity | no such hook: `ChestBlock#onRemove` spills the items and removes the block entity on the swap. Return early from `onRemove` when the new block is of the same family |
+| Double chests | any chests of the family pair | `ChestBlock` pairs only identical blocks (the partner check is private): re-implement placement and `updateShape` with your own connect rule |
+| Brain setup | memories declared by behaviours | `Brain.provider` needs every memory type listed |
+| Path length | `setRequiredPathLength(n)` | path search is sized from the FOLLOW_RANGE attribute only: set that |
+| Level events and hard-coded sounds | new event ids, sounds per variant | an id the 1.21.1 client lacks plays nothing: play the sound directly; hard-coded sound calls in public methods are overridden with copies, private ones swapped through `PlayLevelSoundEvent` |
 
 ## 8. GameTests for a backport
 
@@ -140,6 +164,8 @@ Every conversion is a whitelist; anything else raises "unsupported" and the file
 | Global state (day time, `doMobSpawning`, weather) | its own batch with `@BeforeBatch` / `@AfterBatch` that set and restore it; the test server turns mob spawning off |
 | Mobs that react to any survival player in range (freeze while watched, target the nearest) | their own batch: mock players of other tests in the same batch are in range |
 | Armor and other equipment attributes | assert after `runAfterDelay(2, ...)` |
+| A test that passes alone and fails beside others | look for state that leaks across ticks (a frozen mob still sliding, see `stopInPlace`) before blaming timing |
+| Worldgen without a client | GameTests for what the server can prove: every biome's features sort (`FeatureSorter`), the region's climate points differ from vanilla only in the intended cells, a template places its blocks and entities. Finding the biomes and structures in real terrain (`/locate biome`, `/locate structure`) needs a run in a normally generated world: a client run, or a dedicated server whose EULA the user has accepted in its run folder (never accept it for them) |
 | Numbers | compare durability, stack size, enchantability, rarity and attribute modifiers against the newer version's item components report, not against memory |
 | Vanilla ids | one test asserts each registered block and item has its `minecraft:` id |
 | Log gate | after `verify`, scan the server log for WARN/ERROR lines naming your ids, recipes, loot tables, tags or models; recipe and advancement counts should equal the older jar's plus the ported ones |
