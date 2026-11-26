@@ -19,6 +19,6 @@ Bundled targets (official templates pinned by hash, built in CI): neoforge-1.21.
 8. `verify PATH` (NeoForge before 1.21.5, including 1.21.1: `tests PATH` first; NeoForge 26.3/Forge: `--load`). Client proof on NeoForge 1.21.1: `devshots PATH`, then `verify PATH --client`. Sounds: `audio-check PATH`. Receipt tiers: compile, package, server_load, client_load, gameplay. `verify PATH --check` rehashes offline.
 9. On request only: `deploy PATH --instance DIR`, then `--apply` (backs up replaced JARs).
 
-Guides: `guide workflow|neoforge|fabric|forge|content|entities|mobs|worldgen|api|assets|audio|libraries|launchers|packs|tools|testing` - load one at a time; `guide list` also shows private guides kept on this machine. `capabilities` lists every command and option as JSON.
+Guides: `guide workflow|neoforge|fabric|forge|content|entities|mobs|worldgen|api|backport|assets|audio|libraries|launchers|packs|tools|testing` - load one at a time; `guide list` also shows private guides kept on this machine. `capabilities` lists every command and option as JSON.
 
 Verify exact APIs in prepared sources (`sources --project PATH "Symbol"`) or version-specific docs before writing Java. Preserve IDs, user edits, save formats and personal settings. Launcher instances, installed mods and saves are read-only apart from an explicit `deploy --apply`. Report only evidence tiers that ran; keep `STATE.md` current; publish only on explicit authorization.

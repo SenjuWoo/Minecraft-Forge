@@ -191,6 +191,23 @@ static void shot(String n) { var mc = Minecraft.getInstance(); Screenshot.grab(m
 - Tune springs at full frame rate on a free GPU and gate them (`devlog --gate springs`); tuning at low fps rode the clamp at high fps before the kit averaged force across short frames (1.5.2).
 - From git-bash, `cmd //c minecraft-forge ...` can report exit -1 for a passed run; trust the receipt (`verify --check`).
 
+## Pack showcase (content inside the real pack)
+
+`devshots` proves the mod alone. To see how new content renders with the pack's shaders, resource packs and other mods, use a pair of KubeJS scripts in the pack (where KubeJS is installed), on a copy of a saved world, with the game started from the launcher. Install the scripts only for the run and remove them afterwards; keep the pack's own scripts untouched.
+
+| Half | Does |
+|---|---|
+| Server (`server_scripts/`, `ServerEvents.tick`) | waits for a player; sets `doDaylightCycle`/`doWeatherCycle`/`doMobSpawning false`, `randomTickSpeed 0`, `time set 6000`, spectator mode, a `forceload` over the grid; fills a grass platform high above the terrain and clears the air above it; places every listed block with `setblock` on a grid (2 blocks apart, 16 per row) and summons every listed entity with `{NoAI:1b,PersistenceRequired:1b,Silent:1b}`; reads each block back and logs one line: `placed N of M failed [...]` |
+| Client (`client_scripts/`, `ClientEvents.tick`) | closes any screen, waits for chunks (~250 ticks), moves the spectator camera to a stop in front of each group of rows (raised, pitched down), grabs one screenshot per stop (`net.minecraft.client.Screenshot.grab`), logs a result line with the file names, then disconnects and stops the client |
+
+Generate both from a template with the id list (one `minecraft:id` per line, `entity:minecraft:id` for entities, optional `{NBT}` suffix) substituted in. Read afterwards:
+
+- the placement line: an id that failed to place is not registered, needs support, or is an entity without a spawn rule;
+- every screenshot, at full size: missing models (purple and black), wrong render layers (opaque leaves), untinted or tinted-twice textures, a resource pack's look overriding yours;
+- `Unable to load model` lines in `latest.log`, counted before and after a fix (a resource pack with newer-format models: `packcompat`, `guide packs`), and warning counts for the content's ids.
+
+Keep each run's log and shots in a labelled folder outside the instance's live files. A showcase is visual evidence in the pack, not gameplay.
+
 ## Existing crash baseline
 
 Inventory the active pack read-only and save the report outside the instance. Read the newest crash plus the relevant part of the matching log. Identify the first meaningful exception and any transforms of the failing class; a mod named in a stack trace is an isolation candidate, not automatically the cause.

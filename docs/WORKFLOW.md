@@ -27,6 +27,9 @@ New projects lock the complete target: game, loader, Java, Gradle distribution/c
 | Blocks, items, tools, armor, furniture, mobs | `add PROJECT KIND NAME` (guide content) |
 | Resource, data or shader pack | `pack` (guide packs); no compiled mod |
 | A popular library (GeckoLib, Curios, Architectury, ...) | `libs` (guide libraries) |
+| Content of a newer Minecraft release in an older pack | one mod targeting the pack, converters checked against the older jar (guide backport) |
+| A resource pack's models render as the missing model | `packcompat` (guide packs) |
+| The game closes during loading without a crash report | `links --instance` (classes too new for the instance's Java; guide launchers) |
 
 Do not install a second loader, multiloader framework, editor bridge or MCP server for a task the CLI already handles. They can be introduced when a concrete requirement justifies them.
 

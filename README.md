@@ -114,6 +114,8 @@ Its look sheet, rendered by the pipeline from the generated model and texture:
 | See a model without launching | `preview P FILE` (block model, `.bbmodel`, `.geo.json` posed and lit like the game, texture) | `guide content` |
 | Popular libraries (GeckoLib, Curios, Architectury, JEI, Cloth Config, ~70) | `libs`, `libs --add SLUG --project P` | `guide libraries` |
 | Resource, data and shader packs | `pack PATH --kind resource\|data\|shader` | `guide packs` |
+| A resource pack's newer-format models in an older game | `packcompat PACK.zip --minecraft V --out DIR` (overlay pack placed above it) | `guide packs` |
+| Newer Minecraft content in an older pack | `plan "backport 26.3 content into a 1.21.1 neoforge pack"` | `guide backport` |
 | Match and deploy to a launcher instance | `instances`, `inventory`, `links`, `deploy` | `guide launchers` |
 | Find broken references between installed mods after an update | `links --instance PATH` / `inventory --instance PATH --links` | `guide launchers` |
 | Route a request before writing anything | `plan "a fabric 1.20.1 mod with a boar mob"` | |
@@ -122,11 +124,11 @@ Generated art is original and procedural (standard-library PNG writer): no downl
 
 ## Commands
 
-`doctor` `targets` `instances` `inventory` `links` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `devlog` `kit` `pipeline` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`.
+`doctor` `targets` `instances` `inventory` `links` `packcompat` `jar` `init` `quickstart` `add` `asset` `bbmodel` `preview` `model-check` `voxel` `ground` `audio-check` `devshots` `devlog` `kit` `pipeline` `tests` `libs` `pack` `plan` `capabilities` `gradle` `verify` `deploy` `sources` `search` `updates` `setup-java` `install` `self-test` `guide`.
 
-`capabilities` prints all of them with every option as JSON. Every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` or `devlog` problems, `jar`/`inventory` errors, `links` broken references between mods), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
+`capabilities` prints all of them with every option as JSON. Every metadata command emits JSON and a stable exit code: 0 success, 1 the command ran and found problems (`doctor` not ready, `model-check` z-fighting, `audio-check` or `devlog` problems, `jar`/`inventory` errors, `links` broken references between mods or classes too new for the instance's Java), 2 the command could not run (one JSON `{"error": ...}` line on stderr). Gradle output goes to a log under `PROJECT/build/mcforge/logs/` with a bounded failure tail on stderr; `MCFORGE_INFO=off` hides progress lines.
 
-Guides ship with the tool, one at a time: `guide workflow|neoforge|fabric|forge|content|entities|mobs|worldgen|api|assets|audio|libraries|launchers|packs|tools|testing` (the same files are in [docs/](docs/)).
+Guides ship with the tool, one at a time: `guide workflow|neoforge|fabric|forge|content|entities|mobs|worldgen|api|backport|assets|audio|libraries|launchers|packs|tools|testing` (the same files are in [docs/](docs/)).
 
 ## How it works
 
