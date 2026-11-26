@@ -140,7 +140,7 @@ Every conversion is a whitelist; anything else raises "unsupported" and the file
 | Area | 26.3 | 1.21.1 |
 |---|---|---|
 | `Mth.clampedLerp` | `(factor, min, max)` | `(start, end, delta)`: same name, the factor moved to the end |
-| Block removal | `affectNeighborsAfterRemoval` / `preRemoveSideEffects` run only when the block goes away | `onRemove(state, level, pos, newState, moved)` runs on every state change: guard drops and block-entity cleanup with `!state.is(newState.getBlock())` (oxidation and waxing keep the block entity) |
+| Block removal | `affectNeighborsAfterRemoval` / `preRemoveSideEffects` run only when the block goes away | `onRemove(state, level, pos, newState, moved)` runs on every state change: guard drops and block-entity cleanup with `!state.is(newState.getBlock())`; a block that turns into another block of its family needs the family check in the next rows |
 | Spawn finalisation | `finalizeSpawn` then the jockey rules | NeoForge fires `FinalizeSpawnEvent` **before** `finalizeSpawn`; to act after it, a lowest-priority listener runs `finalizeSpawn` itself, cancels the event and applies the rule |
 | Equipment attributes | visible at once | applied on the entity's next tick (`LivingEntity.detectEquipmentUpdates`): assert armor values a tick or two later |
 | Gamerules | `spawnMobs` and `spawnMonsters` | `doMobSpawning` only |
