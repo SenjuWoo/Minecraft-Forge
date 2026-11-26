@@ -313,11 +313,12 @@ def parser() -> argparse.ArgumentParser:
     scan.add_argument("--output", type=Path, help="create a new report; never overwrite a file")
     scan.add_argument("--links", action="store_true", help="also check member references between the JARs (see: links)")
     link = commands.add_parser("links", help="predict NoSuchMethodError / AbstractMethodError / NoClassDefFoundError between "
-                               "installed mods from their class files (read-only)")
+                               "installed mods, and classes compiled for a newer Java than the game runs, from their class files (read-only)")
     link_source = link.add_mutually_exclusive_group(required=True)
     link_source.add_argument("--instance", type=Path, help="instance folder from: instances")
     link_source.add_argument("--mods-dir", type=Path, help="any folder of JARs, e.g. a copy of mods/ with an update applied")
-    link.add_argument("--java", type=int, default=21, help="Java feature version the game runs on, for multi-release JARs; default 21")
+    link.add_argument("--java", type=int, help="Java feature version the game runs on (class versions, multi-release JARs); default: "
+                      "the instance's Java path, else the Java its Minecraft version requires; 21 for --mods-dir")
     link.add_argument("--json", action="store_true", help="print the full JSON report instead of the summary")
     jar = commands.add_parser("jar", help="inspect mod IDs, versions, sides and dependency declarations")
     jar.add_argument("path", type=Path)

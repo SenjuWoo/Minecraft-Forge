@@ -243,9 +243,16 @@ def _bounded_member(archive: zipfile.ZipFile, info: zipfile.ZipInfo, limit: int)
     return data
 
 
+# Class file major version = Java feature version + 44 (Java 8 = 52, 17 = 61, 21 = 65, 25 = 69).
+CLASS_MAJOR_OFFSET = 44
+
+
 class _Scanner:
     def __init__(self, java: int):
         self.java = java
+        # label -> [classes above the running Java, highest major, first such class]: the JVM refuses to load them
+        # (UnsupportedClassVersionError), which during mod loading can end the game without a crash report.
+        self.too_new: dict[str, list] = {}
         self.jars: list[str] = []
         self.index: dict[str, list[ClassInfo]] = {}
         self.refs: list[dict] = []
@@ -291,10 +298,11 @@ class _Scanner:
             elif depth < MAX_NESTED_DEPTH and name.endswith(".jar") and name.startswith(NESTED_DIRS):
                 nested.append(info)
         refs = self.refs[jar]
+        limit = self.java + CLASS_MAJOR_OFFSET
         for entry, (_, info) in chosen.items():
             try:
-                name, access, super_name, interfaces, methods, fields, targets, class_refs = parse_class(
-                    _bounded_member(archive, info, MAX_CLASS_BYTES))
+                data = _bounded_member(archive, info, MAX_CLASS_BYTES)
+                name, access, super_name, interfaces, methods, fields, targets, class_refs = parse_class(data)
             except READ_ERRORS as error:
                 self.error(f"{label}: {info.filename}: {error}")
                 continue
@@ -302,6 +310,13 @@ class _Scanner:
                 self.error(f"{label}: {info.filename}: class has no name")
                 continue
             self.classes += 1
+            major = _u2(data, 6)
+            if major > limit:
+                row = self.too_new.setdefault(label, {"count": 0, "major": major, "example": name, "classes": set()})
+                row["count"] += 1
+                row["classes"].add(name)
+                if major > row["major"]:
+                    row["major"], row["example"] = major, name
             mixin = targets is not None
             if mixin:
                 for target in targets:
@@ -319,6 +334,8 @@ class _Scanner:
                     seen[0] += 1
                     if seen[2] and not mixin:
                         seen[1], seen[2] = name, False
+        if label in self.too_new:
+            self.too_new[label].update(_load_paths(archive))
         for info in nested:
             child = f"{label}!/{info.filename}"
             try:
@@ -326,6 +343,66 @@ class _Scanner:
                     self.scan(inner, child, depth + 1)
             except READ_ERRORS as error:
                 self.error(f"{child}: {error}")
+
+
+def _read_text(archive: zipfile.ZipFile, name: str) -> str | None:
+    try:
+        return _bounded_member(archive, archive.getinfo(name), 1024 * 1024).decode("utf-8", "replace")
+    except (KeyError, *READ_ERRORS):
+        return None
+
+
+def _load_paths(archive: zipfile.ZipFile) -> dict:
+    """How the loader reaches a JAR's classes: its mod loader, the mixin configs with their plugin classes, and the
+    implementations it registers as Java services (FML and the JDK load those at startup, before any mod code runs)."""
+    import json
+    import re
+    toml = _read_text(archive, "META-INF/neoforge.mods.toml") or _read_text(archive, "META-INF/mods.toml")
+    loader = None
+    configs: list[str] = []
+    if toml is not None:
+        match = re.search(r'(?m)^\s*modLoader\s*=\s*"([^"]+)"', toml)
+        loader = match[1] if match else "javafml"
+        configs += re.findall(r'(?m)^\s*config\s*=\s*"([^"]+)"', toml)
+    manifest = _read_text(archive, "META-INF/MANIFEST.MF") or ""
+    for line in re.findall(r"(?m)^MixinConfigs:\s*(.+)$", manifest):
+        configs += [part.strip() for part in line.split(",") if part.strip()]
+    plugins = {}
+    for config in dict.fromkeys(configs):
+        text = _read_text(archive, config)
+        try:
+            plugin = json.loads(text).get("plugin") if text else None
+        except (ValueError, AttributeError):
+            plugin = None
+        plugins[config] = plugin.replace(".", "/") if isinstance(plugin, str) else None
+    services = {}
+    for info in archive.infolist():
+        if info.filename.startswith("META-INF/services/") and not info.filename.endswith("/"):
+            text = _read_text(archive, info.filename) or ""
+            names = [line.split("#")[0].strip().replace(".", "/") for line in text.splitlines()]
+            services[info.filename[len("META-INF/services/"):]] = [name for name in names if name]
+    return {"loader": loader, "plugins": plugins, "services": services}
+
+
+def _too_new_rows(too_new: dict, index: dict, java: int) -> list[dict]:
+    """One row per JAR with classes above the running Java. A row is guarded (reported, not blocking) when nothing
+    loads those classes unconditionally: a low-code mod (no entry class) whose every mixin config names a plugin that
+    lives elsewhere and runs on this Java, so the plugin can turn the mixins off (C2ME's modules log "Disabling ...
+    due to incompatible Java version"). A Java service implementation, a plugin that is itself too new, or an
+    ordinary mod or library is not guarded: a loader service is instantiated at startup and the game can exit there
+    without a crash report."""
+    every = set().union(*(row["classes"] for row in too_new.values())) if too_new else set()
+    rows = []
+    for label, row in sorted(too_new.items()):
+        startup = [f"{service} -> {impl}" for service, impls in sorted(row.get("services", {}).items())
+                   for impl in impls if impl in row["classes"]]
+        plugins = row.get("plugins", {})
+        weak = [config for config, plugin in plugins.items() if plugin is None or plugin in every or plugin not in index]
+        guarded = bool(str(row.get("loader") or "").startswith("lowcode") and plugins and not weak and not startup)
+        rows.append({"jar": label, "classes": row["count"], "class_major": row["major"],
+                     "needs_java": row["major"] - CLASS_MAJOR_OFFSET, "runs_java": java, "example_class": row["example"],
+                     "loader": row.get("loader"), "loaded_at_startup": startup, "mixin_plugins": plugins, "guarded": guarded})
+    return rows
 
 
 def _prefix(name: str) -> str:
@@ -458,9 +535,10 @@ def check_jars(paths, java: int = 21) -> dict:
     errors = list(scanner.errors)
     if scanner.error_total > len(errors):
         errors.append(f"... {scanner.error_total - len(errors)} more errors")
+    too_new = _too_new_rows(scanner.too_new, index, java)
     return {"jars": top, "nested_jars": len(jars) - top, "classes": scanner.classes, "checked_refs": checked,
-            "problems": rows, "unresolved": unresolved, "unresolved_reasons": reasons, "unresolved_examples": examples, "errors": errors,
-            "java": java, "seconds": round(time.perf_counter() - started, 2)}
+            "problems": rows, "java_too_new": too_new, "unresolved": unresolved, "unresolved_reasons": reasons,
+            "unresolved_examples": examples, "errors": errors, "java": java, "seconds": round(time.perf_counter() - started, 2)}
 
 
 def _abstract_check(index, mixin_members, name, info, report, note_unresolved):
@@ -528,27 +606,105 @@ def _abstract_check(index, mixin_members, name, info, report, note_unresolved):
                 report("abstract-missing", info.jar, name, owner_jars, iface, member, descriptor)
 
 
-def check_mods_dir(mods: Path, java: int = 21) -> dict:
+def check_mods_dir(mods: Path, java: int | None = None) -> dict:
+    """java None: 21 (the NeoForge 1.21.x runtime); an instance resolves its own through check_instance."""
     mods = Path(mods)
     if not mods.is_dir():
         raise ValueError(f"mods folder does not exist: {mods}")
-    result = check_jars(sorted(mods.glob("*.jar")), java)
+    result = check_jars(sorted(mods.glob("*.jar")), DEFAULT_JAVA if java is None else java)
     result["mods_dir"] = str(mods)
+    result["java_source"] = f"default {DEFAULT_JAVA} (pass --java N for another runtime)" if java is None else "--java"
     return result
 
 
-def check_instance(instance: Path, java: int = 21) -> dict:
+DEFAULT_JAVA = 21
+MAX_RELEASE_BYTES = 64 * 1024
+
+
+def java_home_major(home: Path) -> int | None:
+    """Feature version of a JDK/JRE folder from its `release` file (JAVA_VERSION="21.0.13" or "1.8.0_392").
+
+    The file is read, never the java executable run. A path to bin/java(.exe) or bin/ is accepted too."""
+    home = Path(home)
+    for candidate in (home, home.parent, home.parent.parent):
+        release = candidate / "release"
+        try:
+            if release.is_file() and release.stat().st_size <= MAX_RELEASE_BYTES:
+                for line in release.read_text(encoding="utf-8", errors="replace").splitlines():
+                    if line.startswith("JAVA_VERSION="):
+                        parts = line.split("=", 1)[1].strip().strip('"').split(".")
+                        major = int(parts[1] if parts[0] == "1" and len(parts) > 1 else parts[0])
+                        return major
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def instance_java(instance: Path) -> tuple[int, str]:
+    """(Java feature version, where it came from) for a launcher instance: the instance's own Java path (its
+    `release` file), then the launcher metadata's required Java, then the Minecraft version's required Java."""
+    import json
+    import re
+    from .launchers import describe
+    instance = Path(instance)
+    try:
+        if (instance / "instance.json").is_file():  # ATLauncher
+            data = json.loads((instance / "instance.json").read_text(encoding="utf-8-sig"))
+            launcher = data.get("launcher") or {}
+            path = launcher.get("javaPath")
+            if path and launcher.get("useJavaProvidedByMinecraft") is not True:
+                major = java_home_major(Path(path))
+                if major:
+                    return major, f"instance Java path ({path})"
+            major = (data.get("javaVersion") or {}).get("majorVersion")
+            if isinstance(major, int):
+                return major, "instance.json javaVersion.majorVersion"
+        config = instance / "instance.cfg"  # Prism / MultiMC
+        if config.is_file():
+            text = config.read_text(encoding="utf-8", errors="replace")
+            path = re.search(r"(?m)^JavaPath=(.+)$", text)
+            override = re.search(r"(?m)^OverrideJavaLocation=(\w+)", text)
+            if path and (override is None or override[1].lower() == "true"):
+                major = java_home_major(Path(path[1].strip()))
+                if major:
+                    return major, f"instance.cfg JavaPath ({path[1].strip()})"
+    except (OSError, ValueError, TypeError, AttributeError):
+        pass
+    minecraft = describe(instance).get("minecraft")
+    if minecraft:
+        from .resources import facts
+        try:
+            row = facts(str(minecraft))
+            if row.get("java_major"):
+                return int(row["java_major"]), f"Minecraft {minecraft} requires Java {row['java_major']}"
+        except (ValueError, TypeError):
+            pass
+    return DEFAULT_JAVA, f"default {DEFAULT_JAVA} (no Java setting found in the instance; pass --java N)"
+
+
+def check_instance(instance: Path, java: int | None = None) -> dict:
     from .launchers import game_dir
-    return check_mods_dir(game_dir(Path(instance)) / "mods", java)
+    source = "--java"
+    if java is None:
+        java, source = instance_java(Path(instance))
+    result = check_mods_dir(game_dir(Path(instance)) / "mods", java)
+    result["java_source"] = source
+    return result
 
 
 def blocking(result: dict) -> bool:
-    return any(row["kind"] in BLOCKING for row in result["problems"])
+    return any(not row.get("guarded") for row in result.get("java_too_new", ())) or any(row["kind"] in BLOCKING for row in result["problems"])
 
 
 def summary_lines(result: dict) -> list[str]:
     """Short human report: problems first, one line each."""
     lines = []
+    for row in sorted(result.get("java_too_new", ()), key=lambda item: bool(item.get("guarded"))):
+        kind = "JAVA-TOO-NEW" + (" (guarded)" if row.get("guarded") else "")
+        why = (f"; loaded at startup: {', '.join(row['loaded_at_startup'])}" if row.get("loaded_at_startup") else
+               "; a mixin plugin on this Java decides whether they load" if row.get("guarded") else "")
+        lines.append(f"{kind:<24}{row['jar']}  {row['classes']} classes need Java {row['needs_java']} "
+                     f"(class file {row['class_major']}, e.g. {row['example_class']}); the game runs Java {row['runs_java']}{why}")
     for row in result["problems"]:
         target = row["owner"] + (f".{row['member']}" if row["member"] else "")
         if row["member"]:
@@ -560,4 +716,8 @@ def summary_lines(result: dict) -> list[str]:
     reasons = ", ".join(f"{key} {value}" for key, value in sorted(result.get("unresolved_reasons", {}).items()))
     lines.append(f"problems: {len(result['problems'])}; unresolved (not decidable from the JARs): {result['unresolved']}"
                  f"{f' ({reasons})' if reasons else ''}; read errors: {len(result['errors'])}")
+    rows = result.get("java_too_new", ())
+    lines.append(f"java: {result['java']} ({result.get('java_source', '--java')}); classes too new for it: "
+                 f"{sum(row['classes'] for row in rows)} in {len(rows)} jars "
+                 f"({sum(1 for row in rows if row.get('guarded'))} guarded by a mixin plugin)")
     return lines
