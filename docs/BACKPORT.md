@@ -9,7 +9,7 @@ The newer version is a **behaviour reference**. Every signature you write comes 
 | Step | How |
 |---|---|
 | Target | `instances` -> the pack's Minecraft, loader, loader build and Java. The mod targets exactly that (`quickstart --loader neoforge --minecraft 1.21.1 --no-examples`). Do not move the pack. |
-| Scope inventory | Run the vanilla data generator on each version's server jar (main class `net.minecraft.data.Main`, `--reports --server`) and diff the two report trees: `registries.json` (blocks, items, entity types, particle types, sound events, features), `blocks.json` (states and properties), the data folders (recipes, loot tables, tags, worldgen, biomes) and the `en_us` keys. The diff is the scope; a changelog is not. |
+| Scope inventory | Run the vanilla data generator on each version's server jar (`java -DbundlerMainClass=net.minecraft.data.Main -jar server.jar --reports --server`) and diff the two report trees: `registries.json` (blocks, items, entity types, particle types, sound events, features), `blocks.json` (states and properties), the data folders (recipes, loot tables, tags, worldgen, biomes) and the `en_us` keys. The diff is the scope; a changelog is not. |
 | Decide every id | One table: id, in or out, owning module, reason. Per-wood boat entities and split potion entities show up as entity types; most are items or already exist under another name. |
 | Existing backports | Check whether a maintained backport mod for the same content exists and whether the pack already runs one. Two mods registering the same ids cannot be installed together. |
 

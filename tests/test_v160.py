@@ -11,7 +11,10 @@ from mcforge import __main__ as cli
 from mcforge import plan
 from mcforge.links import blocking, check_mods_dir, check_instance, java_home_major, instance_java, summary_lines
 
-from test_links import ClassFile
+try:  # discover -s tests puts tests/ on sys.path; `python -m unittest tests.test_v160` does not
+    from test_links import ClassFile
+except ImportError:
+    from tests.test_links import ClassFile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -239,6 +242,20 @@ class PackCompat(Temp):
         newer = json.loads(self.invoke(["packcompat", str(self.make_pack()), "--minecraft", "1.21.5", "--out", str(self.root / "o2")])[1])
         self.assertEqual(newer["overlays_active"], ["ov_old", "ov_new"])
         self.assertTrue(any("checked on 1.21.1" in warning for warning in newer["warnings"]))
+
+    def test_folder_pack_reads_like_the_zip(self):
+        folder = self.root / "FancyDir"
+        with zipfile.ZipFile(self.make_pack()) as archive:
+            for info in archive.infolist():
+                if ".." not in info.filename:
+                    target = folder / info.filename
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(archive.read(info))
+        code, output, _ = self.invoke(["packcompat", str(folder), "--minecraft", "1.21.1", "--out", str(self.root / "dir-out")])
+        result = json.loads(output)
+        self.assertEqual((code, result["overlays_active"], result["files"]), (0, ["ov_old", "ov_obj"], 2))
+        self.assertTrue((self.root / "dir-out" / self.MODEL).is_file())
+        self.assertIn("FancyDir: models rewritten", (self.root / "dir-out" / "pack.mcmeta").read_text(encoding="utf-8"))
 
     def test_destination_rules(self):
         pack = self.make_pack()
