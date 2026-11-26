@@ -76,22 +76,58 @@ ROUTES = [
      ["instances", "inventory --instance INSTANCE --output NEW_FILE", "links --instance INSTANCE"], "workflow",
      ["Read the matching crash report and debug.log; a named class is not proof of the culprit",
       "Satisfied version ranges are not binary compatibility: run links after every mod update, before launching"]),
+    (("backport", "newer version content", "content from a newer", "newer minecraft content", "content of a newer",
+      "into an older pack", "into my older pack"), "backport newer content into an older pack",
+     ["instances  (the pack's Minecraft, loader and Java decide the target)",
+      "quickstart NEW_PATH --mod-id ID --package dev.you.mod --name NAME --loader neoforge --minecraft PACK_VERSION --no-examples",
+      "setup-java --major 25  (newer, unobfuscated versions need JDK 25 for their reference project)",
+      "quickstart REF_PATH --mod-id ref --package dev.you.ref --name Ref --minecraft NEWER_VERSION --no-examples  (throwaway: sources only)",
+      "sources --project PROJECT \"SYMBOL\"", "verify PROJECT", "links --instance INSTANCE",
+      "packcompat PACK.zip --minecraft PACK_VERSION --instance INSTANCE"], "backport",
+     ["Scope comes from diffing the two versions' data-generator reports, not from memory or a changelog",
+      "Every converter needs an oracle: convert the newer files that also exist in the older jar and diff them against the older jar's own copy",
+      "Shared generated files (tags, lang, sounds.json) are rebuilt from the union of every module's content list, never merged by hand",
+      "Vanilla bug fixes and data-driven components have no list a mod can apply; keep them out of scope and say so"]),
+    (("missing model", "purple-black", "purple and black", "pink and black", "black and purple", "unable to load model",
+      "newer model format", "resource pack update", "after a pack update", "after pack update"), "resource pack models the game cannot read",
+     ["packcompat PACK.zip --minecraft VERSION --out NEW_DIR [--mod-jar MOD.jar]",
+      "packcompat PACK.zip --minecraft VERSION --instance INSTANCE  (plan; --apply writes resourcepacks/<pack>-compat)"], "packs",
+     ["Packs for several releases can ship models in a newer format; the older game rejects the whole file and shows the missing model",
+      "Count `Unable to load model` lines in the client log before and after enabling the overlay directly above the pack",
+      "Every pack's blockstate is still parsed: a hidden newer blockstate keeps logging warnings even when a higher pack overrides it"]),
+    (("closes silently", "exits silently", "silently at load", "silent exit", "closes without a crash", "exits without a crash",
+      "no crash report", "game just closes", "unsupportedclassversionerror", "class file version"), "silent exit while loading",
+     ["links --instance INSTANCE  (JAVA-TOO-NEW: classes compiled for a newer Java than the instance runs)",
+      "inventory --instance INSTANCE --links"], "launchers",
+     ["A mod or jar-in-jar module compiled for a newer Java can end the game during loading without a crash report",
+      "A loader service class is loaded at startup; a module whose mixin plugin runs on this Java is reported as guarded",
+      "links reads the instance's own Java setting; pass --java N to check another runtime"]),
     (("port", "update to", "upgrade"), "port or update",
      ["doctor --project PROJECT", "updates PROJECT"], "workflow",
      ["Another Minecraft version is a port: new template, new API, new tests", "Update candidates are not compatibility proof"]),
 ]
+PACK_FIXES = {"resource pack models the game cannot read", "silent exit while loading"}
 LOADER_WORDS = {"neoforge": "neoforge", "neo forge": "neoforge", "fabric": "fabric", "quilt": "fabric", "forge": "forge"}
 
 
 def plan(request: str) -> dict:
     text = request.lower()
-    version = re.search(r"\b(1\.\d{1,2}(?:\.\d{1,2})?|2\d\.\d(?:\.\d)?)\b", text)
+    versions = re.findall(r"\b(1\.\d{1,2}(?:\.\d{1,2})?|2\d\.\d(?:\.\d)?)\b", text)
     loader = next((value for word, value in LOADER_WORDS.items() if re.search(r"\b" + word + r"\b", text)), None)
     matched = []
     for words, label, commands, guide, pitfalls in ROUTES:
         if any(re.search(r"\b" + re.escape(word), text) for word in words):
             matched.append({"route": label, "commands": commands, "guide": guide, "pitfalls": pitfalls})
-    packs_only = matched and all(route["guide"] == "packs" for route in matched)
+    # A backport names two versions; the project targets the older one (the pack's), not the first one mentioned.
+    backport = any(route["guide"] == "backport" for route in matched)
+    version = None
+    if versions:
+        from .resources import version_key
+        version = (None, min(versions, key=version_key) if backport else versions[0])
+    # Fixing an existing pack needs no new project: drop routes that only matched words like "block" in the symptom.
+    if any(route["route"] in PACK_FIXES for route in matched):
+        matched = [route for route in matched if route["route"] in PACK_FIXES or route["guide"] == "packs"]
+    packs_only = matched and all(route["guide"] == "packs" or route["route"] in PACK_FIXES for route in matched)
     steps = []
     if not packs_only:
         init = "quickstart NEW_PATH --mod-id ID --package dev.you.mod --name NAME"

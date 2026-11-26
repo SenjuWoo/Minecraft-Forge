@@ -284,5 +284,38 @@ class PackCompat(Temp):
         self.assertEqual(self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(self.root / "o"), "--apply"])[0], 2)
 
 
+class Routes(Temp):
+    def routes(self, request):
+        result = plan.plan(request)
+        return result, {step.get("route"): step for step in result["steps"] if step.get("route")}
+
+    def test_backport_targets_the_older_version_and_loads_the_guide(self):
+        result, routes = self.routes("backport 26.3 content into a 1.21.1 neoforge pack")
+        step = routes["backport newer content into an older pack"]
+        self.assertEqual((result["minecraft"], step["guide"]), ("1.21.1", "backport"))
+        self.assertTrue(result["steps"][0]["commands"][1].endswith("--loader neoforge --minecraft 1.21.1"))
+        self.assertTrue(any(command.startswith("setup-java --major 25") for command in step["commands"]))
+        self.assertIn("backport newer content into an older pack", self.routes("bring newer version content into my older pack")[1])
+        # one version: unchanged behaviour
+        self.assertEqual(plan.plan("forge 1.20.1 ruby armor")["minecraft"], "1.20.1")
+
+    def test_pack_symptoms_route_to_packcompat_and_links(self):
+        result, routes = self.routes("resource pack missing model, purple-black blocks after pack update")
+        self.assertFalse(result["mod_needed"])
+        self.assertNotIn("block", routes)
+        self.assertTrue(routes["resource pack models the game cannot read"]["commands"][0].startswith("packcompat "))
+        result, routes = self.routes("the game closes silently at load")
+        self.assertFalse(result["mod_needed"])
+        self.assertTrue(routes["silent exit while loading"]["commands"][0].startswith("links --instance"))
+
+    def test_backport_guide_is_bundled(self):
+        self.assertEqual(cli.GUIDES["backport"], "BACKPORT.md")
+        text = cli.guide_text("backport")
+        for needle in ("setup-java --major 25", "oracle", "clampedLerp", "packcompat", "Out of scope"):
+            self.assertIn(needle, text)
+        self.assertIn("backport", cli.capabilities()["guides"])
+        self.assertIn("packcompat", cli.capabilities()["commands"])
+
+
 if __name__ == "__main__":
     unittest.main()

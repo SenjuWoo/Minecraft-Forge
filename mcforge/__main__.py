@@ -30,7 +30,7 @@ from .workbench import ROOT, check_java, default_launcher, guard_output, init_pr
 GUIDES = {"workflow": "WORKFLOW.md", "neoforge": "NEOFORGE.md", "fabric": "FABRIC.md", "forge": "FORGE.md", "content": "CONTENT.md",
           "assets": "ASSETS.md", "libraries": "LIBRARIES.md", "launchers": "LAUNCHERS.md", "packs": "PACKS.md",
           "tools": "TOOLS.md", "testing": "TESTING.md", "entities": "ENTITIES.md", "audio": "AUDIO.md", "api": "API.md",
-          "mobs": "MOBS.md", "worldgen": "WORLDGEN.md"}
+          "mobs": "MOBS.md", "worldgen": "WORLDGEN.md", "backport": "BACKPORT.md"}
 LOCAL_GUIDE = __import__("re").compile(r"[a-z0-9][a-z0-9_-]{0,40}")
 
 
