@@ -386,11 +386,14 @@ def _load_paths(archive: zipfile.ZipFile) -> dict:
 
 def _too_new_rows(too_new: dict, index: dict, java: int) -> list[dict]:
     """One row per JAR with classes above the running Java. A row is guarded (reported, not blocking) when nothing
-    loads those classes unconditionally: a low-code mod (no entry class) whose every mixin config names a plugin that
-    lives elsewhere and runs on this Java, so the plugin can turn the mixins off (C2ME's modules log "Disabling ...
-    due to incompatible Java version"). A Java service implementation, a plugin that is itself too new, or an
-    ordinary mod or library is not guarded: a loader service is instantiated at startup and the game can exit there
-    without a crash report."""
+    is known to load those classes unconditionally: the JAR declares a low-code mod loader (`lowcode...` in its
+    mods.toml; FML constructs no @Mod class for it), it has at least one mixin config, every mixin config names a
+    plugin class that the scan found and that is not itself too new, and no Java service it registers is too new.
+    Such a plugin can turn the mixins off (C2ME's modules log "Disabling ... due to incompatible Java version"); the
+    JAR may still contain other too-new classes (C2ME natives-math ships a ModuleEntryPoint), so a guarded row is
+    confirmed by that log line, not by the JAR. A too-new service implementation (instantiated at startup, where the
+    game can exit without a crash report), a missing or too-new plugin, or a javafml mod or plain library is not
+    guarded."""
     every = set().union(*(row["classes"] for row in too_new.values())) if too_new else set()
     rows = []
     for label, row in sorted(too_new.items()):

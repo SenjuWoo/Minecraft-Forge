@@ -106,7 +106,8 @@ ROUTES = [
      ["doctor --project PROJECT", "updates PROJECT"], "workflow",
      ["Another Minecraft version is a port: new template, new API, new tests", "Update candidates are not compatibility proof"]),
 ]
-PACK_FIXES = {"resource pack models the game cannot read", "silent exit while loading"}
+MISSING_MODELS = "resource pack models the game cannot read"
+PACK_FIXES = {MISSING_MODELS, "silent exit while loading"}
 LOADER_WORDS = {"neoforge": "neoforge", "neo forge": "neoforge", "fabric": "fabric", "quilt": "fabric", "forge": "forge"}
 
 
@@ -124,9 +125,18 @@ def plan(request: str) -> dict:
     if versions:
         from .resources import version_key
         version = (None, min(versions, key=version_key) if backport else versions[0])
-    # Fixing an existing pack needs no new project: drop routes that only matched words like "block" in the symptom.
+    # Symptom phrasings the keyword list misses: a resource pack plus missing/purple/black models or "after update".
+    symptom = (re.search(r"\b(?:missing|purple|pink|unable to load)\b", text)
+               or re.search(r"\bblack (?:models?|textures?|blocks?)\b", text)
+               or (re.search(r"\bmodels?\b", text) and re.search(r"\bafter (?:the |a )?(?:pack |resource pack )?update", text)))
+    if symptom and re.search(r"\b(?:resource ?pack|texture pack)", text) \
+            and not any(route["route"] == MISSING_MODELS for route in matched):
+        matched += [{"route": label, "commands": commands, "guide": guide, "pitfalls": pitfalls}
+                    for _, label, commands, guide, pitfalls in ROUTES if label == MISSING_MODELS]
+    # Fixing an existing pack needs no new project: drop routes that only matched words like "block" or
+    # "resource pack" (creating a pack) in the symptom.
     if any(route["route"] in PACK_FIXES for route in matched):
-        matched = [route for route in matched if route["route"] in PACK_FIXES or route["guide"] == "packs"]
+        matched = [route for route in matched if route["route"] in PACK_FIXES]
     packs_only = matched and all(route["guide"] == "packs" or route["route"] in PACK_FIXES for route in matched)
     steps = []
     if not packs_only:

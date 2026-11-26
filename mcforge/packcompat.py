@@ -179,7 +179,7 @@ def fix_model(model: dict, notes: list[str]) -> set[str]:
     if isinstance(textures, dict):
         for key, value in list(textures.items()):
             if isinstance(value, dict):
-                textures[key] = value.get("sprite")
+                textures[key] = value.get("sprite", "#missing")
                 fixes.add("texture_object")
     for element in model.get("elements") or []:
         if isinstance(element, dict):
@@ -305,7 +305,12 @@ def build(pack: Path, minecraft: str, *, out: Path | None = None, instance: Path
                 unreadable.append(name)
                 continue
             notes: list[str] = []
-            fixes = fix_model(model, notes) if isinstance(model, dict) else set()
+            try:
+                fixes = fix_model(model, notes) if isinstance(model, dict) else set()
+            except (TypeError, ValueError, AttributeError) as error:
+                # one malformed model (a non-numeric rotation, say) is listed and skipped; the run goes on
+                unreadable.append(f"{name}: {error}")
+                continue
             if fixes:
                 rewritten.append({"path": relative, "from": name, "fixes": sorted(fixes), "fallbacks": notes})
                 outputs[relative] = model

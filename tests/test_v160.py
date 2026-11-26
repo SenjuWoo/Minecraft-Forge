@@ -257,6 +257,20 @@ class PackCompat(Temp):
         self.assertTrue((self.root / "dir-out" / self.MODEL).is_file())
         self.assertIn("FancyDir: models rewritten", (self.root / "dir-out" / "pack.mcmeta").read_text(encoding="utf-8"))
 
+    def test_spriteless_texture_object_and_malformed_rotation(self):
+        bad = "assets/minecraft/models/block/bad.json"
+        bare = "assets/minecraft/models/block/bare.json"
+        pack = self.make_pack({bad: json.dumps({"elements": [{"rotation": {"origin": [0, 0, 0], "y": "abc"}}]}),
+                               bare: json.dumps({"textures": {"all": {"force_translucent": True}}})}, name="Odd.zip")
+        out = self.root / "odd"
+        code, output, _ = self.invoke(["packcompat", str(pack), "--minecraft", "1.21.1", "--out", str(out)])
+        result = json.loads(output)
+        self.assertEqual(code, 0, output)
+        self.assertTrue(any(entry.startswith(bad + ":") for entry in result["unreadable"]), result["unreadable"])
+        self.assertFalse((out / bad).exists())
+        self.assertEqual(json.loads((out / bare).read_text(encoding="utf-8"))["textures"]["all"], "#missing")
+        self.assertTrue((out / self.MODEL).is_file())  # the other files were still rewritten
+
     def test_destination_rules(self):
         pack = self.make_pack()
         out = self.root / "out"
@@ -321,6 +335,14 @@ class Routes(Temp):
         self.assertFalse(result["mod_needed"])
         self.assertNotIn("block", routes)
         self.assertTrue(routes["resource pack models the game cannot read"]["commands"][0].startswith("packcompat "))
+        for request in ("resource pack shows missing purple black models after update",
+                        "missing purple black models in my resource pack",
+                        "my resource pack models are missing after the pack update"):
+            result, routes = self.routes(request)
+            self.assertEqual(list(routes), ["resource pack models the game cannot read"], request)
+            self.assertFalse(result["mod_needed"], request)
+        # making a pack is still the pack route
+        self.assertIn("resource pack", self.routes("a resource pack that retextures stone black")[1])
         result, routes = self.routes("the game closes silently at load")
         self.assertFalse(result["mod_needed"])
         self.assertTrue(routes["silent exit while loading"]["commands"][0].startswith("links --instance"))
