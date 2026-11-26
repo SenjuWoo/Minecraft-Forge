@@ -1,11 +1,17 @@
 # Changelog
 
-## Unreleased
+## 1.6.0 - 2026-11-26
 
-Documentation only; no code, template or package change.
+Lessons from bringing newer Minecraft content into a 1.21.1 NeoForge pack. No command or option was removed.
 
-- README rewritten around a cover image and proof from real runs: `doctor` and `plan`, a quickstart-add-tests-verify build that passes compile, package and server load, the `preview` renders that `add` writes, and the mob asset pipeline with its look sheet (`docs/presentation/`, not part of the package).
-- README corrections: the library catalog has about 70 entries (was "~60"), `setup-java` also provisions JDK 8, the core needs only the standard library while the mob pipeline creates its own environment with numpy and Pillow when the interpreter lacks them, and `links` is listed under what you can make.
+- New `guide backport`: bringing content from a newer release into an older pack as one mod. Scope from the two versions' data-generator reports, reference sources for both (a throwaway project of the newer target; 26.x needs JDK 25), the vanilla-namespace decision and its checks, modules built in parallel worktrees with shared generated files rebuilt from the union of the content lists, converters checked against the older jar's own files, the 26.3 -> 1.21.1 format rules (recipes, loot tables, advancements, tags, block models, item definitions, equipment textures, signs, boats, worldgen, spawns, mob variants, AI, components), an API difference table, GameTest pitfalls and what stays out of scope.
+- New `packcompat PACK --minecraft V --out DIR` (or `--instance PATH [--apply]`, `--mod-jar JAR`): a resource pack whose models use a newer model format than the game reads renders those blocks as the missing model. The command applies the overlays the target reads, rewrites only the affected models (one rotation axis, angles clamped to the allowed steps, `shade_direction_override`, `light_emission`, texture objects) and, given the mod's JAR, replaces blockstates written for a snapshot of a block. Output is a small pack placed directly above the original; the original pack and `options.txt` are never changed. On a real pack it reproduced a hand-built overlay file for file.
+- `links` (and `inventory --links`) report classes compiled for a newer Java than the instance runs (`java_too_new`, exit 1). The instance's Java comes from its own Java setting (the JDK's `release` file, nothing is run), else its launcher metadata or Minecraft version; `--java N` overrides. A JAR that registers such a class as a Java service is flagged as loaded at startup (seen: an OpenCL module compiled for Java 25 that made a Java 21 game exit at load without a crash report); a low-code module whose mixin plugin runs on this Java is reported as guarded and does not fail the check.
+- `plan` routes backport requests to `guide backport` (and targets the older of two named versions), resource pack missing-model symptoms to `packcompat`, and silent exits at load to `links`.
+- Guides: `guide packs` (newer-format models in resource packs, blockstate parse warnings that stay), `guide testing` (a KubeJS pack showcase: every block and entity on a grid, screenshots, model-error counts), `guide libraries` (C2ME worker count measured in flight; the OpenCL module in a Java 21 pack), `guide launchers` (the class-version check).
+- README corrections and presentation (already on main before this release):
+  - README rewritten around a cover image and proof from real runs: `doctor` and `plan`, a quickstart-add-tests-verify build that passes compile, package and server load, the `preview` renders that `add` writes, and the mob asset pipeline with its look sheet (`docs/presentation/`, not part of the package).
+  - README corrections: the library catalog has about 70 entries (was "~60"), `setup-java` also provisions JDK 8, the core needs only the standard library while the mob pipeline creates its own environment with numpy and Pillow when the interpreter lacks them, and `links` is listed under what you can make.
 
 ## 1.5.3 - 2026-11-25
 

@@ -37,6 +37,10 @@
 
 - Selective glow and overlay passes (`cubes` step, `passes` kit), the pipeline `audio` post-processor and validator, copies in `audio-check`, bone rest rotation, the IK pole fix and Euler continuity, project commands in `mob/commands.py`, planned sound events, palette anchors, an opt-in audio scene.
 
+## Added in 1.6.0
+
+- `guide backport` (newer Minecraft content in an older pack as one mod), `packcompat` (a resource pack's newer-format models rewritten into an overlay pack), the class-version check in `links` (classes compiled for a newer Java than the instance runs), plan routes for both.
+
 ## Next
 
 - Java kits for the 26.x targets (registration, item properties and equipment assets changed in 26.1+).
