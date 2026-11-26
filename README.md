@@ -20,7 +20,7 @@ Point an agent at this folder and tell it to read **[AGENTS.md](AGENTS.md)**. No
 
 ## What you get
 
-- **Seven pinned targets.** Official NeoForge, Fabric and Forge templates for 1.20.1, 1.21.1 and 26.3, pinned by hash and built and server-loaded in CI. Any other version resolves on demand with `--fetch`.
+- **Seven pinned targets.** Official templates for NeoForge 1.21.1 and 26.3, Fabric 1.20.1, 1.21.1 and 26.3, and Forge 1.20.1 and 26.3, pinned by hash and built and server-loaded in CI. Any other version resolves on demand with `--fetch`.
 - **Content in one command.** `add` writes textures, models, blockstates, loot, lang and (on the four kit targets) the Java for blocks, items, food, tools, armor sets, furniture and mobs.
 - **Character mobs from code.** `pipeline` generates a GeckoLib asset pipeline: rig, voxel model, painted texture with glow, animation clips, springs, look sheets and sound wiring, each step with its own validator.
 - **Evidence, not claims.** `verify` builds, runs datagen and game tests, boots a headless server and writes a receipt that keeps compile, package, server load, client load and gameplay apart.
@@ -47,7 +47,7 @@ Any other version: `init ... --loader fabric --minecraft 1.19.2 --fetch` resolve
 
 ## Install
 
-Requires Python 3.11+ and a JDK. The core toolkit uses only the standard library; the generated mob asset pipeline installs its own numpy and Pillow into a local virtual environment. The toolkit finds installed JDKs and can install a verified Temurin with `setup-java --major 8|17|21|25`.
+Requires Python 3.11+ and a JDK. The core toolkit uses only the standard library; the generated mob asset pipeline needs numpy and Pillow and, when the interpreter lacks them, creates its own `.venv` with them (uv, or venv + pip) on first run. The toolkit finds installed JDKs and can install a verified Temurin with `setup-java --major 8|17|21|25`.
 
 ```powershell
 git clone https://github.com/SenjuWoo/Minecraft-Forge.git

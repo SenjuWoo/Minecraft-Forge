@@ -5,7 +5,7 @@
 Documentation only; no code, template or package change.
 
 - README rewritten around a cover image and proof from real runs: `doctor` and `plan`, a quickstart-add-tests-verify build that passes compile, package and server load, the `preview` renders that `add` writes, and the mob asset pipeline with its look sheet (`docs/presentation/`, not part of the package).
-- README corrections: the library catalog has about 70 entries (was "~60"), `setup-java` also provisions JDK 8, the core needs only the standard library while the mob pipeline installs numpy and Pillow into its own environment, and `links` is listed under what you can make.
+- README corrections: the library catalog has about 70 entries (was "~60"), `setup-java` also provisions JDK 8, the core needs only the standard library while the mob pipeline creates its own environment with numpy and Pillow when the interpreter lacks them, and `links` is listed under what you can make.
 
 ## 1.5.3 - 2026-11-25
 
